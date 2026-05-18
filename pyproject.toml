@@ -27,7 +27,7 @@ crypto = [
 
 # Optional MCP integration deps (kept tight to avoid example breakage).
 mcp = [
-  "mcp>=1.25.0,<2",
+  "mcp>=1.27.1,<2",
 ]
 
 [project.urls]
