@@ -80,6 +80,100 @@
       "mode": "core",
       "expected": "block",
       "expected_error_code": "PIC_TOOL_BINDING_MISMATCH"
+    },
+    {
+      "id": "evidence-hash-allow-001-simple",
+      "file": "evidence/allow/001_hash_simple.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-hash-block-001-mismatch",
+      "file": "evidence/block/001_hash_mismatch.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-hash-block-002-file-not-found",
+      "file": "evidence/block/002_hash_file_not_found.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-hash-block-003-invalid-sha256-format",
+      "file": "evidence/block/003_hash_invalid_sha256_format.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_SCHEMA_INVALID"
+    },
+    {
+      "id": "evidence-sandbox-block-001-path-traversal",
+      "file": "evidence/block/004_sandbox_path_traversal.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sandbox-block-002-absolute-outside-root",
+      "file": "evidence/block/005_sandbox_absolute_outside_root.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-allow-001-simple",
+      "file": "evidence/allow/002_sig_simple.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-sig-block-001-payload-tampered",
+      "file": "evidence/block/006_sig_payload_tampered.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-002-unknown-key-id",
+      "file": "evidence/block/007_sig_unknown_key_id.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-003-revoked-key",
+      "file": "evidence/block/008_sig_revoked_key.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-004-expired-key",
+      "file": "evidence/block/009_sig_expired_key.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-005-payload-too-large",
+      "file": "evidence/block/010_sig_payload_too_large.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-hash-allow-002-multiple-hashes",
+      "file": "evidence/allow/003_hash_multiple.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-mixed-allow-001-hash-and-sig",
+      "file": "evidence/allow/004_mixed_hash_and_sig.json",
+      "mode": "evidence",
+      "expected": "allow"
     }
   ]
 }

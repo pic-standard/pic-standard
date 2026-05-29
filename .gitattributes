@@ -1,0 +1,3 @@
+# Conformance artifacts may be referenced by SHA-256 in portable vectors.
+# Keep text artifact checkout bytes stable across platforms.
+conformance/artifacts/*.txt text eol=lf

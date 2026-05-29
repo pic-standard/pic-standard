@@ -1,0 +1,6 @@
+CFO Approval #001
+Invoice: invoice_001
+Approved amount: USD 500.00
+Approver: CFO
+Date: 2026-04-01
+Authorization: cfo-2026-04-01-001
