@@ -75,7 +75,7 @@ import sys
 import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Protocol
 
 # Ensure sdk-python is importable without install — mirrors tests/conftest.py.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -181,31 +181,129 @@ class RunnerReport:
         return self.total_count > 0 and self.passed_count == self.total_count
 
     def format_summary(self, verbose: bool = False) -> str:
+        """Back-compat shim that delegates to :class:`HumanRenderer`.
+
+        Preserves the v0.8.2 PR V8.2-2 API surface for any out-of-repo or
+        internal caller that imports ``RunnerReport`` and calls
+        ``format_summary()`` directly. New code SHOULD construct a
+        :class:`HumanRenderer` (or any other :class:`Renderer`
+        implementation) and call :meth:`Renderer.render_report` instead.
+
+        Output is byte-identical to
+        ``HumanRenderer().render_report(self, verbose=verbose)`` — the
+        runner CLI uses :class:`HumanRenderer` directly via
+        :func:`main`; this shim exists purely to avoid breaking external
+        callers across the v0.8.2 PR V8.2-3 commit-1 refactor boundary.
+
+        Deprecation timeline: this shim may be removed in a future major
+        version once external usage is confirmed nil. No deprecation
+        warning is emitted in v0.8.2 to keep the refactor truly
+        behavior-preserving at the CLI surface.
+        """
+        return HumanRenderer().render_report(self, verbose=verbose)
+
+
+class ManifestError(Exception):
+    """Raised when the manifest itself is malformed or contains invalid entries."""
+
+
+# ---------------------------------------------------------------------------
+# Output rendering
+# ---------------------------------------------------------------------------
+#
+# v0.8.2 PR V8.2-3 commit 1 introduces a Renderer seam so subsequent commits
+# can add machine-readable output modes (--json in commit 2) and operator
+# filters (--filter-mode / --filter-id in commit 3) without re-touching the
+# orchestrator or CLI entry point. Commit 1 is behavior-preserving: the
+# default invocation produces byte-identical stdout to the v0.8.2 PR V8.2-2
+# baseline (RunnerReport.format_summary semantics, moved verbatim into
+# HumanRenderer.render_report; RunnerReport.format_summary is kept as a
+# delegating compatibility shim).
+#
+# ManifestError handling intentionally stays out of the renderer surface in
+# commit 1. main() retains its existing
+#     except ManifestError as e:
+#         print(f"ManifestError: {e}", file=sys.stderr)
+#         return 2
+# contract from v0.8.2 PR V8.2-2. Routing manifest-error envelopes through
+# the renderer lands in commit 2 alongside the --json output mode, when the
+# JSON manifest-error envelope shape defined in the PR V8.2-3 design
+# checkpoint §2 needs a structured rendering path.
+
+
+class Renderer(Protocol):
+    """Output renderer protocol for the conformance runner.
+
+    Implementations transform a :class:`RunnerReport` into a string that
+    :func:`main` writes to stdout. The renderer abstraction is the seam
+    on which the v0.8.2 PR V8.2-3 follow-up commits build:
+
+      - Commit 2: ``JsonRenderer`` emits the JSON document defined in the
+        design checkpoint §2 (including the explicit manifest-error
+        envelope; commit 2 also routes ``ManifestError`` through this
+        renderer rather than the bare stderr print).
+      - Commit 3: filter-aware selection plumbing + the 8-token diagnostic
+        taxonomy are added; the renderer signature grows to accept the
+        selection block so JSON output's ``selection.filter_modes`` /
+        ``selection.filter_ids`` fields can be populated.
+
+    Commit 1 keeps the surface minimal: one method, one parameter beyond
+    the report itself.
+    """
+
+    def render_report(self, report: RunnerReport, *, verbose: bool) -> str:
+        """Return a string representation of ``report`` for printing.
+
+        The returned string does NOT include a trailing newline; the
+        caller's ``print()`` supplies it. Matches the v0.8.2 PR V8.2-2
+        ``RunnerReport.format_summary()`` contract.
+        """
+        ...
+
+
+class HumanRenderer:
+    """Default human-readable text renderer.
+
+    Output is byte-identical to v0.8.2 PR V8.2-2
+    ``RunnerReport.format_summary()`` (whose body this method replaces;
+    ``format_summary`` is retained as a delegating compatibility shim).
+    Format:
+
+      - Header block: runner name, manifest version, total vector count,
+        blank line.
+      - One line per vector: ``  {PASS|FAIL}  {id}``.
+      - Indented (8-space) reason lines on failure, or when ``verbose=True``
+        AND the result carries a non-empty ``reason`` string.
+      - Blank line.
+      - Final ``Summary: X/Y passed`` line; suffix ``(Z failed)`` when
+        not all vectors passed.
+
+    The byte-equivalence claim is verified at commit 1 save time by
+    SHA256-comparing pre-save and post-save default-invocation stdout.
+    """
+
+    def render_report(self, report: RunnerReport, *, verbose: bool) -> str:
         lines = [
             "PIC Conformance Runner v0.1",
-            f"Manifest version: {self.manifest_version}",
-            f"Vectors:          {self.total_count}",
+            f"Manifest version: {report.manifest_version}",
+            f"Vectors:          {report.total_count}",
             "",
         ]
-        for r in self.results:
+        for r in report.results:
             status = "PASS" if r.passed else "FAIL"
             lines.append(f"  {status}  {r.id}")
             if (not r.passed or verbose) and r.reason:
                 for line in r.reason.splitlines():
                     lines.append(f"        {line}")
         lines.append("")
-        if self.all_passed:
-            lines.append(f"Summary: {self.passed_count}/{self.total_count} passed")
+        if report.all_passed:
+            lines.append(f"Summary: {report.passed_count}/{report.total_count} passed")
         else:
-            failed = self.total_count - self.passed_count
+            failed = report.total_count - report.passed_count
             lines.append(
-                f"Summary: {self.passed_count}/{self.total_count} passed ({failed} failed)"
+                f"Summary: {report.passed_count}/{report.total_count} passed ({failed} failed)"
             )
         return "\n".join(lines)
-
-
-class ManifestError(Exception):
-    """Raised when the manifest itself is malformed or contains invalid entries."""
 
 
 # ---------------------------------------------------------------------------
@@ -1274,10 +1372,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         report = run_manifest(Path(args.manifest))
     except ManifestError as e:
+        # ManifestError handling stays out of the renderer surface in commit
+        # 1 (PR V8.2-3). Commit 2 will route this through the renderer when
+        # the JSON manifest-error envelope shape from the design checkpoint
+        # §2 lands. The stderr-print + exit-2 contract preserves v0.8.2 PR
+        # V8.2-2 behavior byte-for-byte.
         print(f"ManifestError: {e}", file=sys.stderr)
         return 2
 
-    print(report.format_summary(verbose=args.verbose))
+    renderer: Renderer = HumanRenderer()
+    print(renderer.render_report(report, verbose=args.verbose))
     return 0 if report.all_passed else 1
 
 
