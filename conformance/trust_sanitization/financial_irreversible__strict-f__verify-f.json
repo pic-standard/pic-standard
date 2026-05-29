@@ -1,0 +1,49 @@
+{
+  "id": "trust-financial_irreversible-strict-f-verify-f",
+  "description": "Trust-sanitization matrix cell: financial_irreversible, strict_trust=false, verify_evidence=false. Non-strict mode honors self-asserted trusted provenance; verifier allows.",
+  "source": "Lifted from tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX (financial_irreversible.json, strict=F, verify=F).",
+  "mode": "trust_sanitization",
+  "expected": "allow",
+  "options": {
+    "strict_trust": false,
+    "verify_evidence": false
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Execute wire transfer for Q4 server costs.",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "cfo_signed_invoice_hash",
+        "trust": "trusted"
+      },
+      {
+        "id": "slack_approval_manager",
+        "trust": "untrusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice hash matches authorized payment list",
+        "evidence": [
+          "cfo_signed_invoice_hash"
+        ]
+      },
+      {
+        "text": "Manager approved the expense via Slack",
+        "evidence": [
+          "slack_approval_manager"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "treasury.wire_transfer",
+      "args": {
+        "recipient": "AWS_Global_Payments",
+        "amount": 45000,
+        "currency": "USD",
+        "reference": "INV-9901"
+      }
+    }
+  }
+}

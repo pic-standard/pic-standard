@@ -260,6 +260,96 @@
       "mode": "trust_sanitization",
       "expected": "allow",
       "matrix_id": "financial_hash_ok"
+    },
+    {
+      "id": "trust-financial_irreversible-strict-f-verify-f",
+      "file": "trust_sanitization/financial_irreversible__strict-f__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "financial_irreversible"
+    },
+    {
+      "id": "trust-financial_irreversible-strict-f-verify-t",
+      "file": "trust_sanitization/financial_irreversible__strict-f__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "financial_irreversible"
+    },
+    {
+      "id": "trust-financial_irreversible-strict-t-verify-f",
+      "file": "trust_sanitization/financial_irreversible__strict-t__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "block",
+      "expected_error_code": "PIC_VERIFIER_FAILED",
+      "matrix_id": "financial_irreversible"
+    },
+    {
+      "id": "trust-financial_irreversible-strict-t-verify-t",
+      "file": "trust_sanitization/financial_irreversible__strict-t__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "block",
+      "expected_error_code": "PIC_VERIFIER_FAILED",
+      "matrix_id": "financial_irreversible"
+    },
+    {
+      "id": "trust-privacy_risk-strict-f-verify-f",
+      "file": "trust_sanitization/privacy_risk__strict-f__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "privacy_risk"
+    },
+    {
+      "id": "trust-privacy_risk-strict-f-verify-t",
+      "file": "trust_sanitization/privacy_risk__strict-f__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "privacy_risk"
+    },
+    {
+      "id": "trust-privacy_risk-strict-t-verify-f",
+      "file": "trust_sanitization/privacy_risk__strict-t__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "block",
+      "expected_error_code": "PIC_VERIFIER_FAILED",
+      "matrix_id": "privacy_risk"
+    },
+    {
+      "id": "trust-privacy_risk-strict-t-verify-t",
+      "file": "trust_sanitization/privacy_risk__strict-t__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "block",
+      "expected_error_code": "PIC_VERIFIER_FAILED",
+      "matrix_id": "privacy_risk"
+    },
+    {
+      "id": "trust-robotic_action-strict-f-verify-f",
+      "file": "trust_sanitization/robotic_action__strict-f__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "robotic_action"
+    },
+    {
+      "id": "trust-robotic_action-strict-f-verify-t",
+      "file": "trust_sanitization/robotic_action__strict-f__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "robotic_action"
+    },
+    {
+      "id": "trust-robotic_action-strict-t-verify-f",
+      "file": "trust_sanitization/robotic_action__strict-t__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "block",
+      "expected_error_code": "PIC_VERIFIER_FAILED",
+      "matrix_id": "robotic_action"
+    },
+    {
+      "id": "trust-robotic_action-strict-t-verify-t",
+      "file": "trust_sanitization/robotic_action__strict-t__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "block",
+      "expected_error_code": "PIC_VERIFIER_FAILED",
+      "matrix_id": "robotic_action"
     }
   ]
 }
