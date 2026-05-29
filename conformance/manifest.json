@@ -162,6 +162,18 @@
       "mode": "evidence",
       "expected": "block",
       "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-hash-allow-002-multiple-hashes",
+      "file": "evidence/allow/003_hash_multiple.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-mixed-allow-001-hash-and-sig",
+      "file": "evidence/allow/004_mixed_hash_and_sig.json",
+      "mode": "evidence",
+      "expected": "allow"
     }
   ]
 }

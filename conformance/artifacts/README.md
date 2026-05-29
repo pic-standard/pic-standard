@@ -47,6 +47,7 @@ Files in this directory are part of the **portable conformance surface**:
 | File | SHA-256 | Description |
 |------|---------|-------------|
 | `invoice_001.txt` | `a2e818612ae44f799be83833149cdd8a1ea750fa8d40bc8507f874f8ad488fbd` | Sample vendor invoice (102 bytes, ASCII, LF) — referenced by `evidence-hash-allow-001-simple` and other hash-evidence vectors. |
+| `cfo_approval_001.txt` | `cfbe63b0ea76039a33f7e81091bf9eaa3cc9d2f9cb9c096e9837aef79e96a98d` | Sample CFO approval note (132 bytes, ASCII, LF) — referenced by `evidence-hash-allow-002-multiple-hashes` and `evidence-mixed-allow-001-hash-and-sig`. |
 
 ## Adding a new artifact
 

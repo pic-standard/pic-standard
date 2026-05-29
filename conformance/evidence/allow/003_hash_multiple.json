@@ -1,0 +1,58 @@
+{
+  "id": "evidence-hash-allow-002-multiple-hashes",
+  "description": "Two hash-evidence entries reference distinct artifacts; both verify and upgrade their respective provenance entries to trusted, allowing a money-impact proposal.",
+  "source": "Adapted from tests/test_evidence_hash.py::test_evidence_multiple_pieces_verification.",
+  "mode": "evidence",
+  "expected": "allow",
+  "options": {
+    "verify_evidence": true,
+    "evidence_root_dir": "conformance/artifacts",
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send payment for approved invoice with CFO authorization",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "invoice_001",
+        "trust": "untrusted",
+        "source": "file://invoice_001.txt"
+      },
+      {
+        "id": "cfo_approval_001",
+        "trust": "untrusted",
+        "source": "file://cfo_approval_001.txt"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 is approved for $500 with CFO sign-off",
+        "evidence": [
+          "invoice_001",
+          "cfo_approval_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "invoice_001",
+        "type": "hash",
+        "ref": "file://invoice_001.txt",
+        "sha256": "a2e818612ae44f799be83833149cdd8a1ea750fa8d40bc8507f874f8ad488fbd"
+      },
+      {
+        "id": "cfo_approval_001",
+        "type": "hash",
+        "ref": "file://cfo_approval_001.txt",
+        "sha256": "cfbe63b0ea76039a33f7e81091bf9eaa3cc9d2f9cb9c096e9837aef79e96a98d"
+      }
+    ]
+  }
+}

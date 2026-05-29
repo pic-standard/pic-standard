@@ -1,0 +1,66 @@
+{
+  "id": "evidence-mixed-allow-001-hash-and-sig",
+  "description": "Proposal carries both hash and sig evidence; both verify and upgrade distinct provenance entries to trusted, allowing a money-impact proposal under strict trust.",
+  "source": "Adapted from tests/test_evidence_hash.py + tests/test_evidence_signature.py allow-path coverage.",
+  "mode": "evidence",
+  "expected": "allow",
+  "options": {
+    "verify_evidence": true,
+    "evidence_root_dir": "conformance/artifacts",
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send payment for approved invoice with CFO authorization",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "invoice_001",
+        "trust": "untrusted",
+        "source": "file://invoice_001.txt"
+      },
+      {
+        "id": "cfo_authorization_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 is approved for $500 with CFO sign-off",
+        "evidence": [
+          "invoice_001",
+          "cfo_authorization_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "invoice_001",
+        "type": "hash",
+        "ref": "file://invoice_001.txt",
+        "sha256": "a2e818612ae44f799be83833149cdd8a1ea750fa8d40bc8507f874f8ad488fbd"
+      },
+      {
+        "id": "cfo_authorization_001",
+        "type": "sig",
+        "ref": "inline:cfo_authorization_payload",
+        "payload": "amount=500;currency=USD;invoice=001;cfo_authorized=true",
+        "alg": "ed25519",
+        "signature": "XChLpbmUJ49RP5z7msnaFK5MVWhl94P0TJGO6UL7wTSw2W7aEXrBADRcSMY/hmVV+pQ5wnsJMZysh60x1soDDA==",
+        "key_id": "cfo_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "cfo_signer_v1": "EWMLfhSb+5kyBInkYbL3HYeD5CyqeruSnP7nqWvlb84="
+    }
+  }
+}
