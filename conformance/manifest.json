@@ -107,6 +107,20 @@
       "mode": "evidence",
       "expected": "block",
       "expected_error_code": "PIC_SCHEMA_INVALID"
+    },
+    {
+      "id": "evidence-sandbox-block-001-path-traversal",
+      "file": "evidence/block/004_sandbox_path_traversal.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sandbox-block-002-absolute-outside-root",
+      "file": "evidence/block/005_sandbox_absolute_outside_root.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
     }
   ]
 }

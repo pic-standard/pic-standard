@@ -1,0 +1,43 @@
+{
+  "id": "evidence-sandbox-block-001-path-traversal",
+  "description": "Hash evidence ref uses `..` traversal to escape evidence_root_dir; verifier rejects with PIC_EVIDENCE_FAILED.",
+  "source": "Adapted from sandbox checks in sdk-python/pic_standard/evidence.py::_read_sandboxed_file.",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_EVIDENCE_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "evidence_root_dir": "conformance/artifacts",
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send payment for approved invoice",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "invoice_001",
+        "trust": "untrusted",
+        "source": "file://../escape.txt"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 is approved for $500",
+        "evidence": ["invoice_001"]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": { "amount": 500 }
+    },
+    "evidence": [
+      {
+        "id": "invoice_001",
+        "type": "hash",
+        "ref": "file://../escape.txt",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  }
+}
