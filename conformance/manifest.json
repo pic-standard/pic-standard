@@ -230,6 +230,36 @@
       "mode": "trust_sanitization",
       "expected": "allow",
       "matrix_id": "read_only_query"
+    },
+    {
+      "id": "trust-financial_hash_ok-strict-f-verify-f",
+      "file": "trust_sanitization/financial_hash_ok__strict-f__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "block",
+      "expected_error_code": "PIC_VERIFIER_FAILED",
+      "matrix_id": "financial_hash_ok"
+    },
+    {
+      "id": "trust-financial_hash_ok-strict-f-verify-t",
+      "file": "trust_sanitization/financial_hash_ok__strict-f__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "financial_hash_ok"
+    },
+    {
+      "id": "trust-financial_hash_ok-strict-t-verify-f",
+      "file": "trust_sanitization/financial_hash_ok__strict-t__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "block",
+      "expected_error_code": "PIC_VERIFIER_FAILED",
+      "matrix_id": "financial_hash_ok"
+    },
+    {
+      "id": "trust-financial_hash_ok-strict-t-verify-t",
+      "file": "trust_sanitization/financial_hash_ok__strict-t__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "financial_hash_ok"
     }
   ]
 }
