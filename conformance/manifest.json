@@ -121,6 +121,47 @@
       "mode": "evidence",
       "expected": "block",
       "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-allow-001-simple",
+      "file": "evidence/allow/002_sig_simple.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-sig-block-001-payload-tampered",
+      "file": "evidence/block/006_sig_payload_tampered.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-002-unknown-key-id",
+      "file": "evidence/block/007_sig_unknown_key_id.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-003-revoked-key",
+      "file": "evidence/block/008_sig_revoked_key.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-004-expired-key",
+      "file": "evidence/block/009_sig_expired_key.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-005-payload-too-large",
+      "file": "evidence/block/010_sig_payload_too_large.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
     }
   ]
 }

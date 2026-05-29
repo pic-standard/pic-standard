@@ -1,0 +1,52 @@
+{
+  "id": "evidence-sig-block-002-unknown-key-id",
+  "description": "Signature references a key_id that is not in the trusted keyring; verifier rejects with PIC_EVIDENCE_FAILED.",
+  "source": "Adapted from tests/test_evidence_signature.py::test_sig_evidence_fails_unknown_key_id.",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_EVIDENCE_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Approve invoice 001 for payment",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approval_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "approval_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "approval_001",
+        "type": "sig",
+        "ref": "inline:approval_payload",
+        "payload": "amount=500;currency=USD;invoice=001",
+        "alg": "ed25519",
+        "signature": "IhFThrr+iDdx276GcGTPK9ZtkJJEdQX9NRTIpufeA0mmRzMk/dILcnQiAE1Cp09cgtPYRCKr3PEg7qirLshjBQ==",
+        "key_id": "unknown_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {}
+  }
+}

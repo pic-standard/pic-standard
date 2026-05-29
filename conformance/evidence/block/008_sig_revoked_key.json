@@ -1,0 +1,57 @@
+{
+  "id": "evidence-sig-block-003-revoked-key",
+  "description": "Signer key_id appears in revoked_keys; verifier rejects with PIC_EVIDENCE_FAILED before signature verification runs.",
+  "source": "Adapted from tests/test_key_resolver.py revoked-key flow.",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_EVIDENCE_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Approve invoice 001 for payment",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approval_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "approval_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "approval_001",
+        "type": "sig",
+        "ref": "inline:approval_payload",
+        "payload": "amount=500;currency=USD;invoice=001",
+        "alg": "ed25519",
+        "signature": "9rpqya7w3IPm/DCD4Q9J2h2q79zYLs90JCZ332geJvokEFOB4aVYc606r2qNj8GQc9vSvjknwR9b/LSipWmzBg==",
+        "key_id": "demo_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "demo_signer_v1": "aBIUEQqfNKB4EYVv2P8+pW+MkusHh8mi1dj7DFiwLdQ="
+    },
+    "revoked_keys": [
+      "demo_signer_v1"
+    ]
+  }
+}
