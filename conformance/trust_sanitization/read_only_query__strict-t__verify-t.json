@@ -1,0 +1,37 @@
+{
+  "id": "trust-read_only_query-strict-t-verify-t",
+  "description": "Trust-sanitization matrix cell: read_only_query, strict_trust=true, verify_evidence=true. Low-impact proposal is allowed regardless of trust mode.",
+  "source": "Lifted from tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX (read_only_query.json, strict=T, verify=T).",
+  "mode": "trust_sanitization",
+  "expected": "allow",
+  "options": {
+    "strict_trust": true,
+    "verify_evidence": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Search internal documentation for company holiday policy.",
+    "impact": "read",
+    "provenance": [
+      {
+        "id": "user_chat_input",
+        "trust": "untrusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "User is asking for public HR policy",
+        "evidence": [
+          "user_chat_input"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "rag_engine.search",
+      "args": {
+        "query": "holiday policy 2026",
+        "collection": "hr_public"
+      }
+    }
+  }
+}

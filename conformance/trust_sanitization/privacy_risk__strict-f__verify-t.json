@@ -1,0 +1,41 @@
+{
+  "id": "trust-privacy_risk-strict-f-verify-t",
+  "description": "Trust-sanitization matrix cell: privacy_risk, strict_trust=false, verify_evidence=true. Non-strict mode honors self-asserted trusted provenance; verify_evidence is a no-op because the proposal carries no top-level evidence entries.",
+  "source": "Lifted from tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX (privacy_risk.json, strict=F, verify=T).",
+  "mode": "trust_sanitization",
+  "expected": "allow",
+  "options": {
+    "strict_trust": false,
+    "verify_evidence": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Sync PII to Marketing Hub",
+    "impact": "privacy",
+    "provenance": [
+      {
+        "id": "user_email_consent",
+        "trust": "trusted"
+      },
+      {
+        "id": "customer_support_chat",
+        "trust": "untrusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "User provided explicit opt-in for data sync",
+        "evidence": [
+          "user_email_consent"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "hubspot.sync",
+      "args": {
+        "field": "email",
+        "value": "user@example.com"
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "trust-privacy_risk-strict-t-verify-f",
+  "description": "Trust-sanitization matrix cell: privacy_risk, strict_trust=true, verify_evidence=false. Strict mode sanitizes self-asserted trusted provenance to untrusted; with evidence verification disabled, no trust upgrade occurs and the privacy-impact proposal is rejected by the verifier.",
+  "source": "Lifted from tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX (privacy_risk.json, strict=T, verify=F).",
+  "mode": "trust_sanitization",
+  "expected": "block",
+  "expected_error_code": "PIC_VERIFIER_FAILED",
+  "options": {
+    "strict_trust": true,
+    "verify_evidence": false
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Sync PII to Marketing Hub",
+    "impact": "privacy",
+    "provenance": [
+      {
+        "id": "user_email_consent",
+        "trust": "trusted"
+      },
+      {
+        "id": "customer_support_chat",
+        "trust": "untrusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "User provided explicit opt-in for data sync",
+        "evidence": [
+          "user_email_consent"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "hubspot.sync",
+      "args": {
+        "field": "email",
+        "value": "user@example.com"
+      }
+    }
+  }
+}

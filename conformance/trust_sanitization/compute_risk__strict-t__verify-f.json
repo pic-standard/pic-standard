@@ -1,0 +1,37 @@
+{
+  "id": "trust-compute_risk-strict-t-verify-f",
+  "description": "Trust-sanitization matrix cell: compute_risk, strict_trust=true, verify_evidence=false. Low-impact proposal is allowed regardless of trust mode.",
+  "source": "Lifted from tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX (compute_risk.json, strict=T, verify=F).",
+  "mode": "trust_sanitization",
+  "expected": "allow",
+  "options": {
+    "strict_trust": true,
+    "verify_evidence": false
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Trigger Large-Scale Batch Simulation",
+    "impact": "compute",
+    "provenance": [
+      {
+        "id": "ops_dashboard_trigger",
+        "trust": "trusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Triggered by verified Ops Dashboard",
+        "evidence": [
+          "ops_dashboard_trigger"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "aws.batch_run",
+      "args": {
+        "nodes": 100,
+        "duration_hours": 24
+      }
+    }
+  }
+}

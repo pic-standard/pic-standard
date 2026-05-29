@@ -1,0 +1,47 @@
+{
+  "id": "trust-robotic_action-strict-f-verify-t",
+  "description": "Trust-sanitization matrix cell: robotic_action, strict_trust=false, verify_evidence=true. Non-strict mode honors self-asserted trusted provenance; verify_evidence is a no-op because the proposal carries no top-level evidence entries.",
+  "source": "Lifted from tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX (robotic_action.json, strict=F, verify=T).",
+  "mode": "trust_sanitization",
+  "expected": "allow",
+  "options": {
+    "strict_trust": false,
+    "verify_evidence": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Initialize emergency shutdown of industrial arm.",
+    "impact": "irreversible",
+    "provenance": [
+      {
+        "id": "lidar_safety_trigger",
+        "trust": "trusted"
+      },
+      {
+        "id": "operator_voice_command",
+        "trust": "untrusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "LIDAR detected obstacle within 0.5m hazard zone",
+        "evidence": [
+          "lidar_safety_trigger"
+        ]
+      },
+      {
+        "text": "Operator shouted 'Emergency Stop'",
+        "evidence": [
+          "operator_voice_command"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "abb_arm.halt",
+      "args": {
+        "mode": "hard_stop",
+        "engage_brakes": true
+      }
+    }
+  }
+}

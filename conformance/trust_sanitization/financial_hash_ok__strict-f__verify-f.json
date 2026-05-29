@@ -1,0 +1,47 @@
+{
+  "id": "trust-financial_hash_ok-strict-f-verify-f",
+  "description": "Trust-sanitization matrix cell: financial_hash_ok, strict_trust=false, verify_evidence=false. Money-impact proposal with untrusted provenance is rejected by the verifier when evidence verification is not run.",
+  "source": "Lifted from tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX (financial_hash_ok.json, strict=F, verify=F).",
+  "mode": "trust_sanitization",
+  "expected": "block",
+  "expected_error_code": "PIC_VERIFIER_FAILED",
+  "options": {
+    "strict_trust": false,
+    "verify_evidence": false,
+    "evidence_root_dir": "conformance/artifacts"
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send payment for approved invoice",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "invoice_001",
+        "trust": "untrusted",
+        "source": "file://invoice_001.txt"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 is approved for $500",
+        "evidence": [
+          "invoice_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "invoice_001",
+        "type": "hash",
+        "ref": "file://invoice_001.txt",
+        "sha256": "a2e818612ae44f799be83833149cdd8a1ea750fa8d40bc8507f874f8ad488fbd"
+      }
+    ]
+  }
+}
