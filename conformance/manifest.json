@@ -181,6 +181,55 @@
       "mode": "trust_sanitization",
       "expected": "allow",
       "matrix_id": "compute_risk"
+    },
+    {
+      "id": "trust-compute_risk-strict-f-verify-t",
+      "file": "trust_sanitization/compute_risk__strict-f__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "compute_risk"
+    },
+    {
+      "id": "trust-compute_risk-strict-t-verify-f",
+      "file": "trust_sanitization/compute_risk__strict-t__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "compute_risk"
+    },
+    {
+      "id": "trust-compute_risk-strict-t-verify-t",
+      "file": "trust_sanitization/compute_risk__strict-t__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "compute_risk"
+    },
+    {
+      "id": "trust-read_only_query-strict-f-verify-f",
+      "file": "trust_sanitization/read_only_query__strict-f__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "read_only_query"
+    },
+    {
+      "id": "trust-read_only_query-strict-f-verify-t",
+      "file": "trust_sanitization/read_only_query__strict-f__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "read_only_query"
+    },
+    {
+      "id": "trust-read_only_query-strict-t-verify-f",
+      "file": "trust_sanitization/read_only_query__strict-t__verify-f.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "read_only_query"
+    },
+    {
+      "id": "trust-read_only_query-strict-t-verify-t",
+      "file": "trust_sanitization/read_only_query__strict-t__verify-t.json",
+      "mode": "trust_sanitization",
+      "expected": "allow",
+      "matrix_id": "read_only_query"
     }
   ]
 }
