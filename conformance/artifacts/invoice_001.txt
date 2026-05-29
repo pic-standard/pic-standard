@@ -1,0 +1,5 @@
+Invoice #001
+Vendor: Acme Industries
+Amount: USD 500.00
+Date: 2026-04-01
+Approval: cfo-2026-04-01-001

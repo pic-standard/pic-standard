@@ -80,6 +80,12 @@
       "mode": "core",
       "expected": "block",
       "expected_error_code": "PIC_TOOL_BINDING_MISMATCH"
+    },
+    {
+      "id": "evidence-hash-allow-001-simple",
+      "file": "evidence/allow/001_hash_simple.json",
+      "mode": "evidence",
+      "expected": "allow"
     }
   ]
 }
