@@ -1,0 +1,43 @@
+{
+  "id": "evidence-hash-block-003-invalid-sha256-format",
+  "description": "Malformed hash-evidence sha256 is rejected by proposal schema validation before evidence verification runs.",
+  "source": "Adapted from tests/test_evidence_hash.py::test_evidence_invalid_hash_string_fails.",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_SCHEMA_INVALID",
+  "options": {
+    "verify_evidence": true,
+    "evidence_root_dir": "conformance/artifacts",
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send payment for approved invoice",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "invoice_001",
+        "trust": "untrusted",
+        "source": "file://invoice_001.txt"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 is approved for $500",
+        "evidence": ["invoice_001"]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": { "amount": 500 }
+    },
+    "evidence": [
+      {
+        "id": "invoice_001",
+        "type": "hash",
+        "ref": "file://invoice_001.txt",
+        "sha256": "not-a-valid-sha256"
+      }
+    ]
+  }
+}

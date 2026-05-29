@@ -86,6 +86,27 @@
       "file": "evidence/allow/001_hash_simple.json",
       "mode": "evidence",
       "expected": "allow"
+    },
+    {
+      "id": "evidence-hash-block-001-mismatch",
+      "file": "evidence/block/001_hash_mismatch.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-hash-block-002-file-not-found",
+      "file": "evidence/block/002_hash_file_not_found.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-hash-block-003-invalid-sha256-format",
+      "file": "evidence/block/003_hash_invalid_sha256_format.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_SCHEMA_INVALID"
     }
   ]
 }

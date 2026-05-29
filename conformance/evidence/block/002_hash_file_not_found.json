@@ -1,0 +1,43 @@
+{
+  "id": "evidence-hash-block-002-file-not-found",
+  "description": "Hash evidence references a file that does not exist; verifier rejects with PIC_EVIDENCE_FAILED.",
+  "source": "Adapted from tests/test_evidence_hash.py::test_evidence_invalid_file_path_raises_error.",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_EVIDENCE_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "evidence_root_dir": "conformance/artifacts",
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send payment for approved invoice",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "invoice_001",
+        "trust": "untrusted",
+        "source": "file://missing_invoice_001.txt"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 is approved for $500",
+        "evidence": ["invoice_001"]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": { "amount": 500 }
+    },
+    "evidence": [
+      {
+        "id": "invoice_001",
+        "type": "hash",
+        "ref": "file://missing_invoice_001.txt",
+        "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+      }
+    ]
+  }
+}
