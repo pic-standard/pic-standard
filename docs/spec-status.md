@@ -16,10 +16,57 @@
 | v0.7.5 | Trust sanitization (`strict_trust`), deprecation warning for self-asserted trust, attestation object draft, migration guide | None — behavioral option only; wire format unchanged |
 | v0.8.0 | PIC Canonical JSON v1 spec (`docs/canonicalization.md`) + reference implementation (`pic_standard.canonical`), initial canonicalization + core conformance suite, conformance runner (`python -m conformance.run`), `PIC Conformance` CI job, refined attestation object draft with byte-level worked example | None — new capability added; existing proposals and signature verification paths unchanged. Canonicalization is not yet wired into evidence signing in v0.8.0. |
 | v0.8.1 | `PICSemiTrustedDeprecationWarning` for `provenance[].trust = "semi_trusted"`; canonical normalization at the model-validation boundary (pydantic field validator on `Provenance.trust`) with a bridge helper in `verify_proposal()` triggering it after JSON Schema validation; both deprecation-warning classes re-exported at package root; example files migrated off `semi_trusted`; verdict-regression matrix added as a permanent CI guard for the dict-vs-model boundary | None — schema enum unchanged in v0.8.1 (still accepts `"semi_trusted"`); runtime normalizes to `"untrusted"` at parse time. Wire format unchanged. Schema-level removal scheduled for v0.9.0. |
+| v0.8.2 | Evidence-mode conformance vectors (14 vectors under `conformance/evidence/`); trust-sanitization-mode conformance vectors (24 vectors under `conformance/trust_sanitization/` covering the `strict_trust × verify_evidence` matrix lifted from `tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX`); conformance runner hardening (`--json` output, `--filter-mode`/`--filter-id` filters, 8-token diagnostic taxonomy, manifest-error envelope, subprocess-based CLI test suite in `tests/test_conformance_runner.py`); initial DRAFT specs `docs/spec-core.md` and `docs/spec-evidence.md` defining `PIC-Core` and `PIC-Evidence` conformance profiles in BCP 14 normative language. DRAFTs not final-normative until v1.0; published for community feedback per ROADMAP §1.3/§1.4. | None — additive only. New conformance vectors, machine-readable runner output, and DRAFT specs do not change the proposal wire format or existing verifier behavior. During runner-hardening, the default-invocation conformance runner human output format was preserved byte-identically relative to the post-vector baseline; vector counts changed only because new conformance vectors were added. |
 
 The PIC/1.0 proposal structure and wire-level schema have remained stable since the RFC anchor. Post-RFC changes in v0.6.x–v0.8.x primarily affected shared pipeline behavior, trust resolution, integration surface, runtime efficiency, and canonicalization/conformance tooling rather than introducing a wire-format break.
 
 **Current Python reference implementation:** v0.8.1
+
+---
+
+## PIC/1.0 Specifications
+
+This repository hosts PIC/1.0 specification-track documents in
+addition to RFC-0001. Specifications cite RFC-0001 and the frozen
+canonicalization spec as authoritative; they restate v0.7.5+ semantics
+in BCP 14 normative language for implementer-facing reference.
+
+| Specification | Status | Profile coverage | Source |
+|---------------|--------|------------------|--------|
+| [PIC Canonical JSON v1](canonicalization.md) | Stable (frozen as of v0.8.0) | Required by `PIC-Evidence` for canonical-signing mode and attestation-object digest binding | `docs/canonicalization.md` |
+| [PIC Attestation Object v1 — Draft](attestation-object-draft.md) | DRAFT | Required by `PIC-Evidence` for canonical-signing mode (opt-in during v0.8.x; intended default before PIC v1.0 unless superseded by DRAFT resolution) | `docs/attestation-object-draft.md` |
+| [PIC Core Verifier Semantics](spec-core.md) | DRAFT (v0.8.2) | Defines `PIC-Core` profile | `docs/spec-core.md` |
+| [PIC Evidence Verification Semantics](spec-evidence.md) | DRAFT (v0.8.2) | Defines `PIC-Evidence` profile | `docs/spec-evidence.md` |
+
+### Conformance profiles
+
+Defined normatively in [`spec-core.md §2`](spec-core.md#2-scope--conformance-profiles)
+and [`spec-evidence.md §2`](spec-evidence.md#2-scope--conformance-profiles).
+Summary:
+
+- **`PIC-Core`** — Action Proposal parsing, impact taxonomy, trust
+  sanitization, tool binding, verifier outcomes. Passes
+  `conformance/core/` and `conformance/trust_sanitization/`.
+- **`PIC-Evidence`** — Evidence object parsing, hash verification,
+  signature verification, key lifecycle, trust upgrade. Passes
+  `conformance/evidence/`.
+- **`PIC-Full`** — Both `PIC-Core` and `PIC-Evidence`. An
+  implementation MUST NOT claim `PIC-Full` unless it satisfies both
+  underlying profiles.
+
+A conforming implementation MUST state which profile(s) it implements.
+
+### DRAFT status discipline
+
+DRAFT specifications are not final-normative until PIC v1.0 (per
+ROADMAP §1.3/§1.4). Open questions are tracked in each spec's
+Appendix C ("Open Questions Registry") with stable IDs (e.g.
+`OQ-CORE-001`, `OQ-EVIDENCE-001`) so they can be cross-referenced
+from issues, PRs, and future revisions. DRAFTs cite higher-precedence
+artifacts (RFC-0001, `canonicalization.md`) without restating their
+normative content; conflicts are resolved as Open Questions, not by
+silent re-interpretation (see each spec's "Normative Precedence and
+Conflict Resolution" section).
 
 ---
 
