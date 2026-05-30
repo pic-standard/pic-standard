@@ -16,6 +16,7 @@ From the repo root::
     python -m conformance.run
     python -m conformance.run --manifest conformance/manifest.json
     python -m conformance.run --verbose
+    python -m conformance.run --json
 
 Exit codes
 ----------
@@ -220,35 +221,40 @@ class ManifestError(Exception):
 # HumanRenderer.render_report; RunnerReport.format_summary is kept as a
 # delegating compatibility shim).
 #
-# ManifestError handling intentionally stays out of the renderer surface in
-# commit 1. main() retains its existing
-#     except ManifestError as e:
-#         print(f"ManifestError: {e}", file=sys.stderr)
-#         return 2
-# contract from v0.8.2 PR V8.2-2. Routing manifest-error envelopes through
-# the renderer lands in commit 2 alongside the --json output mode, when the
-# JSON manifest-error envelope shape defined in the PR V8.2-3 design
-# checkpoint §2 needs a structured rendering path.
+# Commit 2 (this commit) adds JsonRenderer for --json output mode and
+# extends the Renderer protocol with render_manifest_error so both
+# renderer implementations can surface manifest-load failures through
+# their declared output format. main() chooses the renderer and routes
+# both the success path (render_report) and the ManifestError path
+# (render_manifest_error) through it. Human mode keeps writing
+# ManifestError to stderr; JSON mode writes the manifest-error envelope
+# from PR V8.2-3 design checkpoint section 2 to stdout (JSON consumers
+# parse a single stream).
+#
+# Commit 3 will add --filter-mode / --filter-id flags, the 8-token
+# diagnostic taxonomy, summary.diagnostic="no_vectors_selected" handling,
+# and populate results[].reason_code (which commit 2 leaves null for
+# both passing and failing vectors per the staged-refactor lock).
 
 
 class Renderer(Protocol):
     """Output renderer protocol for the conformance runner.
 
-    Implementations transform a :class:`RunnerReport` into a string that
-    :func:`main` writes to stdout. The renderer abstraction is the seam
-    on which the v0.8.2 PR V8.2-3 follow-up commits build:
+    Implementations transform a :class:`RunnerReport` (or a manifest
+    error message) into a string that :func:`main` writes to stdout
+    (or stderr for human-mode manifest errors). The renderer
+    abstraction is the seam on which the v0.8.2 PR V8.2-3 follow-up
+    commits build:
 
-      - Commit 2: ``JsonRenderer`` emits the JSON document defined in the
-        design checkpoint §2 (including the explicit manifest-error
-        envelope; commit 2 also routes ``ManifestError`` through this
-        renderer rather than the bare stderr print).
-      - Commit 3: filter-aware selection plumbing + the 8-token diagnostic
-        taxonomy are added; the renderer signature grows to accept the
-        selection block so JSON output's ``selection.filter_modes`` /
-        ``selection.filter_ids`` fields can be populated.
-
-    Commit 1 keeps the surface minimal: one method, one parameter beyond
-    the report itself.
+      - Commit 2 (this commit): ``JsonRenderer`` emits the JSON document
+        defined in the design checkpoint section 2, including the
+        explicit manifest-error envelope.
+      - Commit 3: filter-aware selection plumbing + the 8-token
+        diagnostic taxonomy are added; the renderer signature grows to
+        accept the selection block so JSON output's
+        ``selection.filter_modes`` / ``selection.filter_ids`` fields
+        can be populated, and ``results[].reason_code`` becomes non-null
+        for failing vectors.
     """
 
     def render_report(self, report: RunnerReport, *, verbose: bool) -> str:
@@ -257,6 +263,27 @@ class Renderer(Protocol):
         The returned string does NOT include a trailing newline; the
         caller's ``print()`` supplies it. Matches the v0.8.2 PR V8.2-2
         ``RunnerReport.format_summary()`` contract.
+        """
+        ...
+
+    def render_manifest_error(
+        self,
+        message: str,
+        *,
+        manifest_version: Optional[str] = None,
+    ) -> str:
+        """Render a manifest-error envelope/message.
+
+        Implementations decide the format: :class:`HumanRenderer`
+        returns the freeform ``"ManifestError: <message>"`` string that
+        v0.8.2 PR V8.2-2 wrote to stderr; :class:`JsonRenderer` returns
+        the JSON manifest-error envelope from PR V8.2-3 design
+        checkpoint section 2.
+
+        ``manifest_version`` is populated by the caller iff it was
+        readable before the validation failure point. The human form
+        ignores it; the JSON form surfaces it as ``manifest_version``
+        (else ``null``).
         """
         ...
 
@@ -278,8 +305,13 @@ class HumanRenderer:
       - Final ``Summary: X/Y passed`` line; suffix ``(Z failed)`` when
         not all vectors passed.
 
-    The byte-equivalence claim is verified at commit 1 save time by
-    SHA256-comparing pre-save and post-save default-invocation stdout.
+    Manifest-error form (added in commit 2) returns the byte-identical
+    ``"ManifestError: <message>"`` string that v0.8.2 PR V8.2-2 wrote to
+    stderr; :func:`main` continues to send it to stderr in human mode.
+
+    The byte-equivalence claim is verified at each PR V8.2-3 commit save
+    time by SHA256-comparing pre-save and post-save default-invocation
+    stdout.
     """
 
     def render_report(self, report: RunnerReport, *, verbose: bool) -> str:
@@ -304,6 +336,141 @@ class HumanRenderer:
                 f"Summary: {report.passed_count}/{report.total_count} passed ({failed} failed)"
             )
         return "\n".join(lines)
+
+    def render_manifest_error(
+        self,
+        message: str,
+        *,
+        manifest_version: Optional[str] = None,
+    ) -> str:
+        """Render a manifest-error message in human-readable form.
+
+        Output is byte-identical to the v0.8.2 PR V8.2-2 stderr message
+        ``"ManifestError: <message>"``. The ``manifest_version``
+        parameter is accepted for protocol parity with
+        :class:`JsonRenderer` but intentionally not surfaced — the human
+        form has nowhere to expose it without breaking the
+        byte-identical guarantee.
+        """
+        del manifest_version
+        return f"ManifestError: {message}"
+
+
+class JsonRenderer:
+    """JSON output renderer for the conformance runner.
+
+    Emits the JSON document defined in v0.8.2 PR V8.2-3 design checkpoint
+    section 2. Output is pretty-printed (2-space indent) to stdout. The
+    renderer is the sole producer of output when ``--json`` is set;
+    ``--verbose`` is accepted but has no effect (JSON always carries
+    full per-vector detail).
+
+    Commit-staged contract notes (refined in subsequent PR V8.2-3 commits):
+
+      - In commit 2 (this commit), ``results[].reason_code`` is ``null``
+        for both passing AND failing vectors; the 8-token diagnostic
+        taxonomy populates the field in commit 3. The freeform
+        ``results[].message`` field carries the existing failure-reason
+        string verbatim in the meantime, so debuggability is preserved
+        across the staged refactor.
+      - In commit 2, ``summary.diagnostic`` and ``summary.message`` are
+        ``null`` for normal-run reports. They become non-null in commit
+        3 when ``--filter-*`` selects zero vectors (diagnostic
+        ``"no_vectors_selected"``). The manifest-error envelope path
+        uses ``summary.diagnostic="manifest_invalid"`` already in this
+        commit (see :meth:`render_manifest_error`).
+      - ``selection.filter_modes`` / ``selection.filter_ids`` are always
+        empty lists in commit 2 (no filter flags exist yet); commit 3
+        populates them.
+
+    Manifest-error envelope ``summary.message`` is rendered as
+    ``"ManifestError: <message>"`` — the same prefix
+    :class:`HumanRenderer` uses for stderr. The prefix is part of the
+    locked PR V8.2-3 design checkpoint section 2 shape so JSON consumers
+    and humans see the same error string format.
+    """
+
+    def render_report(self, report: RunnerReport, *, verbose: bool) -> str:
+        # verbose is accepted for Renderer protocol parity but ignored:
+        # JSON output always carries full per-vector detail.
+        del verbose
+        results_json: List[Dict[str, Any]] = []
+        for r in report.results:
+            results_json.append(
+                {
+                    "id": r.id,
+                    "mode": r.mode,
+                    "passed": r.passed,
+                    # reason_code is None in commit 2 for both passing and
+                    # failing vectors; commit 3 populates with the 8-token
+                    # diagnostic taxonomy. Freeform `message` carries the
+                    # legacy reason string verbatim so failing-vector
+                    # diagnostics remain visible during the staged refactor.
+                    "reason_code": None,
+                    "message": r.reason if (not r.passed and r.reason) else None,
+                }
+            )
+        envelope: Dict[str, Any] = {
+            "manifest_version": report.manifest_version,
+            "selection": {
+                "total_in_manifest": report.total_count,
+                "selected": report.total_count,
+                "filter_modes": [],
+                "filter_ids": [],
+            },
+            "results": results_json,
+            "summary": {
+                "total": report.total_count,
+                "passed": report.passed_count,
+                "failed": report.total_count - report.passed_count,
+                "all_passed": report.all_passed,
+                "diagnostic": None,
+                "message": None,
+            },
+            "exit_code": 0 if report.all_passed else 1,
+        }
+        return json.dumps(envelope, indent=2)
+
+    def render_manifest_error(
+        self,
+        message: str,
+        *,
+        manifest_version: Optional[str] = None,
+    ) -> str:
+        """Render the JSON manifest-error envelope per design checkpoint section 2.
+
+        ``manifest_version`` may be populated if the manifest's top-level
+        ``version`` field was readable before the validation failure
+        point; otherwise ``None``. In commit 2 the runner always passes
+        ``None`` (no fine-grained "we got past version parsing" signal
+        from :func:`_validate_manifest`); commit 3 may refine if the
+        differentiation becomes useful for operators.
+
+        ``summary.message`` is rendered with the ``"ManifestError: "``
+        prefix — same as the :class:`HumanRenderer` stderr form — per
+        the PR V8.2-3 design checkpoint section 2 lock. JSON consumers
+        and humans observe the same error string format.
+        """
+        envelope: Dict[str, Any] = {
+            "manifest_version": manifest_version,
+            "selection": {
+                "total_in_manifest": 0,
+                "selected": 0,
+                "filter_modes": [],
+                "filter_ids": [],
+            },
+            "results": [],
+            "summary": {
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "all_passed": False,
+                "diagnostic": "manifest_invalid",
+                "message": f"ManifestError: {message}",
+            },
+            "exit_code": 2,
+        }
+        return json.dumps(envelope, indent=2)
 
 
 # ---------------------------------------------------------------------------
@@ -1365,22 +1532,36 @@ def main(argv: Optional[List[str]] = None) -> int:
         "--verbose",
         "-v",
         action="store_true",
-        help="Show per-vector detail even for passing vectors.",
+        help="Show per-vector detail even for passing vectors (human mode only).",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help=(
+            "Emit machine-readable JSON output to stdout instead of human "
+            "text. Suppresses all human prose; the manifest-error envelope "
+            "goes to stdout (not stderr) so JSON consumers can parse a "
+            "single stream."
+        ),
     )
     args = parser.parse_args(argv)
+
+    renderer: Renderer = JsonRenderer() if args.json else HumanRenderer()
 
     try:
         report = run_manifest(Path(args.manifest))
     except ManifestError as e:
-        # ManifestError handling stays out of the renderer surface in commit
-        # 1 (PR V8.2-3). Commit 2 will route this through the renderer when
-        # the JSON manifest-error envelope shape from the design checkpoint
-        # §2 lands. The stderr-print + exit-2 contract preserves v0.8.2 PR
-        # V8.2-2 behavior byte-for-byte.
-        print(f"ManifestError: {e}", file=sys.stderr)
+        # Human mode: print to stderr (byte-identical to v0.8.2 PR V8.2-2).
+        # JSON mode:  print the manifest-error envelope to stdout per the
+        # PR V8.2-3 design checkpoint section 2 lock — JSON consumers MUST
+        # be able to parse a single stream without merging stderr.
+        rendered = renderer.render_manifest_error(str(e))
+        if args.json:
+            print(rendered)
+        else:
+            print(rendered, file=sys.stderr)
         return 2
 
-    renderer: Renderer = HumanRenderer()
     print(renderer.render_report(report, verbose=args.verbose))
     return 0 if report.all_passed else 1
 
