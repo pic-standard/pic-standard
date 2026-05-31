@@ -59,8 +59,8 @@ Specifications in this project are treated as evolving drafts until cross-implem
 |------|--------|
 | `docs/canonicalization.md` (PIC-CJSON/1.0) | **Frozen at v0.8.0** — exceptional case; clean external grounding in RFC 8785 made early freeze safe |
 | `docs/attestation-object-draft.md` | DRAFT throughout v0.8.x; refined under cross-impl pressure in v0.9.x; promoted to normative at v1.0 |
-| `docs/spec-core.md` | Initial DRAFT in v0.8.2 (deferred from v0.8.1); evolves through v0.9.x; promoted to normative at v1.0 |
-| `docs/spec-evidence.md` | Initial DRAFT in v0.8.2 (deferred from v0.8.1); evolves through v0.9.x; promoted to normative at v1.0 |
+| `docs/spec-core.md` | Initial DRAFT shipped in v0.8.2; evolves through v0.9.x; promoted to normative at v1.0 |
+| `docs/spec-evidence.md` | Initial DRAFT shipped in v0.8.2; evolves through v0.9.x; promoted to normative at v1.0 |
 
 **Rationale:** A spec is genuinely frozen only when independent implementations have exposed its ambiguities. Freezing before cross-impl conformance produces specs that look authoritative but in fact have unresolved corner cases. PIC-CJSON/1.0 is the exception because RFC 8785 provided the missing external grounding before any second implementation existed.
 
@@ -200,7 +200,7 @@ Future canonicalization-related work is not "design canonicalization" but:
 ---
 
 ### 1.2 Conformance expansion
-**Target:** v0.8.2 (deferred from v0.8.1)
+**Status:** Shipped in v0.8.2
 
 Expand the suite beyond first pass:
 
@@ -230,7 +230,7 @@ Expand the suite beyond first pass:
 ---
 
 ### 1.3 Initial DRAFT Core spec
-**Target:** v0.8.2 (deferred from v0.8.1)
+**Status:** Shipped in v0.8.2
 
 **File:** `docs/spec-core.md` (DRAFT)
 
@@ -255,7 +255,7 @@ Conformant verifiers MUST treat inbound `provenance[].trust` values as non-autho
 ---
 
 ### 1.4 Initial DRAFT Evidence spec
-**Target:** v0.8.2 (deferred from v0.8.1)
+**Status:** Shipped in v0.8.2
 
 **File:** `docs/spec-evidence.md` (DRAFT)
 
@@ -277,7 +277,7 @@ The initial draft covers:
 ---
 
 ### 1.5 Canonical runtime signing
-**Target:** v0.8.2
+**Status:** Shipped in v0.8.2
 
 Wire canonical attestation-object bytes into the live signing/verification path.
 
@@ -340,7 +340,7 @@ Implements the trajectory committed in Phase 0.
 
 ### 2.1 Formalize errors
 **File:** `docs/ERRORS.md`
-**Target:** v0.8.2 / v0.9.0
+**Target:** v0.9.0
 
 Document:
 - Code meaning
