@@ -23,6 +23,12 @@ identifiers:
   - type: doi
     value: "10.5281/zenodo.20072579"
     description: "Version DOI for v0.8.1 (archived 2026-05-07)"
+  - type: doi
+    value: "10.5281/zenodo.20125662"
+    description: "Version DOI for v0.8.1.1 (archived 2026-05-11)"
+  - type: doi
+    value: "10.5281/zenodo.20476984"
+    description: "Version DOI for v0.8.2 (archived 2026-05-31)"
 
 keywords:
   - ai-safety
