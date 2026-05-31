@@ -1,0 +1,54 @@
+{
+  "id": "evidence-sig-block-014-canonical-intent-digest-mismatch",
+  "description": "Canonical-mode signature verifies, but attestation.intent_digest is the SHA-256 of a DIFFERENT intent string than proposal.intent. Per spec-evidence.md \u00a76.4, post-signature digest binding (when intent_digest is present) MUST fail closed.",
+  "source": "Hand-authored against docs/spec-evidence.md \u00a76.4 (intent_digest binding).",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_EVIDENCE_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Approve invoice 001 for payment",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approval_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "approval_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "approval_001",
+        "type": "sig",
+        "ref": "inline:attestation",
+        "payload": "{\n  \"attestation_version\": \"PIC-ATT/1.0\",\n  \"tool\": \"payments_send\",\n  \"impact\": \"money\",\n  \"args_digest\": \"0780491803d7a0848aa262e346d8b1a3d7cfa31fe7655948de034ec7c10f84d0\",\n  \"claims_digest\": \"052cd20baec67ded1863c4fdb00ce0c4ccb3a15fdb211efda548a2aca94ddb29\",\n  \"provenance_ids\": [\n    \"approval_001\"\n  ],\n  \"intent_digest\": \"c50ba8f12c58910654233d8ff6318b8f09e73014ecd1ad526e9813cc9ee9e86c\",\n  \"expires_at\": \"2099-01-01T00:00:00Z\"\n}",
+        "alg": "ed25519",
+        "signature": "jTc1cMpO7PJ7GT8gZoVYdPeD6ulPlF7TafIqByueW3bHk9Rs6N1dkD67rM//iJHcjOG8t8RxMdNj0xyIS+qoDw==",
+        "key_id": "canonical_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "canonical_signer_v1": "FQ2Vb40Zm/bneLd/01vj3GTSoPfZ9QAXSTpoIygujkk="
+    }
+  }
+}

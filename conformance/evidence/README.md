@@ -222,6 +222,66 @@ When adding a new sig vector:
 Vectors that test revocation or expiry use the `revoked_keys` array or
 the structured form with an `expires_at` in the past.
 
+## Canonical-mode signature vectors
+
+A subset of signature-evidence vectors exercise the opt-in
+canonical attestation-object signing mode defined in
+[`docs/spec-evidence.md §6.2`](../../docs/spec-evidence.md). The
+mode is selected by the presence of a string-valued
+`attestation_version` in the parsed payload (current supported
+allowlist: `"PIC-ATT/1.0"`). Bytes-to-verify are
+`canonicalize(parsed_attestation_object)` per
+[`docs/canonicalization.md §8.4`](../../docs/canonicalization.md#84-attestation-object-serialization),
+not the raw UTF-8 bytes of the payload string.
+
+For these vectors:
+
+1. **Payload string is intentionally non-canonical** (e.g., pretty-printed
+   JSON via `json.dumps(att, indent=2)`) so that any implementation
+   that incorrectly signs/verifies raw transport bytes will fail
+   while a conformant implementation that re-canonicalizes the
+   parsed attestation will succeed.
+2. **Single failing condition discipline (block vectors).** Each
+   canonical-mode block vector isolates exactly one failure mode
+   (tampered signature, raw-byte sig over canonical payload,
+   unknown attestation_version, non-string version, root-/nested-
+   duplicate key, args/claims/intent digest mismatch, tool/impact/
+   provenance_ids mismatch, expires_at past/whitespace/naive,
+   uppercase digest shape). Vectors that test post-signature
+   binding (digest/field mismatches) embed a signature that is
+   valid over `canonicalize(parsed_attestation)`, so the only
+   failing condition is the binding rule.
+3. **Same-value nested duplicates pin recursive detection.** The
+   nested-duplicate-key vector uses `"foo":1,"foo":1` (identical
+   values) so that a non-recursive duplicate-key implementation
+   would collapse to the signed canonical form and incorrectly
+   accept the entry. Only a recursive `object_pairs_hook` (firing
+   at every nesting level) rejects the payload.
+4. **Uppercase digest shape pins the lowercase 64-char hex rule.**
+   The invalid-digest-shape vector uses the UPPERCASE hex form of
+   the otherwise-correct args_digest, so that an implementation
+   that case-folds or accepts uppercase hex would let the vector
+   through. A wrong-value digest would conflate shape with binding
+   mismatch — both would block, masking the shape bug.
+
+When adding a new canonical-mode sig vector:
+
+1. Generate an Ed25519 keypair (deterministically for reproducibility).
+2. Build a canonical attestation object bound to the proposal:
+   `tool`, `impact`, `args_digest = sha256(canonicalize(args))`,
+   `claims_digest = sha256(canonicalize(claims))`,
+   `provenance_ids` in proposal-array order. Optionally:
+   `intent_digest = sha256(intent_utf8)`, `expires_at` (strict RFC
+   3339 with explicit timezone designator).
+3. Sign `canonicalize(attestation_object)` with the private key.
+4. Embed the non-canonical payload string, base64 signature, and
+   pubkey as in any sig vector.
+5. For mode-detection or binding-failure vectors, mutate exactly
+   one field after binding (or hand-craft the payload string for
+   duplicate-key cases — do NOT use `json.dumps` for handcrafted
+   duplicate payloads).
+6. The private key MUST NOT be committed anywhere.
+
 ## Vector naming convention
 
 ```

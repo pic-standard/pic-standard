@@ -1,0 +1,54 @@
+{
+  "id": "evidence-sig-block-009-canonical-non-string-version",
+  "description": "Canonical-looking payload with attestation_version=2 (integer, not string). Per spec-evidence.md \u00a76.2.3, non-string attestation_version values MUST fail closed; verifier MUST NOT silently downgrade to legacy mode. Signature is valid over canonicalize(parsed_attestation) so the single failing condition is non-string attestation_version.",
+  "source": "Hand-authored against docs/spec-evidence.md \u00a76.2.3 (non-string version \u2192 fail closed).",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_EVIDENCE_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Approve invoice 001 for payment",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approval_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "approval_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "approval_001",
+        "type": "sig",
+        "ref": "inline:attestation",
+        "payload": "{\n  \"attestation_version\": 2,\n  \"tool\": \"payments_send\",\n  \"impact\": \"money\",\n  \"args_digest\": \"0780491803d7a0848aa262e346d8b1a3d7cfa31fe7655948de034ec7c10f84d0\",\n  \"claims_digest\": \"052cd20baec67ded1863c4fdb00ce0c4ccb3a15fdb211efda548a2aca94ddb29\",\n  \"provenance_ids\": [\n    \"approval_001\"\n  ],\n  \"intent_digest\": \"5a9ede78291371b9bb143ecb2b9350fd494f64a18f72c6e46e1ec927cbd55ca3\",\n  \"expires_at\": \"2099-01-01T00:00:00Z\"\n}",
+        "alg": "ed25519",
+        "signature": "R525ezZOYsKIKUaQeifSUuAEytlwQ6u9wduHXolObJ8+lXlp1N9cbkBJOoth/mrs3BnPH9fKNgZ7ynJ0KR50AA==",
+        "key_id": "canonical_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "canonical_signer_v1": "Glo5vNg/5/yYYMauTQFecFt2rdKN/qsLLFk0EV3aAYA="
+    }
+  }
+}

@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
+import json
+import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Set, Union
+from typing import Any, Dict, List, Literal, Optional, Set, Tuple, Union
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
 
+from pic_standard.canonical import canonicalize
 from pic_standard.keyring import KeyResolver, StaticKeyRingResolver, TrustedKeyRing
 
 # ----------------------------
@@ -194,6 +199,325 @@ def _verify_ed25519_signature(*, public_key_raw: bytes, signature_b64: str, mess
         return False
 
 
+# ---------------------------------------------------------------------------
+# Canonical attestation-object signing (v0.8.2 PR V8.2-5)
+# ---------------------------------------------------------------------------
+#
+# Per docs/spec-evidence.md §6.2-§6.4, signature evidence carries one of two
+# signing modes detected at verify time from the parsed payload:
+#
+#   - Legacy mode: payload is not a JSON object, OR is a JSON object without
+#     an `attestation_version` key. Bytes-to-verify are the raw UTF-8 bytes
+#     of the payload string. Preserves the v0.4 signing contract.
+#
+#   - Canonical mode: payload parses as a JSON object containing a
+#     string-valued `attestation_version` from the supported allowlist.
+#     Bytes-to-verify are computed as `canonicalize(parsed_attestation_object)`
+#     per docs/canonicalization.md §8.4. After signature verification, the
+#     attestation's tool / impact / args_digest / claims_digest /
+#     intent_digest (when present) / provenance_ids / expires_at (when
+#     present) MUST bind to the corresponding fields of the Action Proposal
+#     per spec-evidence.md §6.4.
+#
+#   - Canonical-looking but malformed/unknown: payload parses as a JSON
+#     object containing `attestation_version` but is non-conformant (value
+#     non-string OR string outside allowlist OR object carries duplicate
+#     keys at any nesting level). MUST fail closed with PIC_EVIDENCE_FAILED;
+#     no silent fallback to legacy bytes.
+#
+# Extending the allowlist is a versioned change; per spec-evidence.md §18,
+# removing values is backward-incompatible.
+
+_SUPPORTED_ATTESTATION_VERSIONS: frozenset[str] = frozenset({"PIC-ATT/1.0"})
+
+# Lowercase 64-char hex per spec-evidence.md §6.4 digest field-shape rule.
+_DIGEST_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
+
+# RFC 3339 with required timezone designator (Z or +HH:MM / -HH:MM).
+# Rejects naive timestamps, space-separated date/time, and other
+# ISO-ish variants that fromisoformat would otherwise accept.
+_RFC3339_AWARE_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$"
+)
+
+
+def _parse_payload_for_mode_detection(payload: str) -> Tuple[Optional[Any], bool]:
+    """Parse a sig-evidence payload for signing-mode detection.
+
+    Returns ``(parsed_value, had_duplicate_keys)``.
+
+    ``parsed_value`` is the result of ``json.loads(payload)`` when parsing
+    succeeds, including ``None`` for JSON ``null``. It is also ``None``
+    when the payload is not valid JSON. The caller treats ``None`` and any
+    other non-dict parsed value as legacy mode, so both JSON ``null`` and
+    invalid JSON follow the legacy raw-byte path.
+
+    ``had_duplicate_keys`` reflects any duplicate object member names in
+    the parsed structure at any nesting level (the ``object_pairs_hook``
+    fires recursively via ``json.loads``). The canonical-mode path
+    consults this signal.
+
+    JSON syntax errors (``json.JSONDecodeError``) are treated as legacy
+    mode per spec-evidence.md §6.2. Other ``Exception`` subclasses from
+    the parser path (``RecursionError``, ``MemoryError``, unexpected
+    runtime errors) fail closed rather than silently downgrading to
+    legacy — a downgrade on parser-level failure would re-open the
+    security gap canonical mode is designed to close.
+
+    Note: ``BaseException`` subclasses that are not ``Exception``
+    subclasses — ``KeyboardInterrupt``, ``SystemExit``, ``GeneratorExit``
+    — propagate naturally past the ``except Exception`` clause.
+    """
+    duplicate_seen = [False]
+
+    def _hook(pairs: List[Tuple[str, Any]]) -> Dict[str, Any]:
+        seen: Dict[str, Any] = {}
+        for key, value in pairs:
+            if key in seen:
+                duplicate_seen[0] = True
+            seen[key] = value
+        return seen
+
+    try:
+        parsed = json.loads(payload, object_pairs_hook=_hook)
+    except json.JSONDecodeError:
+        return None, False
+    except Exception as e:
+        raise ValueError(
+            f"could not parse payload JSON for mode detection: {type(e).__name__}: {e}"
+        ) from e
+    return parsed, duplicate_seen[0]
+
+
+def _parse_rfc3339_aware_utc(s: object) -> datetime:
+    """Parse RFC 3339 timestamp; reject naive, whitespace-padded, and non-conformant forms.
+
+    Accepts ``Z`` and ``+HH:MM`` / ``-HH:MM`` offsets. Leading/trailing
+    whitespace, naive timestamps, space-separated date/time, and other
+    ISO-ish variants fail closed. Aware values are normalized to UTC.
+    """
+    if not isinstance(s, str):
+        raise ValueError(f"timestamp must be a string, got {type(s).__name__}")
+    # No .strip(): whitespace padding is non-conformant input.
+    if s != s.strip():
+        raise ValueError(f"invalid RFC 3339 timestamp: {s!r}")
+    if not _RFC3339_AWARE_RE.match(s):
+        raise ValueError(f"invalid RFC 3339 timestamp: {s!r}")
+    # Python 3.10 fromisoformat doesn't accept 'Z' suffix; normalize first.
+    s2 = s[:-1] + "+00:00" if s.endswith("Z") else s
+    try:
+        dt = datetime.fromisoformat(s2)
+    except ValueError as e:
+        # Regex passes calendar-invalid strings (e.g. month 99); convert
+        # fromisoformat's raw ValueError to the locked failure shape.
+        raise ValueError(f"invalid RFC 3339 timestamp: {s!r}") from e
+    if dt.tzinfo is None:
+        # Should be unreachable given regex; defensive.
+        raise ValueError(f"timestamp must be timezone-aware: {s!r}")
+    return dt.astimezone(timezone.utc)
+
+
+def _validate_digest_hex(value: object, field_name: str) -> str:
+    """Validate that ``value`` is a lowercase 64-char hex digest string.
+
+    Returns the validated string. Raises ``ValueError`` fail-closed on any
+    shape violation: not a string, wrong length, non-hex chars, or
+    uppercase hex. Per spec-evidence.md §6.4.
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string, got {type(value).__name__}")
+    if not _DIGEST_HEX_RE.match(value):
+        raise ValueError(f"{field_name} must be lowercase 64-char hex, got {value!r}")
+    return value
+
+
+def _canonical_attestation_bytes(
+    parsed_payload: Dict[str, Any],
+    *,
+    had_duplicate_keys: bool,
+    max_payload_bytes: int,
+) -> bytes:
+    """Compute canonical bytes for canonical-mode sig verification.
+
+    Pre-condition: ``parsed_payload`` is a dict containing
+    ``attestation_version`` (mode detection has already confirmed
+    canonical-looking). Validates per spec-evidence.md §6.2:
+
+      - duplicate keys at any nesting level (fails closed;
+        canonical-looking duplicates are a security footgun);
+      - ``attestation_version`` is a string in the supported allowlist;
+      - canonicalization (PIC-CJSON/1.0) succeeds;
+      - canonical bytes do not exceed ``max_payload_bytes`` (post-canonical
+        size cap, since RFC 8785 number normalization may grow the
+        serialization, e.g. ``1e10`` -> ``10000000000``).
+
+    Raises ``ValueError`` with locked failure messages on any violation.
+    Returns the canonical bytes ready for ed25519 signature verification.
+    """
+    if had_duplicate_keys:
+        raise ValueError("canonical payload contains duplicate object keys")
+    av = parsed_payload["attestation_version"]
+    if not isinstance(av, str):
+        raise ValueError(f"attestation_version must be a string, got {type(av).__name__}")
+    if av not in _SUPPORTED_ATTESTATION_VERSIONS:
+        raise ValueError(f"unsupported attestation_version: {av!r}")
+    try:
+        payload_bytes = canonicalize(parsed_payload)
+    except Exception as e:
+        raise ValueError(
+            f"canonicalization failed for attestation object: {type(e).__name__}: {e}"
+        ) from e
+    if len(payload_bytes) > max_payload_bytes:
+        raise ValueError(
+            f"Canonical payload too large: {len(payload_bytes)} bytes (max {max_payload_bytes})"
+        )
+    return payload_bytes
+
+
+# ---------------------------------------------------------------------------
+# Canonical-mode binding checks.
+# ---------------------------------------------------------------------------
+# Keep these together with docs/spec-evidence.md §6.4. Adding or removing
+# a binding rule REQUIRES a coordinated update across:
+#
+#   1. docs/spec-evidence.md §6.4 (normative wording)
+#   2. The helper below (implementation)
+#   3. The conformance vectors under conformance/evidence/ that pin the
+#      rule (one block vector per binding rule, exactly one failing
+#      condition per vector)
+#   4. The persistent test suite in tests/test_evidence_canonical_signing.py
+#
+# Spec/code/vector drift is the main future risk for this surface.
+# ---------------------------------------------------------------------------
+
+
+def _verify_canonical_attestation_binding(
+    parsed_payload: Dict[str, Any],
+    proposal: Dict[str, Any],
+    *,
+    key_id: str,
+) -> None:
+    """Verify canonical-mode digest + field binding per spec-evidence.md §6.4.
+
+    Pre-conditions: signature has already verified over canonical bytes;
+    ``parsed_payload`` is a dict containing ``attestation_version`` (mode
+    detection has already confirmed canonical-looking).
+
+    Validates (all fail closed via ValueError):
+
+      - Attestation field shapes: ``tool`` (str), ``impact`` (str),
+        ``provenance_ids`` (list of str);
+      - Proposal shape: ``action`` (dict with str ``tool`` + ``args``),
+        ``impact`` (str), ``claims`` (list), ``provenance`` (list of
+        dicts with str ``id``);
+      - Field equality: tool, impact, provenance_ids;
+      - Digest binding (constant-time): args_digest, claims_digest,
+        intent_digest (when present);
+      - Freshness: expires_at not in past (when present).
+
+    Returns ``None`` on success.
+    """
+    # Attestation field-shape validation (MUST fields).
+    attest_tool = parsed_payload.get("tool")
+    if not isinstance(attest_tool, str):
+        raise ValueError(f"attestation tool must be a string, got {type(attest_tool).__name__}")
+    attest_impact = parsed_payload.get("impact")
+    if not isinstance(attest_impact, str):
+        raise ValueError(f"attestation impact must be a string, got {type(attest_impact).__name__}")
+    attest_prov_ids = parsed_payload.get("provenance_ids")
+    if not isinstance(attest_prov_ids, list) or not all(
+        isinstance(x, str) for x in attest_prov_ids
+    ):
+        raise ValueError("attestation provenance_ids must be a list of strings")
+
+    # Proposal-shape guards: verify_all() may be called outside the
+    # schema-validating pipeline, so the proposal might carry arbitrary
+    # shape. Fail closed on malformed proposal context rather than crash
+    # mid-digest.
+    proposal_action = proposal.get("action")
+    if not isinstance(proposal_action, dict):
+        raise ValueError("proposal action must be an object")
+    proposal_tool = proposal_action.get("tool")
+    if not isinstance(proposal_tool, str):
+        raise ValueError(
+            f"proposal action.tool must be a string, got {type(proposal_tool).__name__}"
+        )
+    if "args" not in proposal_action:
+        raise ValueError("proposal action.args is required for args_digest binding")
+    proposal_impact = proposal.get("impact")
+    if not isinstance(proposal_impact, str):
+        raise ValueError(f"proposal impact must be a string, got {type(proposal_impact).__name__}")
+    proposal_claims = proposal.get("claims")
+    if not isinstance(proposal_claims, list):
+        raise ValueError(f"proposal claims must be a list, got {type(proposal_claims).__name__}")
+    proposal_provenance = proposal.get("provenance")
+    if not isinstance(proposal_provenance, list):
+        raise ValueError(
+            f"proposal provenance must be a list, got {type(proposal_provenance).__name__}"
+        )
+    proposal_prov_ids: List[str] = []
+    for p in proposal_provenance:
+        if not isinstance(p, dict) or not isinstance(p.get("id"), str):
+            raise ValueError("proposal provenance entries must be objects with string id")
+        proposal_prov_ids.append(p["id"])
+
+    # Field equality.
+    if attest_tool != proposal_tool:
+        raise ValueError(f"attestation tool mismatch: {attest_tool!r} vs {proposal_tool!r}")
+    if attest_impact != proposal_impact:
+        raise ValueError(f"attestation impact mismatch: {attest_impact!r} vs {proposal_impact!r}")
+    if attest_prov_ids != proposal_prov_ids:
+        raise ValueError("attestation provenance_ids mismatch")
+
+    # args_digest binding (constant-time).
+    attest_args_digest = _validate_digest_hex(parsed_payload.get("args_digest"), "args_digest")
+    try:
+        args_canon = canonicalize(proposal_action["args"])
+    except Exception as e:
+        raise ValueError(
+            f"canonicalization failed for proposal action args: {type(e).__name__}: {e}"
+        ) from e
+    actual_args_digest = hashlib.sha256(args_canon).hexdigest()
+    if not hmac.compare_digest(attest_args_digest, actual_args_digest):
+        raise ValueError(f"args_digest mismatch (key_id='{key_id}')")
+
+    # claims_digest binding (constant-time).
+    attest_claims_digest = _validate_digest_hex(
+        parsed_payload.get("claims_digest"), "claims_digest"
+    )
+    try:
+        claims_canon = canonicalize(proposal_claims)
+    except Exception as e:
+        raise ValueError(
+            f"canonicalization failed for proposal claims: {type(e).__name__}: {e}"
+        ) from e
+    actual_claims_digest = hashlib.sha256(claims_canon).hexdigest()
+    if not hmac.compare_digest(attest_claims_digest, actual_claims_digest):
+        raise ValueError(f"claims_digest mismatch (key_id='{key_id}')")
+
+    # intent_digest binding (when present, constant-time).
+    if "intent_digest" in parsed_payload:
+        attest_intent_digest = _validate_digest_hex(
+            parsed_payload.get("intent_digest"), "intent_digest"
+        )
+        proposal_intent = proposal.get("intent")
+        if not isinstance(proposal_intent, str):
+            raise ValueError(
+                f"proposal intent must be a string for intent_digest binding, "
+                f"got {type(proposal_intent).__name__}"
+            )
+        actual_intent_digest = hashlib.sha256(proposal_intent.encode("utf-8")).hexdigest()
+        if not hmac.compare_digest(attest_intent_digest, actual_intent_digest):
+            raise ValueError(f"intent_digest mismatch (key_id='{key_id}')")
+
+    # expires_at freshness (when present).
+    if "expires_at" in parsed_payload:
+        expires_at = _parse_rfc3339_aware_utc(parsed_payload["expires_at"])
+        now = datetime.now(timezone.utc)
+        if expires_at < now:
+            raise ValueError(f"attestation expired at {expires_at.isoformat()}")
+
+
 # ----------------------------
 # EvidenceSystem
 # ----------------------------
@@ -205,11 +529,14 @@ class EvidenceSystem:
     Supported evidence:
       - v0.3: type="hash" (sha256 over sandboxed file bytes)
       - v0.4: type="sig"  (ed25519 signature over payload bytes)
+              v0.8.2: opt-in canonical attestation-object signing
+              (PIC-ATT/1.0) — see _canonical_attestation_bytes and
+              _verify_canonical_attestation_binding.
 
     Hardening:
       - sandbox file:// under evidence_root_dir
       - max_file_bytes
-      - max_payload_bytes
+      - max_payload_bytes (enforced pre-parse AND post-canonicalization)
     """
 
     def __init__(
@@ -322,12 +649,30 @@ class EvidenceSystem:
                 if not self.allow_sig_evidence:
                     raise ValueError("signature evidence is disabled by policy")
 
-                payload_bytes = ev.payload.encode("utf-8")
-                if len(payload_bytes) > self.max_payload_bytes:
+                # Pre-parse size guard: JSON parsing + canonicalization
+                # are not DoS surfaces on oversize payloads.
+                raw_payload_bytes = ev.payload.encode("utf-8")
+                if len(raw_payload_bytes) > self.max_payload_bytes:
                     raise ValueError(
-                        f"Payload too large: {len(payload_bytes)} bytes "
+                        f"Payload too large: {len(raw_payload_bytes)} bytes "
                         f"(max {self.max_payload_bytes})"
                     )
+
+                # Mode detection per spec-evidence.md §6.2.
+                parsed_payload, had_duplicate_keys = _parse_payload_for_mode_detection(ev.payload)
+                canonical_mode = (
+                    isinstance(parsed_payload, dict) and "attestation_version" in parsed_payload
+                )
+
+                if canonical_mode:
+                    payload_bytes = _canonical_attestation_bytes(
+                        parsed_payload,
+                        had_duplicate_keys=had_duplicate_keys,
+                        max_payload_bytes=self.max_payload_bytes,
+                    )
+                else:
+                    # Legacy mode: raw UTF-8 bytes of the payload string.
+                    payload_bytes = raw_payload_bytes
 
                 pub_raw = self._resolve_public_key(ev.key_id)
                 ok = _verify_ed25519_signature(
@@ -344,6 +689,14 @@ class EvidenceSystem:
                         )
                     )
                     continue
+
+                # Canonical-mode binding (post-signature). See
+                # _verify_canonical_attestation_binding for spec/code/vector
+                # co-evolution discipline.
+                if canonical_mode:
+                    _verify_canonical_attestation_binding(
+                        parsed_payload, proposal, key_id=ev.key_id
+                    )
 
                 verified.add(ev.id)
                 results.append(

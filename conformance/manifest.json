@@ -176,6 +176,148 @@
       "expected": "allow"
     },
     {
+      "id": "evidence-sig-allow-002-canonical-happy-full",
+      "file": "evidence/allow/005_sig_canonical_happy_full.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-sig-allow-003-canonical-happy-minimal",
+      "file": "evidence/allow/006_sig_canonical_happy_minimal.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-sig-allow-004-legacy-json-object-no-version",
+      "file": "evidence/allow/007_sig_legacy_json_object_no_version.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-sig-allow-005-legacy-json-array",
+      "file": "evidence/allow/008_sig_legacy_json_array.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-mixed-allow-002-legacy-and-canonical",
+      "file": "evidence/allow/009_mixed_legacy_and_canonical.json",
+      "mode": "evidence",
+      "expected": "allow"
+    },
+    {
+      "id": "evidence-sig-block-006-canonical-tampered-signature",
+      "file": "evidence/block/011_sig_canonical_tampered_signature.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-007-canonical-raw-byte-sig",
+      "file": "evidence/block/012_sig_canonical_raw_byte_sig.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-008-canonical-unknown-version",
+      "file": "evidence/block/013_sig_canonical_unknown_version.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-009-canonical-non-string-version",
+      "file": "evidence/block/014_sig_canonical_non_string_version.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-010-canonical-duplicate-key-root",
+      "file": "evidence/block/015_sig_canonical_duplicate_key_root.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-011-canonical-duplicate-key-nested",
+      "file": "evidence/block/016_sig_canonical_duplicate_key_nested.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-012-canonical-args-digest-mismatch",
+      "file": "evidence/block/017_sig_canonical_args_digest_mismatch.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-013-canonical-claims-digest-mismatch",
+      "file": "evidence/block/018_sig_canonical_claims_digest_mismatch.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-014-canonical-intent-digest-mismatch",
+      "file": "evidence/block/019_sig_canonical_intent_digest_mismatch.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-015-canonical-tool-mismatch",
+      "file": "evidence/block/020_sig_canonical_tool_mismatch.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-016-canonical-impact-mismatch",
+      "file": "evidence/block/021_sig_canonical_impact_mismatch.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-017-canonical-provenance-ids-mismatch",
+      "file": "evidence/block/022_sig_canonical_provenance_ids_mismatch.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-018-canonical-expires-at-in-past",
+      "file": "evidence/block/023_sig_canonical_expires_at_in_past.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-019-canonical-expires-at-whitespace-padded",
+      "file": "evidence/block/024_sig_canonical_expires_at_whitespace_padded.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-020-canonical-invalid-digest-shape",
+      "file": "evidence/block/025_sig_canonical_invalid_digest_shape.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-021-canonical-expires-at-naive",
+      "file": "evidence/block/026_sig_canonical_expires_at_naive.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
       "id": "trust-compute_risk-strict-f-verify-f",
       "file": "trust_sanitization/compute_risk__strict-f__verify-f.json",
       "mode": "trust_sanitization",
