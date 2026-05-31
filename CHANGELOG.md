@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 This project follows Semantic Versioning:
 https://semver.org/
 
+## [0.8.2] - 2026-05-31
+
+Conformance + spec-drafts + opt-in canonical signing.
+
+### Added
+
+- **Evidence-mode conformance vectors** under `conformance/evidence/` (35 total: 14 hash/legacy-sig added in V8.2-1, plus 21 canonical/legacy-signing-mode added in V8.2-5). Covers hash + sig allow/block, sandbox + key-state, canonical-mode happy/minimal/mixed paths, three-way fail-closed discriminator (unknown `attestation_version`, non-string `attestation_version`, root/nested duplicate keys), digest binding, field binding, freshness, and digest-field shape rules.
+- **Trust-sanitization conformance vectors** under `conformance/trust_sanitization/` (24 vectors covering the `strict_trust × verify_evidence` matrix over representative proposal bases, lifted from `tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX`).
+- **Conformance runner hardening**: `--json` machine-readable output, `--filter-mode <mode>` and `--filter-id <id>` filters with stable exit codes under filter, 8-token diagnostic taxonomy, manifest-error envelope, subprocess-based CLI test suite in `tests/test_conformance_runner.py`.
+- **Initial DRAFT `docs/spec-core.md`** — BCP 14 normative restatement of core verifier semantics (Trust Axiom, tool-binding, impact taxonomy, error identifiers). Defines the `PIC-Core` conformance profile. Not final-normative until PIC v1.0.
+- **Initial DRAFT `docs/spec-evidence.md`** — BCP 14 normative restatement of evidence verification (hash/sig modes, trust upgrade, keyring protocol, signing-mode discriminator, canonical-mode digest binding, freshness). Defines the `PIC-Evidence` conformance profile. Not final-normative until PIC v1.0.
+- **Opt-in canonical attestation-object signing** in the SDK evidence-verification path (`pic_standard.evidence`). Verifier detects canonical mode from a supported string-valued `attestation_version` in the parsed `sig` evidence payload (current allowlist: `{"PIC-ATT/1.0"}`); non-string and unknown-version values fail closed (no silent legacy fallback). Canonical mode computes signature over `canonicalize(parsed_attestation_object)` bytes per `docs/canonicalization.md §8.4`. Post-signature, canonical mode enforces digest binding (`args_digest` / `claims_digest` / `intent_digest` when present), tool/impact equality binding, `provenance_ids` proposal-array ordering, and `expires_at` freshness (strict RFC 3339 with explicit timezone designator; whitespace-padded and naive timestamps rejected).
+- **Persistent canonical-signing test suite** at `tests/test_evidence_canonical_signing.py` (24 scenarios), covering canonical happy/minimal paths, discriminator failures, digest/field binding, freshness, duplicate-key rejection, legacy preservation, mixed-mode verification, and post-canonical size caps. Keeps project coverage above the 80% gate.
+
+### Changed
+
+- **Conformance runner** human-readable output is preserved byte-identically relative to the post-vector baseline for the default invocation. `--json` mode adds machine-readable structured output; `--filter-mode`/`--filter-id` add CI-gate ergonomics. Exit codes are stable under filter (exit 2 with `no_vectors_selected` diagnostic when a filter target matches zero vectors).
+- **`docs/spec-status.md`** v0.8.2 row updated to reflect new conformance vector counts and the opt-in canonical-signing landing.
+
+### Notes
+
+- **Wire format unchanged.** The PIC/1.0 proposal and evidence schemas are byte-compatible with v0.8.1.1. Legacy-mode signature verification behavior remains compatible with all pre-V8.2-5 evidence vectors and tests.
+- **Canonical signing is opt-in.** A producer chooses canonical mode by emitting `attestation_version` in the signed payload. Producers that do not emit `attestation_version` continue to get legacy-mode (raw UTF-8 bytes of payload string) verification. Canonical-as-default is deferred to the PIC v1.0 track unless superseded by later DRAFT resolution.
+- **DRAFT spec discipline.** `docs/spec-core.md` and `docs/spec-evidence.md` are DRAFT until PIC v1.0 per ROADMAP §1.3/§1.4. Open questions are tracked in each spec's Appendix C with stable IDs (`OQ-CORE-*`, `OQ-EVIDENCE-*`) for cross-referencing.
+- **`docs/ERRORS.md` formalization deferred to v0.9.0.** Runner-side structured diagnostics from V8.2-3 feed into that work.
+- **TypeScript verifier first pass (`pic-standard-ts`) planned for v0.9.0.** This release lays its conformance foundation; the 72-vector suite is the cross-language contract the TS verifier will gate against.
+- **`semi_trusted` enum schema-level removal still scheduled for v0.9.0.** Currently deprecated since v0.8.1 with runtime normalization; this release does not change that trajectory.
+
+---
+
 ## [0.8.1.1] - 2026-05-11
 
 Shakedown release through the new signing infrastructure. **No protocol changes vs v0.8.1.**

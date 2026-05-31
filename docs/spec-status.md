@@ -20,7 +20,7 @@
 
 The PIC/1.0 proposal structure and wire-level schema have remained stable since the RFC anchor. Post-RFC changes in v0.6.x–v0.8.x primarily affected shared pipeline behavior, trust resolution, integration surface, runtime efficiency, and canonicalization/conformance tooling rather than introducing a wire-format break.
 
-**Current Python reference implementation:** v0.8.1
+**Current Python reference implementation:** v0.8.2
 
 ---
 
