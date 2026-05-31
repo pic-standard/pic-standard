@@ -1,7 +1,7 @@
 # PIC Standard — Enterprise-Ready Roadmap
 
 > Living plan for standardization, interop, and enterprise adoption.
-> Updated for the post-v0.8.1 repo state (2026-05-07).
+> Updated for the post-v0.8.2 repo state (2026-05-31).
 
 ---
 
@@ -74,7 +74,7 @@ Specifications in this project are treated as evolving drafts until cross-implem
 | **v0.8.0** | **Canonicalization foundation + conformance skeleton** | **PIC Canonical JSON v1 spec (frozen), reference implementation (`pic_standard.canonical`), 9 canonicalization vectors, refined attestation-object draft with byte-level digests, `conformance/` suite first pass, `conformance/manifest.json`, `python -m conformance.run`, `PIC Conformance` CI job** | ✅ Done |
 | **Phase 0 cleanup** | **Repo hygiene** | **`ROADMAP.md` committed, broken roadmap-link refs fixed, `semi_trusted` deprecation trajectory documented, `SECURITY.md`, `CODE_OF_CONDUCT.md`** | ✅ Done (PR #67) |
 | **v0.8.1** | **`semi_trusted` deprecation** | **`PICSemiTrustedDeprecationWarning` (defined in `pic_standard.verifier`, re-exported at package root, subclasses `FutureWarning`); pydantic field validator on `Provenance.trust` as the canonical normalization boundary; bridge helper in `verify_proposal()` triggers the validator immediately after JSON Schema validation, so the deprecation warning fires regardless of `strict_trust` mode and `semi_trusted` is normalized to `"untrusted"` before strict-trust flattening or evidence verification consume the dict; full `ActionProposal` instantiation stays last so `verify_causal_contract` keeps observing post-evidence trust state; examples migrated off `semi_trusted` (trust-flip only — no hash evidence added, since hash binds bytes not authority); migration doc `docs/migration-trust-sanitization.md` updated; verdict-regression matrix codified in `tests/test_trust_deprecation_warning.py` as a permanent CI guard. **Other v0.8.1-targeted items from the post-v0.8.0 plan (conformance expansion, runner hardening, initial DRAFTs of `spec-core.md` / `spec-evidence.md`) are deferred to v0.8.2 to keep this release focused on the deprecation surface.** | ✅ Done |
-| **v0.8.2** | **Conformance expansion + runner hardening + initial spec drafts + canonical runtime signing (opt-in)** | **(Deferred from v0.8.1) Evidence-mode vectors, trust-sanitization vectors, runner hardening (JSON output, run-by-id/mode, machine-readable failure reporting), initial DRAFT `docs/spec-core.md`, initial DRAFT `docs/spec-evidence.md`. (v0.8.2 native) Canonical attestation-object bytes wired into runtime signing/verification flow as an opt-in mode (default remains legacy payload-string for one release). Attestation Object v1 remains DRAFT during this stabilization phase. Legacy mode explicitly demoted to compatibility mode in docs.** | Planned |
+| **v0.8.2** | **Conformance expansion + runner hardening + initial spec drafts + canonical runtime signing (opt-in)** | **(Deferred from v0.8.1) Evidence-mode vectors, trust-sanitization vectors, runner hardening (JSON output, run-by-id/mode, machine-readable failure reporting), initial DRAFT `docs/spec-core.md`, initial DRAFT `docs/spec-evidence.md`. (v0.8.2 native) Canonical attestation-object bytes wired into runtime signing/verification flow as an opt-in mode (default remains legacy payload-string for one release). Attestation Object v1 remains DRAFT during this stabilization phase. Legacy mode explicitly demoted to compatibility mode in docs.** | ✅ Done |
 | **v0.9.0** | **Interop milestone + schema cleanup** | **First TypeScript verifier pass — minimum: canonicalization + core + trust-sanitization mode parity with Python on the same `conformance/manifest.json`, filtered to those three modes. `semi_trusted` removed from schema (was deprecated in v0.8.1). OpenAPI bridge spec, structured audit logs, Docker hardening for enterprise pilots. Spec drafts updated with cross-impl findings.** | Planned |
 | v0.9.1–v0.9.2 | Ambiguity burn-down | Differential Python ↔ TS testing, fuzzing canonicalization and malformed proposals/evidence, more number/Unicode edge vectors, additional malformed-evidence cases, TS evidence-mode parity completed if not landed at v0.9.0, wording tightening from cross-impl disagreements | Planned |
 | **v1.0.0** | **Production-grade protocol freeze** | **`strict_trust=True` becomes default and only conformant mode. Canonical attestation-object signing becomes default; legacy payload-string mode is non-conformant. `spec-core.md`, `spec-evidence.md`, and Attestation Object v1 all promoted to normative. PIC-CJSON/1.0 unchanged. Python + TS pass full conformance suite. Internet-Draft submission.** | Planned |
@@ -83,7 +83,7 @@ Specifications in this project are treated as evolving drafts until cross-implem
 
 ---
 
-## Current State (post-v0.8.1)
+## Current State (post-v0.8.2)
 
 ### What exists
 
@@ -480,13 +480,13 @@ These are important but stay downstream of a stable core:
 | # | PR | Phase | Target |
 |---|----|-------|--------|
 | 1 | **Phase 0 hygiene PR**: commit ROADMAP.md, fix broken roadmap-link refs, document `semi_trusted` deprecation trajectory (Path B: deprecate v0.8.1, remove v0.9.0), add SECURITY.md and CODE_OF_CONDUCT.md | 0 | ✅ Done (PR #67) |
-| 2 | Conformance expansion: evidence-mode + trust-sanitization vectors | 1.2 | v0.8.2 (deferred from v0.8.1) |
-| 3 | Runner hardening: JSON output, filtering, machine-readable diagnostics | 1.2 | v0.8.2 (deferred from v0.8.1) |
-| 4 | Initial DRAFT `docs/spec-core.md` | 1.3 | v0.8.2 (deferred from v0.8.1) |
-| 5 | Initial DRAFT `docs/spec-evidence.md` | 1.4 | v0.8.2 (deferred from v0.8.1) |
+| 2 | Conformance expansion: evidence-mode + trust-sanitization vectors | 1.2 | ✅ Done (v0.8.2) |
+| 3 | Runner hardening: JSON output, filtering, machine-readable diagnostics | 1.2 | ✅ Done (v0.8.2) |
+| 4 | Initial DRAFT `docs/spec-core.md` | 1.3 | ✅ Done (v0.8.2) |
+| 5 | Initial DRAFT `docs/spec-evidence.md` | 1.4 | ✅ Done (v0.8.2) |
 | 6 | `semi_trusted` deprecation: `PICSemiTrustedDeprecationWarning` + canonical normalization at the model-validation boundary (pydantic field validator on `Provenance.trust` + bridge helper triggering it after JSON Schema validation) + example trust-flips + migration note + verdict-regression matrix | 1.6 | ✅ Done (v0.8.1) |
-| 7 | Wire canonical attestation signing into runtime as opt-in mode (against draft Attestation v1) | 1.5 | v0.8.2 |
-| 8 | `docs/ERRORS.md` formalization | 2.1 | v0.8.2 / v0.9.0 |
+| 7 | Wire canonical attestation signing into runtime as opt-in mode (against draft Attestation v1) | 1.5 | ✅ Done (v0.8.2) |
+| 8 | `docs/ERRORS.md` formalization | 2.1 | v0.9.0 |
 | 9 | `semi_trusted` removal: schema enum drop + code cleanup | 1.6 | v0.9.0 |
 | 10 | OpenAPI + Docker hardening + structured audit logs | 2 | v0.9.0 |
 | 11 | First `pic-standard-ts` verifier pass (canon + core + trust-sanitization minimum) | 3 | v0.9.0 |

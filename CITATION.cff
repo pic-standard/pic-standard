@@ -13,8 +13,8 @@ url: "https://github.com/madeinplutofabio/pic-standard"
 repository-artifact: "https://pypi.org/project/pic-standard/"
 license: "Apache-2.0"
 
-version: "0.8.1"
-date-released: "2026-05-07"
+version: "0.8.2"
+date-released: "2026-05-31"
 
 identifiers:
   - type: doi
