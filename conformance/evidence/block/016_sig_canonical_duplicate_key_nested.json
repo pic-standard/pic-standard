@@ -1,0 +1,54 @@
+{
+  "id": "evidence-sig-block-011-canonical-duplicate-key-nested",
+  "description": "Canonical-looking payload with a duplicate object key (\"foo\") inside a nested object (\"extensions\"). Duplicate values are identical so a non-recursive duplicate-key implementation would collapse to the signed canonical form and incorrectly accept the entry; only a recursive duplicate-key detector (object_pairs_hook firing at every nesting level) rejects this. Pins the spec-evidence.md \u00a76.2 wording lock \"duplicate object keys at ANY nesting level MUST fail closed\".",
+  "source": "Hand-authored against docs/spec-evidence.md \u00a76.2 (nested duplicate keys).",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_EVIDENCE_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Approve invoice 001 for payment",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approval_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "approval_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "approval_001",
+        "type": "sig",
+        "ref": "inline:attestation",
+        "payload": "{\"attestation_version\":\"PIC-ATT/1.0\",\"tool\":\"payments_send\",\"impact\":\"money\",\"args_digest\":\"0780491803d7a0848aa262e346d8b1a3d7cfa31fe7655948de034ec7c10f84d0\",\"claims_digest\":\"052cd20baec67ded1863c4fdb00ce0c4ccb3a15fdb211efda548a2aca94ddb29\",\"intent_digest\":\"5a9ede78291371b9bb143ecb2b9350fd494f64a18f72c6e46e1ec927cbd55ca3\",\"provenance_ids\":[\"approval_001\"],\"expires_at\":\"2099-01-01T00:00:00Z\",\"extensions\":{\"foo\":1,\"foo\":1}}",
+        "alg": "ed25519",
+        "signature": "lijbIMrKvEf5/4aSr3u/mA7DSNbcGbe9Bdd24OZjmG3KIqUcxyLsgvnXlapvGom2jNhwdTxcFUOzMGWrn1c1Aw==",
+        "key_id": "canonical_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "canonical_signer_v1": "GBvuExbVlovAiKazJqrqs/QD4ffv1NMmnb9VelTMXOQ="
+    }
+  }
+}

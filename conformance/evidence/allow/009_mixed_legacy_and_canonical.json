@@ -1,0 +1,69 @@
+{
+  "id": "evidence-mixed-allow-002-legacy-and-canonical",
+  "description": "Proposal carries TWO sig evidence entries \u2014 one legacy (no attestation_version), one canonical (with attestation_version='PIC-ATT/1.0'). Verifier dispatches PER-ENTRY: legacy verifies raw UTF-8 bytes, canonical verifies canonicalize(parsed_attestation). Both succeed, both upgrade their respective provenance to trusted, allowing the money-impact proposal.",
+  "source": "Hand-authored against docs/spec-evidence.md \u00a76.2 (per-entry mode dispatch).",
+  "mode": "evidence",
+  "expected": "allow",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send payment for approved invoice with CFO authorization",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approval_legacy_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      },
+      {
+        "id": "approval_canonical_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved with both legacy and canonical attestations",
+        "evidence": [
+          "approval_legacy_001",
+          "approval_canonical_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "approval_legacy_001",
+        "type": "sig",
+        "ref": "inline:approval_payload",
+        "payload": "approval=yes;amount=500;currency=USD;invoice=001",
+        "alg": "ed25519",
+        "signature": "F9BOIxna9MqW8CZK2IfM+vyX2mm+0vQ6n8YxTxm6UBqirRvUbx0V9w6G7FhDcYFkHspgftNsnQWCSM7hS2DnCQ==",
+        "key_id": "legacy_signer_v1"
+      },
+      {
+        "id": "approval_canonical_001",
+        "type": "sig",
+        "ref": "inline:attestation",
+        "payload": "{\n  \"attestation_version\": \"PIC-ATT/1.0\",\n  \"tool\": \"payments_send\",\n  \"impact\": \"money\",\n  \"args_digest\": \"0780491803d7a0848aa262e346d8b1a3d7cfa31fe7655948de034ec7c10f84d0\",\n  \"claims_digest\": \"e2ee524b1037e6814c3d02c2d3545884625efcd164ef80a68cc186f0ac0bb3ca\",\n  \"provenance_ids\": [\n    \"approval_legacy_001\",\n    \"approval_canonical_001\"\n  ],\n  \"intent_digest\": \"24612241e4a857fdb3b831e8e1c95eaa2b7aaac43b80a7f46844276a7c76de83\",\n  \"expires_at\": \"2099-01-01T00:00:00Z\"\n}",
+        "alg": "ed25519",
+        "signature": "Dg9Bf44235iAoB6PAiLfikAHcR2N+Mego7JvaQjJ7nJ9dBcn2AmEzHCnR4Z87XlSbZeoRprpDfqNyA+8qwEHCQ==",
+        "key_id": "canonical_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "legacy_signer_v1": "d7GhoaRoPM1+cJDIP3C47MwT6MW9r69wp7mk2aTNKSU=",
+      "canonical_signer_v1": "nUkbkWQ/ZAeoIBvOIiwQGlCLXXMzEyvj40S8VFTzhGs="
+    }
+  }
+}

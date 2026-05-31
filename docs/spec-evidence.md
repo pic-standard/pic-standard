@@ -223,6 +223,17 @@ discriminator:
    silent fallback would be a security footgun for malformed or
    future-version canonical-looking payloads.
 
+For any payload that parses as a JSON object (case 2 or case 3 above),
+implementations MUST detect duplicate object member names at any
+nesting level — not only at the root — per
+[`canonicalization.md §7.4`](canonicalization.md#74-duplicate-object-member-names).
+Any duplicate detected MUST cause the evidence entry to be rejected
+fail-closed with `PIC_EVIDENCE_FAILED`. A non-recursive
+implementation that collapses nested duplicates silently (last-value
+wins) would accept payloads that the PIC-CJSON canonicalization
+rule rejects and is non-conformant; verifiers MUST recurse into
+every nested object when checking duplicates.
+
 The intended supported attestation version allowlist for `PIC-Evidence`
 v0.8.2 is `{"PIC-ATT/1.0"}` — the version identifier specified by
 [`attestation-object-draft.md`](attestation-object-draft.md) and used
@@ -279,13 +290,34 @@ match the corresponding canonicalized fields of the Action Proposal:
   [`canonicalization.md §8.3`](canonicalization.md#83-intent_digest).
 
 Implementations MUST also verify that the attestation object's
-`tool` equals `proposal.action.tool` and that
-`provenance_ids` lists provenance entry IDs in proposal-array order.
+`tool` equals `proposal.action.tool`, that `impact` equals
+`proposal.impact`, and that `provenance_ids` lists provenance entry
+IDs in proposal-array order.
 
-Any digest mismatch, tool mismatch, or provenance-ids ordering
-mismatch MUST cause the evidence entry to be rejected fail-closed
-with `PIC_EVIDENCE_FAILED`, even though the signature itself
-verified.
+Digest fields (`args_digest`, `claims_digest`, `intent_digest`) MUST
+be 64-character lowercase hexadecimal strings matching the regular
+expression `^[0-9a-f]{64}$`. Implementations MUST reject fail-closed
+any digest field that violates this shape, including 64-character
+uppercase or mixed-case hex. Implementations MUST NOT case-fold the
+digest value before comparison; the shape rule is byte-strict.
+
+When the attestation object includes `expires_at`, the value MUST be
+a strict RFC 3339 timestamp with an explicit timezone designator
+(either `Z` for UTC or a numeric offset such as `+00:00` /
+`-05:00`). Implementations MUST reject fail-closed any `expires_at`
+value that:
+
+- carries leading or trailing whitespace (implementations MUST NOT
+  strip or normalize whitespace before parsing);
+- lacks an explicit timezone designator (naive timestamps such as
+  `2099-01-01T00:00:00` are non-conformant);
+- otherwise fails strict RFC 3339 parsing.
+
+Any digest mismatch, tool mismatch, impact mismatch, provenance-ids
+ordering mismatch, digest-field shape violation, or `expires_at`
+shape/parse failure MUST cause the evidence entry to be rejected
+fail-closed with `PIC_EVIDENCE_FAILED`, even though the signature
+itself verified.
 
 **Rationale (Informative).** A valid signature over an attestation
 object whose digests do NOT match the proposal it accompanies means
@@ -432,9 +464,11 @@ emission semantics from the v0.8.2 reference implementation:
   per-entry failure modes: hash mismatch, hash file not found,
   signature invalid, signing key unknown/revoked/expired, signed
   payload exceeds size cap, sandbox path traversal, mode-detection
-  violation (§6.2), digest-binding mismatch (§6.4), evidence module
-  unavailable. Pinned by `conformance/evidence/block/001-010`
-  vectors.
+  violation (§6.2, including duplicate object member names at any
+  nesting level), digest-binding mismatch (§6.4), digest-field
+  shape violation (§6.4), `expires_at` shape/parse failure (§6.4),
+  freshness failure (§15), evidence module unavailable. Pinned by
+  `conformance/evidence/block/001-026` vectors.
 
 The freeform human-readable messages accompanying each error code
 are **Informative**. They MAY vary across implementations, language
@@ -698,10 +732,27 @@ one exercises.
 | `evidence-sig-block-004-expired-key` | §10, §16.4, §11 |
 | `evidence-sig-block-005-payload-too-large` | §6, §11 |
 | `evidence-mixed-allow-001-hash-and-sig` | §5, §6, §8 |
-
-Canonical-signing-mode vectors (§6.2.2, §6.3, §6.4) are scheduled
-for addition in v0.8.2 PR V8.2-5; their IDs will be added here when
-that PR lands.
+| `evidence-sig-allow-002-canonical-happy-full` | §6.2.2, §6.3, §6.4, §15 |
+| `evidence-sig-allow-003-canonical-happy-minimal` | §6.2.2, §6.3, §6.4 |
+| `evidence-sig-allow-004-legacy-json-object-no-version` | §6.2.1 |
+| `evidence-sig-allow-005-legacy-json-array` | §6.2.1 |
+| `evidence-mixed-allow-002-legacy-and-canonical` | §6.2 (per-entry dispatch), §6.3, §6.4 |
+| `evidence-sig-block-006-canonical-tampered-signature` | §6.3, §11 |
+| `evidence-sig-block-007-canonical-raw-byte-sig` | §6.3, §11 |
+| `evidence-sig-block-008-canonical-unknown-version` | §6.2.3, §11 |
+| `evidence-sig-block-009-canonical-non-string-version` | §6.2.3, §11 |
+| `evidence-sig-block-010-canonical-duplicate-key-root` | §6.2 (duplicate-keys), §11 |
+| `evidence-sig-block-011-canonical-duplicate-key-nested` | §6.2 (duplicate-keys, any nesting level), §11 |
+| `evidence-sig-block-012-canonical-args-digest-mismatch` | §6.4, §11 |
+| `evidence-sig-block-013-canonical-claims-digest-mismatch` | §6.4, §11 |
+| `evidence-sig-block-014-canonical-intent-digest-mismatch` | §6.4, §11 |
+| `evidence-sig-block-015-canonical-tool-mismatch` | §6.4, §11 |
+| `evidence-sig-block-016-canonical-impact-mismatch` | §6.4 (impact binding), §11 |
+| `evidence-sig-block-017-canonical-provenance-ids-mismatch` | §6.4, §11 |
+| `evidence-sig-block-018-canonical-expires-at-in-past` | §15, §11 |
+| `evidence-sig-block-019-canonical-expires-at-whitespace-padded` | §6.4 (strict RFC 3339), §11 |
+| `evidence-sig-block-020-canonical-invalid-digest-shape` | §6.4 (digest-field shape), §11 |
+| `evidence-sig-block-021-canonical-expires-at-naive` | §6.4 (strict RFC 3339, timezone required), §11 |
 
 ---
 

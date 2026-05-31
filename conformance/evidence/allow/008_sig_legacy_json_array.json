@@ -1,0 +1,53 @@
+{
+  "id": "evidence-sig-allow-005-legacy-json-array",
+  "description": "Legacy-mode signature where payload parses as JSON but is a non-object (JSON array). Per spec-evidence.md \u00a76.2.1, non-object JSON values dispatch to legacy mode (raw UTF-8 bytes), proving the discriminator checks for object-type before attestation_version key presence.",
+  "source": "Hand-authored against docs/spec-evidence.md \u00a76.2.1 (JSON non-object \u2192 legacy).",
+  "mode": "evidence",
+  "expected": "allow",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Approve invoice 001 for payment",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approval_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "approval_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "approval_001",
+        "type": "sig",
+        "ref": "inline:approval_payload",
+        "payload": "[\"approval\", \"yes\", 500, \"USD\"]",
+        "alg": "ed25519",
+        "signature": "UtFU1wm6f/sVMufwcWzbEG6F3tJtAH5DMFTcap6PS/vkqFeSTel8inkZay5oPCEyL/gmMRy3dLI4s+qWga2QAQ==",
+        "key_id": "legacy_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "legacy_signer_v1": "OH5/bJHwgPGKcdSjrDew0tvUYCRzN3QPzxC1Y810MmI="
+    }
+  }
+}

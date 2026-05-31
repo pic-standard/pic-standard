@@ -1,0 +1,54 @@
+{
+  "id": "evidence-sig-block-020-canonical-invalid-digest-shape",
+  "description": "Canonical-mode attestation has args_digest set to the UPPERCASE hex form of the (otherwise correct) SHA-256 of canonicalize(proposal.action.args). Because the value is otherwise correct, a lax implementation that accepts or case-folds uppercase hex would let the vector through; pinning the lowercase 64-char hex shape rule requires that uppercase be the SOLE failing condition. Signature is valid over canonicalize(parsed_attestation).",
+  "source": "Hand-authored against the lowercase 64-char hex digest-field shape contract.",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_EVIDENCE_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Approve invoice 001 for payment",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approval_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "approval_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "approval_001",
+        "type": "sig",
+        "ref": "inline:attestation",
+        "payload": "{\n  \"attestation_version\": \"PIC-ATT/1.0\",\n  \"tool\": \"payments_send\",\n  \"impact\": \"money\",\n  \"args_digest\": \"0780491803D7A0848AA262E346D8B1A3D7CFA31FE7655948DE034EC7C10F84D0\",\n  \"claims_digest\": \"052cd20baec67ded1863c4fdb00ce0c4ccb3a15fdb211efda548a2aca94ddb29\",\n  \"provenance_ids\": [\n    \"approval_001\"\n  ],\n  \"intent_digest\": \"5a9ede78291371b9bb143ecb2b9350fd494f64a18f72c6e46e1ec927cbd55ca3\",\n  \"expires_at\": \"2099-01-01T00:00:00Z\"\n}",
+        "alg": "ed25519",
+        "signature": "r7OUISHMrRa/Ac8r6m9UXTmtE7wi5N/eCNfzU/nfuKSXIGg2m0EtxvJB9qquST28V7vfikHBbUqN6T5FQTQlDw==",
+        "key_id": "canonical_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "canonical_signer_v1": "AQOksj2JTTAuoZGn/07VS1JCUEtDUdF/nhqqxfJ+YpA="
+    }
+  }
+}
