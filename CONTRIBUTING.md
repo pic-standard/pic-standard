@@ -111,6 +111,24 @@ for that behavior. Specifically:
 Maintainers will not merge PRs that add new functionality without
 corresponding tests.
 
+## 5. Branch Protection on `main`
+
+The `main` branch is protected by the `Main Protection` repository
+ruleset. Every merge into `main` requires:
+
+- An open pull request; direct pushes to `main` are blocked.
+- All 7 required status checks passing: `test-python (3.10, pinned)`,
+  `test-python (3.11, pinned)`, `test-python (3.12, pinned)`,
+  `test-python (3.12, latest)`, `test-openclaw`, `Conformance vectors`,
+  and `DCO`.
+- The PR branch up to date with `main` before merge (strict mode).
+- Squash-merge only; merge commits and rebase-merges are disabled.
+- Branch deletion and force-pushes blocked.
+- No bypass; admins are subject to the same rules.
+
+Tag protection for release tags is documented separately in
+`RELEASING.md`.
+
 ## ⚖️ Governance Model
 The PIC Standard is consensus-driven. Major changes to the core `spec/` or `schemas/` must be initiated in the **GitHub Discussions** tab before a Pull Request is opened.
 
