@@ -8,8 +8,8 @@ authors:
     family-names: Salvadori
     # orcid: "https://orcid.org/0000-0000-0000-0000"  # add if you have one
 
-repository-code: "https://github.com/madeinplutofabio/pic-standard"
-url: "https://github.com/madeinplutofabio/pic-standard"
+repository-code: "https://github.com/pic-standard/pic-standard"
+url: "https://github.com/pic-standard/pic-standard"
 repository-artifact: "https://pypi.org/project/pic-standard/"
 license: "Apache-2.0"
 

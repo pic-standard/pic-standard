@@ -218,7 +218,7 @@ If you’ve shipped tool-calling agents with real side effects:
 
 ## Appendix: quick links
 
-- Repo + README + examples: https://github.com/madeinplutofabio/pic-standard
+- Repo + README + examples: https://github.com/pic-standard/pic-standard
 - Evidence demos: `examples/financial_hash_ok.json` and `examples/failing/financial_hash_bad.json`
 - MCP demos: `examples/mcp_pic_server_demo.py` + `examples/mcp_pic_client_demo.py`
 - LangGraph demo: `examples/langgraph_pic_toolnode_demo.py`

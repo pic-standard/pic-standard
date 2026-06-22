@@ -41,14 +41,14 @@
     ],
     "author": "Fabio Marcello Salvadori",
     "license": "Apache-2.0",
-    "homepage": "https://github.com/madeinplutofabio/pic-standard/tree/main/integrations/openclaw",
+    "homepage": "https://github.com/pic-standard/pic-standard/tree/main/integrations/openclaw",
     "repository": {
         "type": "git",
-        "url": "https://github.com/madeinplutofabio/pic-standard.git",
+        "url": "https://github.com/pic-standard/pic-standard.git",
         "directory": "integrations/openclaw"
     },
     "bugs": {
-        "url": "https://github.com/madeinplutofabio/pic-standard/issues"
+        "url": "https://github.com/pic-standard/pic-standard/issues"
     },
     "peerDependencies": {
         "openclaw": ">=2026.2.1"

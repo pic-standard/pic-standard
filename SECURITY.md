@@ -70,7 +70,7 @@ PGP-signed reports and acknowledgments are not currently supported — no mainta
 
 PIC Standard releases produced via the project's release pipeline are cryptographically signed in two complementary ways:
 
-- **PyPI distribution artifacts** (wheel + sdist): signed via [PEP 740 attestations](https://peps.python.org/pep-0740/) (Sigstore-backed, tied to a GitHub Actions Trusted Publisher workflow identity — `madeinplutofabio/pic-standard` running `release.yml` under the `pypi` environment).
+- **PyPI distribution artifacts** (wheel + sdist): signed via [PEP 740 attestations](https://peps.python.org/pep-0740/) (Sigstore-backed, tied to a GitHub Actions Trusted Publisher workflow identity — `pic-standard/pic-standard` running `release.yml` under the `pypi` environment).
 - **Git tags**: signed with the project's dedicated Ed25519 release-signing key (the public half is pinned in [`.github/release-signing-key.pub`](.github/release-signing-key.pub)).
 
 For verification commands, the trusted public signing key + SHA256 fingerprint, troubleshooting, and key rotation procedure, see **[`RELEASING.md`](RELEASING.md)**.
