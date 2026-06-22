@@ -94,6 +94,8 @@ We are currently focusing on the Python Reference SDK. If you wish to contribute
 2. Ensure all Pydantic models in `sdk-python/` pass validation.
 3. Submit a PR with a clear description of changes.
 
+**Adding a conformance vector?** See the step-by-step guide: [`conformance/adding-a-vector.md`](conformance/adding-a-vector.md).
+
 ## 4. Test Policy
 
 Pull requests that add or change behavior MUST include automated tests
