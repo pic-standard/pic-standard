@@ -15,7 +15,7 @@ The release pipeline produces two distinct signed artifacts, verifiable through 
 
 ### Layer 1: PyPI distribution artifacts (wheel + sdist)
 
-Built and uploaded to PyPI by `.github/workflows/release.yml`. Each upload is accompanied by a **PEP 740 attestation** — a Sigstore-issued, transparency-logged signature binding the artifact bytes to a specific GitHub Actions workflow identity (`madeinplutofabio/pic-standard`, workflow `release.yml`, environment `pypi`).
+Built and uploaded to PyPI by `.github/workflows/release.yml`. Each upload is accompanied by a **PEP 740 attestation** — a Sigstore-issued, transparency-logged signature binding the artifact bytes to a specific GitHub Actions workflow identity (`pic-standard/pic-standard`, workflow `release.yml`, environment `pypi`).
 
 - **What proves authenticity:** PyPI publishes the attestation alongside the artifact. The Sigstore-issued certificate is short-lived (per-workflow-run, ephemeral) but cryptographically tied to a GitHub Actions OIDC token claim that asserts "this workflow ran in this repo from this environment." Trust roots back to GitHub's OIDC issuer + Sigstore's public transparency log.
 - **What you do to verify:** install `pypi-attestations` (a FLOSS CLI from PyPA), point it at the artifact, and the tool fetches the attestation from PyPI and validates the entire chain. See "For users" below for the command.
@@ -103,19 +103,19 @@ pip install pypi-attestations
 # Against a local file
 pip download --no-deps pic-standard==<version>
 pypi-attestations verify pypi \
-    --repository https://github.com/madeinplutofabio/pic-standard \
+    --repository https://github.com/pic-standard/pic-standard \
     pic_standard-<version>-py3-none-any.whl
 
 # Or against the PyPI URL directly (no local download)
 pypi-attestations verify pypi \
-    --repository https://github.com/madeinplutofabio/pic-standard \
+    --repository https://github.com/pic-standard/pic-standard \
     https://files.pythonhosted.org/packages/.../pic_standard-<version>-py3-none-any.whl
 ```
 
 **What the tool checks:**
 
 - Fetches the attestation from PyPI
-- Validates the Sigstore-issued certificate against the Trusted Publisher policy (workflow `release.yml` from `madeinplutofabio/pic-standard`)
+- Validates the Sigstore-issued certificate against the Trusted Publisher policy (workflow `release.yml` from `pic-standard/pic-standard`)
 - Confirms the artifact bytes match the attestation's payload hash
 - Cross-references the Sigstore transparency log
 
@@ -164,7 +164,7 @@ git config --global gpg.format ssh   # WARNING: applies globally — see note
 
 ⚠️ Note: `gpg.format ssh` is repo-local in our project setup (per `CONTRIBUTING.md`), but if you set it globally it affects every repo that signs tags/commits. If you sign for another project using GPG, don't set this globally.
 
-**Alternative (GitHub web UI):** GitHub shows tag verification status in the **Releases → Tags** view (https://github.com/madeinplutofabio/pic-standard/tags). A "Verified" indicator on a tag reflects GitHub's server-side check against the maintainer's registered Signing Key, equivalent verification to running `git tag -v` locally.
+**Alternative (GitHub web UI):** GitHub shows tag verification status in the **Releases → Tags** view (https://github.com/pic-standard/pic-standard/tags). A "Verified" indicator on a tag reflects GitHub's server-side check against the maintainer's registered Signing Key, equivalent verification to running `git tag -v` locally.
 
 ---
 

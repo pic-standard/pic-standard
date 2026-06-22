@@ -1,23 +1,21 @@
 # RFC-0001 Spec Fingerprint Manifest
-# Generated: 2026-02-21
+# Generated: 2026-06-22
 # Verify (from repo root): sha256sum -c docs/RFC-0001.SHA256
 #
-# This file anchors RFC-0001 to the canonical source artifacts
-# at the time of publication. The RFC itself is also anchored by
-# the Git commit hash that introduces it.
-
+# This file anchors RFC-0001 to the canonical source artifacts.
+# The RFC is also anchored by the Git commit hash that introduces it.
+# Re-anchored 2026-06-22 after the org migration to pic-standard/pic-standard;
+# pyproject.toml (URL metadata) and CHANGELOG.md have advanced since initial
+# publication. The original fingerprint remains in the Zenodo archive + commit.
 # --- RFC document ---
 29cc941e553869d05a24d94f5036582e844747caef416e870257955da268e5a1  docs/RFC-0001-pic-standard.md
-
 # --- PIC/1.0 schema ---
 910ab13433875b7824449c387a6652eff1f61a0b597b3ac0dd86537d0734e89a  sdk-python/pic_standard/schemas/proposal_schema.json
-
 # --- Core enforcement modules ---
-f4c0dc74ce367b27e111c8f28cf9ce0686f6c40dedf13cd52a288f00363ea2ed  sdk-python/pic_standard/verifier.py
-b14b600a8d1738c616285a39c14bba14dbe0d9f52763e870b5c96b77b2b2caec  sdk-python/pic_standard/evidence.py
-8a572fa527f7f592c65166fea02e5b580144af5a2568bd89b8385b360fdfae9f  sdk-python/pic_standard/keyring.py
-e94d2da396283ffc2078ae7a5ee6613c23311b511b6dc1feefbbe47f084d7376  sdk-python/pic_standard/integrations/mcp_pic_guard.py
-
+9b1115384e6e7fb8f316ea70b8e468779a184260f6b544d915389506801bc54b  sdk-python/pic_standard/verifier.py
+9286b5111f82606f99fecad445f554fe423b8dc5e647bff6d65f45538c6250b2  sdk-python/pic_standard/evidence.py
+eb87b1ed4c5a23f93a4c600c73d682914106ac8592983670868090f3afc4c58c  sdk-python/pic_standard/keyring.py
+68fe105c5e3bce0ad241d80537b7010fd25b55c135ae2c65674e3a9f65f3620e  sdk-python/pic_standard/integrations/mcp_pic_guard.py
 # --- Context anchors (version + history) ---
-b3974a038aae75454a9f614811872dc3714250c616e89bbf033b6b35615054be  pyproject.toml
-3dc2100397c008a2b0deab16821cfa5b49f6d5fc53f565e599f00c584c5696b3  CHANGELOG.md
+ea803150ae1462b0a137952040555d1f685be62eac465bd2a82265d3e76815f6  pyproject.toml
+5db24a74aaac62259ec408cbf22a4466ce58539d9155800048b33ed99364f60a  CHANGELOG.md

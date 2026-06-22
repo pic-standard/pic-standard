@@ -1,18 +1,18 @@
-# <p><img src="https://raw.githubusercontent.com/madeinplutofabio/pic-standard/main/picico.png" height="60" align="absmiddle"> PIC Standard: Provenance & Intent Contracts</p>
+# <p><img src="https://raw.githubusercontent.com/pic-standard/pic-standard/main/picico.png" height="60" align="absmiddle"> PIC Standard: Provenance & Intent Contracts</p>
 
 **Local-first action gating for AI agents. Verify intent, provenance, and evidence before any high-impact tool call executes.**
 
 [![PyPI version](https://img.shields.io/pypi/v/pic-standard.svg?logo=pypi&logoColor=white)](https://pypi.org/project/pic-standard/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/pic-standard.svg?logo=pypi&logoColor=white)](https://pypi.org/project/pic-standard/)
-[![Signed releases](https://img.shields.io/badge/signed%20releases-Sigstore%20%2B%20SSH-brightgreen)](https://github.com/madeinplutofabio/pic-standard/blob/main/RELEASING.md)
+[![Signed releases](https://img.shields.io/badge/signed%20releases-Sigstore%20%2B%20SSH-brightgreen)](https://github.com/pic-standard/pic-standard/blob/main/RELEASING.md)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12790/badge)](https://www.bestpractices.dev/projects/12790)
-[![CI](https://github.com/madeinplutofabio/pic-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/madeinplutofabio/pic-standard/actions/workflows/ci.yml)
+[![CI](https://github.com/pic-standard/pic-standard/actions/workflows/ci.yml/badge.svg)](https://github.com/pic-standard/pic-standard/actions/workflows/ci.yml)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-D7FF64)](https://docs.astral.sh/ruff/)
-[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)](https://github.com/madeinplutofabio/pic-standard/blob/main/pyproject.toml)
-[![Last commit](https://img.shields.io/github/last-commit/madeinplutofabio/pic-standard)](https://github.com/madeinplutofabio/pic-standard/commits/main)
-[![GitHub stars](https://img.shields.io/github/stars/madeinplutofabio/pic-standard?style=social)](https://github.com/madeinplutofabio/pic-standard)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)](https://github.com/pic-standard/pic-standard/blob/main/pyproject.toml)
+[![Last commit](https://img.shields.io/github/last-commit/pic-standard/pic-standard)](https://github.com/pic-standard/pic-standard/commits/main)
+[![GitHub stars](https://img.shields.io/github/stars/pic-standard/pic-standard?style=social)](https://github.com/pic-standard/pic-standard)
 [![DOI](http://img.shields.io/badge/DOI-10.5281%20%2F%20zenodo.18725562-blue.svg)](https://doi.org/10.5281/zenodo.18725562)
-[![License](https://img.shields.io/github/license/madeinplutofabio/pic-standard)](https://github.com/madeinplutofabio/pic-standard/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/pic-standard/pic-standard)](https://github.com/pic-standard/pic-standard/blob/main/LICENSE)
 
 PIC is a lightweight, local-first protocol that forces AI agents to **prove** every important action before it happens. Agents must declare intent, impact, provenance, and evidence; PIC verifies everything and **fails closed** if anything is wrong.
 
@@ -83,7 +83,7 @@ pip install "pic-standard[crypto]"     # Ed25519 signature evidence
 
 **From source (contributors):**
 ```bash
-git clone https://github.com/madeinplutofabio/pic-standard.git
+git clone https://github.com/pic-standard/pic-standard.git
 cd pic-standard && pip install -e ".[langgraph,mcp,crypto]"
 pytest -q
 ```
@@ -270,7 +270,7 @@ Verify locally: `sha256sum -c docs/RFC-0001.SHA256`
 
 ## Project info
 
-- **Security policy** — see [`SECURITY.md`](SECURITY.md). Report vulnerabilities privately via [GitHub Security Advisories](https://github.com/madeinplutofabio/pic-standard/security/advisories/new); do not file public issues for security reports.
+- **Security policy** — see [`SECURITY.md`](SECURITY.md). Report vulnerabilities privately via [GitHub Security Advisories](https://github.com/pic-standard/pic-standard/security/advisories/new); do not file public issues for security reports.
 - **Code of conduct** — see [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). PIC follows the [Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). Reports go to `team@madeinpluto.com`.
 - **Citation** — see [`CITATION.cff`](CITATION.cff) for full citation metadata. The Zenodo concept DOI [10.5281/zenodo.18725562](https://doi.org/10.5281/zenodo.18725562) (badged at the top of this page) resolves to the latest archived release on Zenodo; per-version DOIs are listed on the Zenodo record.
 - **Foundation-track feedback** — PIC Standard has undergone [AAIF project-proposal review](https://github.com/aaif/project-proposals/issues/16#issuecomment-4455960990). The technical positioning was recognized; the current focus is expanding multi-organization maintainership, production adoption, and standards-track readiness.
@@ -291,7 +291,7 @@ Good first contribution areas right now: conformance vectors, OpenAPI spec, TS v
 
 If you find PIC useful, please consider giving us a star on GitHub: it helps attract more security experts and framework authors into the community.
 
-Issues & ideas: [GitHub Issues](https://github.com/madeinplutofabio/pic-standard/issues)
+Issues & ideas: [GitHub Issues](https://github.com/pic-standard/pic-standard/issues)
 
 Maintained by [![Linkedin](https://i.sstatic.net/gVE0j.png) @fmsalvadori](https://www.linkedin.com/in/fmsalvadori/)
 &nbsp;

@@ -74,7 +74,7 @@ The project's operational surface is intentionally narrow:
 
 - The repository is licensed **Apache-2.0**, which grants all rights necessary for the project to be forked and continued under new maintainership without requiring permission from the original author or their estate.
 - Inbound contributions are governed by Apache-2.0 §5 (inbound = outbound), so the contribution graph requires no further licensing action to continue.
-- The project name "PIC Standard" and the GitHub repository under `madeinplutofabio/pic-standard` are not registered trademarks. A successor maintainer may continue under the same name or fork under a new one.
+- The project name "PIC Standard" and the GitHub repository under `pic-standard/pic-standard` are not registered trademarks. A successor maintainer may continue under the same name or fork under a new one.
 
 ### Designated successor
 
@@ -90,7 +90,7 @@ Activation procedure:
    - Credentials for `team@madeinpluto.com`
    - A signed letter from the Lead Maintainer authorizing the successor to act on the project under Apache-2.0
 2. Using those credentials, the successor either (a) appoints a technical maintainer of her choice and transfers GitHub repository ownership and PyPI co-owner rights, or (b) publishes a final maintenance release and archives the repository.
-3. Apache-2.0 grants any third party the independent right to fork and continue the project, so the successor's authority is not the only path to continuity — it is the path that preserves the official `madeinplutofabio/pic-standard` and PyPI `pic-standard` namespaces.
+3. Apache-2.0 grants any third party the independent right to fork and continue the project, so the successor's authority is not the only path to continuity — it is the path that preserves the official `pic-standard/pic-standard` and PyPI `pic-standard` namespaces.
 
 The successor's contact details are held privately and not published in this file. Verification in a continuity event is via possession of the sealed envelope and recovery codes.
 
@@ -106,7 +106,7 @@ If the Lead Maintainer becomes unavailable per the definition above:
 
 ## Contact
 
-- **General project questions** — open an issue at <https://github.com/madeinplutofabio/pic-standard/issues>.
+- **General project questions** — open an issue at <https://github.com/pic-standard/pic-standard/issues>.
 - **Security disclosures** — use GitHub Security Advisories per `SECURITY.md`. Do not file public issues for security bugs.
 - **Code of conduct** — team@madeinpluto.com per `CODE_OF_CONDUCT.md`.
 - **Continuity activation** — open a public issue using the title format above.

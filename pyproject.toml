@@ -31,9 +31,9 @@ mcp = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/madeinplutofabio/pic-standard"
-Repository = "https://github.com/madeinplutofabio/pic-standard"
-Issues = "https://github.com/madeinplutofabio/pic-standard/issues"
+Homepage = "https://github.com/pic-standard/pic-standard"
+Repository = "https://github.com/pic-standard/pic-standard"
+Issues = "https://github.com/pic-standard/pic-standard/issues"
 
 [project.scripts]
 pic-cli = "pic_standard.cli:main"
