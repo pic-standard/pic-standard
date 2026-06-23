@@ -14,6 +14,11 @@
 [![DOI](http://img.shields.io/badge/DOI-10.5281%20%2F%20zenodo.18725562-blue.svg)](https://doi.org/10.5281/zenodo.18725562)
 [![License](https://img.shields.io/github/license/pic-standard/pic-standard)](https://github.com/pic-standard/pic-standard/blob/main/LICENSE)
 
+> **Contributors wanted.** PIC is recruiting its first external contributors and
+> co-maintainers. Start with the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117)
+> and the pinned good-first issues. Today, PIC has a Python reference implementation;
+> a second implementation in TypeScript, Go, or Rust is open to own ([#48](https://github.com/pic-standard/pic-standard/issues/48)).
+
 PIC is a lightweight, local-first protocol that forces AI agents to **prove** every important action before it happens. Agents must declare intent, impact, provenance, and evidence; PIC verifies everything and **fails closed** if anything is wrong.
 
 PIC is not agent identity or delegation infrastructure; PIC is the action-bound verification contract that decides whether a high-impact tool call is justified to execute now.
