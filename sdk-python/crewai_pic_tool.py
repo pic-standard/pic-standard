@@ -11,10 +11,10 @@ class PICProtectedTool(BaseTool):
         # 1. Intercept the call
         # 2. Run the Verifier
         if pic_contract.get("impact") == "money" and not self.has_trusted_evidence(pic_contract):
-            return "❌ Access Denied: PIC Contract Violation. No trusted provenance."
+            return "Access Denied: PIC Contract Violation. No trusted provenance."
 
         # 3. Only execute if valid
-        return f"✅ Payment of ${amount} to {recipient} authorized via PIC."
+        return f"Payment of ${amount} to {recipient} authorized via PIC."
 
     def has_trusted_evidence(self, contract):
         # Logic to check if any provenance source is 'trusted'

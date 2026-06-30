@@ -34,7 +34,7 @@ def test_cli_keys_success_loads_from_pic_keys_path(monkeypatch, capsys, tmp_path
     assert rc == 0
 
     out = capsys.readouterr().out
-    assert "✅ Keyring loaded" in out
+    assert "PASS: Keyring loaded" in out
     assert "PIC_KEYS_PATH=" in out  # source hint should mention env
     assert "Trusted keys" in out
     assert "- demo_signer_v1" in out
@@ -60,7 +60,7 @@ def test_cli_keys_invalid_keyring_reports_error(monkeypatch, capsys, tmp_path: P
     assert rc != 0
 
     out = capsys.readouterr().out
-    assert "❌ Keyring" in out
+    assert "FAIL: Keyring" in out
     assert "Source:" in out
     # message should include why (not too brittle)
     assert "base64" in out.lower() or "invalid" in out.lower()

@@ -60,7 +60,7 @@ def main() -> None:
     bad["evidence"][0]["signature"] = _b64(sig_bad)
     BAD_PATH.write_text(json.dumps(bad, indent=4), encoding="utf-8")
 
-    print("✅ Wrote:")
+    print("PASS: Wrote:")
     print(f" - {KEYS_EXAMPLE_PATH.relative_to(REPO_ROOT)}")
     print(f" - {OK_PATH.relative_to(REPO_ROOT)}")
     print(f" - {BAD_PATH.relative_to(REPO_ROOT)}")
