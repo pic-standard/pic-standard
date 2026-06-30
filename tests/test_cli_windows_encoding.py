@@ -56,18 +56,14 @@ def run_cli_ascii_safe(monkeypatch, capsys, tmp_path, argv, expected_exit=0):
         elif isinstance(result, int):
             exit_code = result
         else:
-            pytest.fail(
-                f"argv={argv}: non-integer cli_main return: {result!r}"
-            )
+            pytest.fail(f"argv={argv}: non-integer cli_main return: {result!r}")
     except SystemExit as e:
         if e.code is None:
             exit_code = 0
         elif isinstance(e.code, int):
             exit_code = e.code
         else:
-            pytest.fail(
-                f"argv={argv}: non-integer SystemExit code: {e.code!r}"
-            )
+            pytest.fail(f"argv={argv}: non-integer SystemExit code: {e.code!r}")
 
     captured = capsys.readouterr()
     assert_ascii_safe(captured.out, f"stdout for argv={argv}")
@@ -80,21 +76,25 @@ def run_cli_ascii_safe(monkeypatch, capsys, tmp_path, argv, expected_exit=0):
 # PASS-path invocations + JSON-stdout invocations
 PASS_INVOCATIONS = [
     pytest.param(
-        ["schema", str(EXAMPLES / "read_only_query.json")], 0,
+        ["schema", str(EXAMPLES / "read_only_query.json")],
+        0,
         id="schema-valid",
     ),
     pytest.param(
-        ["verify", str(EXAMPLES / "read_only_query.json")], 0,
+        ["verify", str(EXAMPLES / "read_only_query.json")],
+        0,
         id="verify-low-impact-allow",
     ),
     # JSON-stdout paths (cli.py L144 / L152 / L203 use ensure_ascii=True
     # after the issue #120 fix; these invocations exercise that path).
     pytest.param(
-        ["policy", "--write-example"], 0,
+        ["policy", "--write-example"],
+        0,
         id="policy-write-example-json-stdout",
     ),
     pytest.param(
-        ["keys", "--write-example"], 0,
+        ["keys", "--write-example"],
+        0,
         id="keys-write-example-json-stdout",
     ),
 ]
@@ -102,7 +102,11 @@ PASS_INVOCATIONS = [
 
 @pytest.mark.parametrize("argv,expected_exit", PASS_INVOCATIONS)
 def test_cli_pass_and_json_paths_ascii_safe(
-    monkeypatch, capsys, tmp_path, argv, expected_exit,
+    monkeypatch,
+    capsys,
+    tmp_path,
+    argv,
+    expected_exit,
 ):
     """PASS-path and JSON-stdout CLI output must be ASCII-only with correct exit."""
     run_cli_ascii_safe(monkeypatch, capsys, tmp_path, argv, expected_exit)
@@ -128,7 +132,9 @@ def test_cli_schema_fail_path_ascii_safe(monkeypatch, capsys, tmp_path):
         encoding="utf-8",
     )
     run_cli_ascii_safe(
-        monkeypatch, capsys, tmp_path,
+        monkeypatch,
+        capsys,
+        tmp_path,
         ["schema", str(invalid)],
         expected_exit=2,
     )
