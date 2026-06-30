@@ -14,11 +14,11 @@ class PICEvidenceSystem:
         """
         Simulates verifying that a claim matches a trusted record.
         """
-        print(f"🔍 Checking evidence '{evidence_id}' for claim: {claim_text}")
+        print(f"Checking evidence '{evidence_id}' for claim: {claim_text}")
         return evidence_id in self.trusted_vault
 
 
 # Example Usage
 checker = PICEvidenceSystem()
 is_valid = checker.verify_financial_claim("Invoice matches CFO approval", "invoice_hash_001")
-print(f"Evidence Status: {'✅ TRUSTED' if is_valid else '❌ REJECTED'}")
+print(f"Evidence Status: {'TRUSTED' if is_valid else 'REJECTED'}")

@@ -73,9 +73,9 @@ def main():
             ]
         }
         node.invoke(state)
-        print("❌ unexpected: untrusted money proposal should have been blocked")
+        print("FAIL: unexpected: untrusted money proposal should have been blocked")
     except Exception as e:
-        print("✅ blocked as expected (untrusted money)")
+        print("PASS: blocked as expected (untrusted money)")
         print("   ", pretty_error(e))
         print()
 
@@ -98,10 +98,10 @@ def main():
         out = node.invoke(state)
         msgs = out.get("messages", [])
         result = msgs[0].content if msgs else "<no output>"
-        print("✅ allowed as expected (trusted money)")
+        print("PASS: allowed as expected (trusted money)")
         print("   ", result)
     except Exception as e:
-        print("❌ unexpected: trusted money proposal should have been allowed")
+        print("FAIL: unexpected: trusted money proposal should have been allowed")
         print("   ", pretty_error(e))
 
 

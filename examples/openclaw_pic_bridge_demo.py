@@ -151,7 +151,7 @@ def run_demo(base_url: str) -> None:
 # --- Main --------------------------------------------------------------------
 
 def main() -> None:
-    log.info("Policy: payments_send → money (high-impact)")
+    log.info("Policy: payments_send -> money (high-impact)")
 
     server = PICBridgeServer(
         ("127.0.0.1", 0),  # port 0 = OS-assigned random port

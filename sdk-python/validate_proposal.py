@@ -13,9 +13,9 @@ def validate_pic_proposal(schema_path, proposal_path):
 
     try:
         validate(instance=proposal, schema=schema)
-        print("✅ PIC Contract is Schema-Valid.")
+        print("PASS: PIC Contract is Schema-Valid.")
     except ValidationError as e:
-        print(f"❌ Schema Violation: {e.message}")
+        print(f"FAIL: Schema Violation: {e.message}")
         sys.exit(1)
 
 

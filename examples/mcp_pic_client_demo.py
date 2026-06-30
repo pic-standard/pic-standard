@@ -89,20 +89,20 @@ def _extract_pic_envelope(resp: Any) -> Optional[dict]:
 def _print_pic(resp: Any, *, expect_block: bool) -> None:
     env = _extract_pic_envelope(resp)
     if env is None:
-        print("❌ could not parse PIC envelope from MCP response")
+        print("FAIL: could not parse PIC envelope from MCP response")
         print(resp)
         return
 
     is_err = bool(env.get("isError"))
 
     if is_err and expect_block:
-        print("✅ blocked as expected")
+        print("PASS: blocked as expected")
     elif (not is_err) and (not expect_block):
-        print("✅ allowed as expected")
+        print("PASS: allowed as expected")
     elif is_err and (not expect_block):
-        print("❌ unexpected: trusted money should have been allowed")
+        print("FAIL: unexpected: trusted money should have been allowed")
     else:
-        print("❌ unexpected: untrusted money should have been blocked")
+        print("FAIL: unexpected: untrusted money should have been blocked")
 
     print(json.dumps(env, indent=2, ensure_ascii=False))
 

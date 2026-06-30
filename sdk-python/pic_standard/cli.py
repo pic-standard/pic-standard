@@ -32,10 +32,10 @@ def cmd_schema(proposal_path: Path) -> int:
 
     try:
         js_validate(instance=proposal, schema=schema)
-        print("✅ Schema valid")
+        print("PASS: Schema valid")
         return 0
     except ValidationError as e:
-        print("❌ Schema invalid")
+        print("FAIL: Schema invalid")
         print(str(e))
         return 2
 
@@ -52,21 +52,21 @@ def cmd_evidence_verify(proposal_path: Path) -> int:
     report = es.verify_all(proposal, base_dir=proposal_path.parent)
 
     if not report.results:
-        print("❌ Evidence verification failed")
+        print("FAIL: Evidence verification failed")
         print("No evidence entries found in proposal (expected 'evidence': [...]).")
         return 4
 
     for r in report.results:
         if r.ok:
-            print(f"✅ Evidence {r.id}: {r.message}")
+            print(f"PASS: Evidence {r.id}: {r.message}")
         else:
-            print(f"❌ Evidence {r.id}: {r.message}")
+            print(f"FAIL: Evidence {r.id}: {r.message}")
 
     if report.ok:
-        print("✅ Evidence verification passed")
+        print("PASS: Evidence verification passed")
         return 0
 
-    print("❌ Evidence verification failed")
+    print("FAIL: Evidence verification failed")
     return 4
 
 
@@ -89,19 +89,19 @@ def cmd_verify(proposal_path: Path, *, verify_evidence: bool = False) -> int:
     )
 
     if result.ok:
-        print("✅ Verifier passed")
+        print("PASS: Verifier passed")
         return 0
 
     err = result.error
     if err and err.code == PICErrorCode.SCHEMA_INVALID:
-        print("❌ Schema invalid")
+        print("FAIL: Schema invalid")
         print(err.message)
         return 2
     if err and err.code in (PICErrorCode.EVIDENCE_REQUIRED, PICErrorCode.EVIDENCE_FAILED):
-        print("❌ Evidence verification failed")
+        print("FAIL: Evidence verification failed")
         print(err.message)
         return 4
-    print("❌ Verifier failed")
+    print("FAIL: Verifier failed")
     print(err.message if err else "Unknown error")
     return 3
 
@@ -141,15 +141,15 @@ def cmd_policy(*, repo_root: Path, write_example: bool = False) -> int:
             "require_pic_for_impacts": ["money", "privacy", "irreversible"],
             "require_evidence_for_impacts": ["money", "privacy", "irreversible"],
         }
-        print(json.dumps(example, indent=2, ensure_ascii=False))
+        print(json.dumps(example, indent=2, ensure_ascii=True))
         return 0
 
     policy = load_policy(repo_root=repo_root)
     source = _find_policy_source(repo_root)
 
-    print("✅ Policy loaded")
+    print("PASS: Policy loaded")
     print(f"Source: {source}")
-    print(json.dumps(dump_policy(policy), indent=2, ensure_ascii=False))
+    print(json.dumps(dump_policy(policy), indent=2, ensure_ascii=True))
     return 0
 
 
@@ -200,7 +200,7 @@ def cmd_keys(*, repo_root: Path, write_example: bool = False) -> int:
             },
             "revoked_keys": ["cfo_key_v1"],
         }
-        print(json.dumps(example, indent=2, ensure_ascii=False))
+        print(json.dumps(example, indent=2, ensure_ascii=True))
         return 0
 
     source = _find_keys_source(repo_root)
@@ -208,19 +208,19 @@ def cmd_keys(*, repo_root: Path, write_example: bool = False) -> int:
     try:
         ring = TrustedKeyRing.load_default()
     except KeyRingError as e:
-        print("❌ Keyring invalid")
+        print("FAIL: Keyring invalid")
         print(f"Source: {source}")
         print(str(e))
         return 6
     except Exception as e:
-        print("❌ Keyring failed to load")
+        print("FAIL: Keyring failed to load")
         print(f"Source: {source}")
         print(str(e))
         return 6
 
     key_ids = sorted(list(ring.keys.keys()))
 
-    print("✅ Keyring loaded")
+    print("PASS: Keyring loaded")
     print(f"Source: {source}")
 
     if not key_ids:
