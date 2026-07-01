@@ -17,7 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 langgraph = [
-  "langchain-core>=0.1.0",
+  "langchain-core>=0.3.86",
 ]
 
 # Needed for v0.4 signature evidence verification (Ed25519).
