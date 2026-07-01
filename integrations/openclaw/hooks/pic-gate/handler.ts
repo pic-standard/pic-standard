@@ -26,9 +26,7 @@ interface BeforeToolCallEvent {
 
 /** Real return type for before_tool_call hook. */
 type BeforeToolCallReturn =
-    | { block: true; blockReason: string }
-    | { params: Record<string, unknown> }
-    | void;
+    { block: true; blockReason: string } | { params: Record<string, unknown> } | void;
 
 /**
  * Resolve plugin config from captured pluginConfig (closure from register()).
