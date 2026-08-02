@@ -1,0 +1,22 @@
+{
+  "protocol": "PIC/1.0",
+  "intent": "Export a user's support history to the approved privacy archive.",
+  "impact": "privacy",
+  "provenance": [
+    { "id": "privacy_request_ticket", "trust": "trusted" },
+    { "id": "support_history", "trust": "semi_trusted" }
+  ],
+  "claims": [
+    {
+      "text": "The user requested an export through the verified privacy workflow.",
+      "evidence": ["privacy_request_ticket"]
+    }
+  ],
+  "action": {
+    "tool": "privacy.export_support_history",
+    "args": {
+      "user_id": "user-1042",
+      "destination": "privacy-archive"
+    }
+  }
+}
