@@ -1,0 +1,24 @@
+{
+  "protocol": "PIC/1.0",
+  "intent": "Archive a completed incident and notify the incident owner.",
+  "impact": "irreversible",
+  "provenance": [
+    { "id": "incident_record", "trust": "trusted" },
+    { "id": "incident_commander_approval", "trust": "trusted" }
+  ],
+  "claims": [
+    {
+      "text": "The incident is resolved and the incident commander approved archival.",
+      "evidence": ["incident_record", "incident_commander_approval"]
+    }
+  ],
+  "action": {
+    "tool": "workflow.run",
+    "args": {
+      "steps": [
+        { "tool": "incident.archive", "incident_id": "INC-1042" },
+        { "tool": "notifications.send", "recipient": "incident-owner" }
+      ]
+    }
+  }
+}

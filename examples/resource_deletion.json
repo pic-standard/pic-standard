@@ -1,0 +1,22 @@
+{
+  "protocol": "PIC/1.0",
+  "intent": "Delete an expired project workspace and its attached resources.",
+  "impact": "irreversible",
+  "provenance": [
+    { "id": "retention_policy", "trust": "trusted" },
+    { "id": "workspace_owner_request", "trust": "trusted" }
+  ],
+  "claims": [
+    {
+      "text": "The workspace passed its retention period and the owner confirmed deletion.",
+      "evidence": ["retention_policy", "workspace_owner_request"]
+    }
+  ],
+  "action": {
+    "tool": "workspace.delete",
+    "args": {
+      "workspace_id": "workspace-2026-041",
+      "include_backups": false
+    }
+  }
+}
