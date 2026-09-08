@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 This project follows Semantic Versioning:
 https://semver.org/
 
+## [0.9.0a1] - UNRELEASED
+
+Alpha preparation for the v0.9.0 cross-implementation milestone. This entry records merged changes on `main`; A6a will date the release at tag time.
+
+### Removed
+
+- Removed the legacy `provenance[].trust = "semi_trusted"` value from the proposal schema. Proposals carrying `"semi_trusted"` now fail JSON Schema validation with `PIC_SCHEMA_INVALID`.
+- Removed the v0.8.1 `semi_trusted` compatibility path: `PICSemiTrustedDeprecationWarning`, `TrustLevel.SEMI_TRUSTED`, the `Provenance.trust` normalization validator, and the pipeline bridge helper that triggered that normalization.
+
+### Changed
+
+- Replaced `semi_trusted` warning/normalization tests with a schema-rejection regression guard and a package-root negative import test.
+- Updated trust-sanitization and core-spec documentation to describe `semi_trusted` as removed starting in v0.9.0a1.
+- Updated `docs/spec-status.md` with the missing v0.8.3 status row and the new v0.9.0a1 removal row.
+
+### Notes
+
+- Breaking change only for producers still emitting `"semi_trusted"`. Replace it with `"untrusted"`; high-impact flows that need trusted status under strict mode should rely on verifier-controlled context or authority-bearing evidence such as signature evidence.
+- No canonicalization changes. PIC-CJSON/1.0 remains frozen.
+- TypeScript verifier work is not included in this entry; it remains the final v0.9.0 interop milestone.
+
+---
+
 ## [0.8.3] - 2026-09-07
 
 Evidence-semantics tightening: hash evidence is content-integrity only. Reported by @keureyes in [#133](https://github.com/pic-standard/pic-standard/issues/133).

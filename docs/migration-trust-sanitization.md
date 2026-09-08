@@ -28,6 +28,7 @@ This migration changes verifier behavior and integration defaults over time; it 
 | **v0.8.0** | `PICTrustFutureWarning` emitted when self-asserted `trust="trusted"` is present and effective evidence verification will not run. New `strict_trust` pipeline option available (default `False`). Wire format unchanged. |
 | **v0.8.1** | `PICSemiTrustedDeprecationWarning` emitted when `trust="semi_trusted"` is observed. The value is normalized to `"untrusted"` at the canonical model-validation boundary (the `Provenance.trust` pydantic field validator), in all modes — including strict-trust mode. Schema enum unchanged in v0.8.1. Example files migrated off `semi_trusted` (the project's own surface is clean). |
 | **v0.8.3** | Hash-evidence semantics tightened. Hash verification produces `hash_verified` (content-integrity of the referenced file bytes) only and MUST NOT upgrade `provenance[].trust` from `"untrusted"` to `"trusted"` by itself. Signature evidence continues to upgrade trust via the configured keyring. Under `strict_trust=True`, high-impact proposals that previously reached `trusted` via hash-only evidence now block with `PIC_VERIFIER_FAILED`. Reported in issue #133. |
+| **v0.9.0a1** | `"semi_trusted"` is **removed** from the trust enum. Proposals carrying `provenance[].trust = "semi_trusted"` are rejected at JSON Schema validation with `PIC_SCHEMA_INVALID`. The `PICSemiTrustedDeprecationWarning` class and the v0.8.1 `Provenance.trust` normalization validator are deleted; the `_normalize_provenance_entries_via_model_validator` pipeline bridge helper is removed. The only conformant trust values are `"trusted"` and `"untrusted"`. |
 | **v1.0** | `strict_trust=True` is the default and the only conformant mode. Non-sanitizing mode is explicitly **legacy and non-conformant** — implementations that disable trust sanitization MUST NOT claim PIC/1.0 conformance. |
 
 ---
@@ -193,17 +194,17 @@ The warning will still fire, because evidence verification will not actually run
 
 **Q: What happens to proposals with `trust: "semi_trusted"`?**
 
-**v0.8.1 (this release):** `semi_trusted` is formally deprecated. A `PICSemiTrustedDeprecationWarning` (defined in `pic_standard.verifier`, also re-exported at `pic_standard` package root) fires whenever a `Provenance` is constructed with `trust="semi_trusted"` — whether via `verify_proposal()` or via direct model construction. The value is normalized to `"untrusted"` at the canonical model-validation boundary (the `Provenance.trust` pydantic field validator), in all modes (not only `strict_trust=True`). The repository's own example files have been migrated off `semi_trusted` (`examples/financial_irreversible.json` and `examples/robotic_action.json` now use `"untrusted"` for the affected entries; the load-bearing `"trusted"` entries in those files are unchanged). Producers MUST migrate before v0.9.0.
+**Starting in v0.9.0a1:** `"semi_trusted"` is removed from the trust enum. Proposals carrying `provenance[].trust = "semi_trusted"` fail JSON Schema validation with `PIC_SCHEMA_INVALID`. The `PICSemiTrustedDeprecationWarning` class no longer exists, and the v0.8.1 model-validation-boundary normalization has been removed. The only conformant trust values are `"trusted"` and `"untrusted"`. Under strict mode, high-impact authorization cannot rely on self-asserted `"trusted"` labels; trust must come from verifier-controlled context or successful evidence verification.
 
-**Pre-v0.8.1 baseline (v0.8.0):** prior to v0.8.1, `semi_trusted` was silently sanitized to `"untrusted"` only in `strict_trust=True` mode and accepted as-is otherwise. The `PICTrustFutureWarning` (described above) only fires for `trust="trusted"`; it has never targeted `semi_trusted`. This pre-v0.8.1 behavior is preserved as historical context only — v0.8.1+ should be considered the canonical behavior.
+**Historical context:**
+- **v0.7.x through v0.8.0:** `semi_trusted` was accepted at face value in non-strict mode and silently sanitized to `"untrusted"` in `strict_trust=True` mode. No warning targeted this value.
+- **v0.8.1 through v0.8.3:** deprecation window. `PICSemiTrustedDeprecationWarning` fired at `Provenance` construction time and normalized the value to `"untrusted"` in all modes; the schema still accepted the string. Example files were migrated off `semi_trusted` at v0.8.1.
+- **v0.9.0a1:** removed from the schema, code, and public exports.
 
-**v0.9.0 (planned):** `"semi_trusted"` is **removed** from the trust enum entirely. Proposals carrying it will fail JSON Schema validation. The only conformant trust values become `"trusted"` and `"untrusted"`, with `"trusted"` requiring evidence verification under strict mode (the v1.0 default).
-
-**Migration path for producers using `trust: "semi_trusted"` today:**
-1. Treat the value as deprecated immediately. Plan to remove it before v0.9.0.
-2. Replace `trust: "semi_trusted"` with `trust: "untrusted"` now. This is the forward-compatible choice for all producers.
-3. If the proposal carries verifiable evidence (hash, signature, attestation), keep that evidence attached and let the verifier derive effective trust from successful verification.
-4. Do not rely on producer-declared trust labels for authorization. Under the trust axiom (v0.7.5), inbound `trust` is non-authoritative; only verifier-controlled context or successful evidence verification can establish trusted status.
+**Migration path for any producer still emitting `trust: "semi_trusted"`:**
+1. Replace `trust: "semi_trusted"` with `trust: "untrusted"`. This is forward-compatible and always correct under the trust axiom (v0.7.5).
+2. If a high-impact flow needs to reach `"trusted"` under strict mode, attach signature evidence (Ed25519) signed by a trusted signer. Hash evidence alone establishes content-integrity only; see the v0.8.3 FAQ below.
+3. Do not rely on producer-declared trust labels for authorization. Only verifier-controlled context or successful evidence verification can establish trusted status.
 
 **Q: What if my proposal relies on hash evidence to upgrade untrusted provenance to trusted?**
 

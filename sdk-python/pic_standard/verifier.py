@@ -1,36 +1,13 @@
 from __future__ import annotations
 
-import warnings
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
-from pydantic import BaseModel, field_validator, model_validator
-
-# ------------------------------------------------------------------
-# v0.8.1: semi_trusted deprecation warning
-# ------------------------------------------------------------------
-
-
-class PICSemiTrustedDeprecationWarning(FutureWarning):
-    """Emitted when a Provenance entry is constructed with trust='semi_trusted'.
-
-    The 'semi_trusted' value is deprecated in v0.8.1 and will be removed from
-    the proposal schema and TrustLevel enum in v0.9.0. The pydantic field
-    validator on Provenance.trust normalizes the value to 'untrusted' at
-    construction time and emits this warning, in all modes (not only
-    strict_trust=True).
-
-    Producers should migrate to trust='untrusted' and attach verifiable
-    evidence; verifiers derive effective trust from successful evidence
-    verification per the trust axiom (v0.7.5).
-    """
-
-    pass
+from pydantic import BaseModel, model_validator
 
 
 class TrustLevel(str, Enum):
     TRUSTED = "trusted"
-    SEMI_TRUSTED = "semi_trusted"
     UNTRUSTED = "untrusted"
 
 
@@ -47,33 +24,6 @@ class ImpactClass(str, Enum):
 class Provenance(BaseModel):
     id: str
     trust: TrustLevel
-
-    @field_validator("trust", mode="before")
-    @classmethod
-    def _normalize_semi_trusted(cls, v: Any) -> Any:
-        """Canonical normalization boundary for the deprecated 'semi_trusted' value.
-
-        Fires at Provenance construction time, in all modes. Any path that bypasses
-        this validator is non-conformant with the v0.8.1 behavior contract.
-
-        Detects 'semi_trusted' as either the raw string or the TrustLevel enum
-        member (TrustLevel is a str-Enum, so equality unifies both forms).
-        Emits PICSemiTrustedDeprecationWarning and returns TrustLevel.UNTRUSTED;
-        all other values pass through unchanged for pydantic to coerce normally.
-        """
-        if v == "semi_trusted":
-            warnings.warn(
-                "PIC deprecation: provenance trust='semi_trusted' is "
-                "deprecated in v0.8.1 and will be removed in v0.9.0. "
-                "Normalizing to 'untrusted'. Producers should migrate "
-                "to trust='untrusted' with verifiable evidence; "
-                "verifiers derive effective trust from evidence per the "
-                "trust axiom. See docs/migration-trust-sanitization.md.",
-                PICSemiTrustedDeprecationWarning,
-                stacklevel=2,
-            )
-            return TrustLevel.UNTRUSTED
-        return v
 
 
 class Claim(BaseModel):

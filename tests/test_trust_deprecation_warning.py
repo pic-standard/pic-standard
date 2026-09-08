@@ -1,17 +1,17 @@
-"""Tests for PIC v0.8.x trust deprecation warnings.
+"""Tests for PIC trust deprecation warnings.
 
-Covers two warning surfaces:
+Covers:
 
 - ``PICTrustFutureWarning`` (v0.7.5): self-asserted ``trust='trusted'``
   under non-strict mode where evidence verification will not actually run.
 
-- ``PICSemiTrustedDeprecationWarning`` (v0.8.1): inbound
-  ``trust='semi_trusted'`` is deprecated; canonical normalization is the
-  ``Provenance.trust`` field validator in ``pic_standard.verifier``.
-
-Plus a verdict-regression matrix that pins v0.8.0 baseline outcomes for
-representative example proposals, so any future refactor that touches the
-dict-vs-model boundary surfaces immediately as a CI failure.
+Plus:
+- A schema-rejection regression guard for the removed ``semi_trusted``
+  provenance trust value (removed in v0.9.0a1 completing the v0.8.1
+  deprecation cycle).
+- A verdict-regression matrix that pins baseline outcomes for representative
+  example proposals, so any future refactor that touches pipeline verdict
+  behavior surfaces immediately as a CI failure.
 """
 
 from __future__ import annotations
@@ -28,12 +28,6 @@ from pic_standard.pipeline import (
     PipelineOptions,
     verify_proposal,
 )
-from pic_standard.verifier import (
-    ActionProposal,
-    PICSemiTrustedDeprecationWarning,
-    Provenance,
-    TrustLevel,
-)
 
 
 class TestTrustFutureWarning:
@@ -41,7 +35,7 @@ class TestTrustFutureWarning:
     effective evidence verification will not run for the proposal."""
 
     def test_warning_fires_on_self_asserted_trust_without_evidence(self) -> None:
-        """trust='trusted' + verify_evidence=False → warning emitted, result still ok."""
+        """trust='trusted' + verify_evidence=False -> warning emitted, result still ok."""
         proposal = make_proposal(trust="trusted", impact="money")
         with pytest.warns(PICTrustFutureWarning):
             result = verify_proposal(
@@ -51,7 +45,7 @@ class TestTrustFutureWarning:
         assert result.ok
 
     def test_no_warning_when_evidence_will_actually_run(self) -> None:
-        """trust='trusted' + verify_evidence=True + evidence entries present → no warning.
+        """trust='trusted' + verify_evidence=True + evidence entries present -> no warning.
 
         Evidence will actually run, so no migration warning is needed.
         We use a deliberately invalid evidence entry to prove the evidence path
@@ -83,7 +77,7 @@ class TestTrustFutureWarning:
         assert result.error.code == PICErrorCode.EVIDENCE_FAILED
 
     def test_no_warning_when_strict_trust_enabled(self) -> None:
-        """strict_trust=True → blocks, does not warn."""
+        """strict_trust=True -> blocks, does not warn."""
         proposal = make_proposal(trust="trusted", impact="money")
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
@@ -96,7 +90,7 @@ class TestTrustFutureWarning:
         assert not result.ok  # blocked by sanitization
 
     def test_no_warning_when_trust_is_untrusted(self) -> None:
-        """trust='untrusted' → no warning (nothing to warn about)."""
+        """trust='untrusted' -> no warning (nothing to warn about)."""
         proposal = make_proposal(
             trust="untrusted",
             impact="read",
@@ -112,30 +106,8 @@ class TestTrustFutureWarning:
         pic_warnings = [w for w in caught if issubclass(w.category, PICTrustFutureWarning)]
         assert not pic_warnings
 
-    def test_no_warning_for_semi_trusted(self) -> None:
-        """trust='semi_trusted' → no PICTrustFutureWarning (only 'trusted' triggers).
-
-        Note: PICSemiTrustedDeprecationWarning DOES fire for semi_trusted under
-        v0.8.1+ (covered by TestSemiTrustedDeprecationWarning below). This test
-        only asserts the absence of the OTHER warning class.
-        """
-        proposal = make_proposal(
-            trust="semi_trusted",
-            impact="read",
-            tool="docs_search",
-            intent="Search docs",
-        )
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            verify_proposal(
-                proposal,
-                options=PipelineOptions(verify_evidence=False),
-            )
-        pic_warnings = [w for w in caught if issubclass(w.category, PICTrustFutureWarning)]
-        assert not pic_warnings
-
     def test_warning_fires_when_verify_evidence_true_but_evidence_will_not_run(self) -> None:
-        """verify_evidence=True but NO evidence entries and NO policy → warning fires.
+        """verify_evidence=True but NO evidence entries and NO policy -> warning fires.
 
         This is the nuance case: the flag is set but evidence won't actually execute
         because there are no evidence entries and no policy requiring evidence.
@@ -164,167 +136,58 @@ class TestTrustFutureWarning:
 
 
 # ============================================================================
-# v0.8.1: PICSemiTrustedDeprecationWarning
+# v0.9.0a1: semi_trusted removal, schema-rejection regression guard
 # ============================================================================
 
 
-class TestSemiTrustedDeprecationWarning:
-    """PICSemiTrustedDeprecationWarning fires when a Provenance entry is
-    constructed with trust='semi_trusted'.
+class TestSemiTrustedRemoved:
+    """The 'semi_trusted' provenance trust value was deprecated in v0.8.1 and
+    removed from the schema in v0.9.0a1. A proposal carrying it MUST be rejected
+    by schema validation with PIC_SCHEMA_INVALID.
 
-    The pydantic field validator on Provenance.trust is the canonical
-    normalization boundary for v0.8.1+: it warns + normalizes the value
-    to TrustLevel.UNTRUSTED at construction time, in all modes.
+    This test is the permanent regression guard against anyone accidentally
+    re-adding the enum value to proposal_schema.json.
     """
 
-    def test_warning_fires_on_direct_construction_string_form(self) -> None:
-        """Provenance(trust='semi_trusted') as raw string → warns + normalizes."""
-        with pytest.warns(PICSemiTrustedDeprecationWarning):
-            p = Provenance(id="x", trust="semi_trusted")
-        assert p.trust == TrustLevel.UNTRUSTED
+    def test_semi_trusted_is_schema_invalid(self) -> None:
+        """Proposal with provenance[].trust='semi_trusted' -> PIC_SCHEMA_INVALID.
 
-    def test_warning_fires_on_direct_construction_enum_form(self) -> None:
-        """Provenance(trust=TrustLevel.SEMI_TRUSTED) as enum → warns + normalizes.
-
-        TrustLevel is a str-Enum, so equality unifies string and enum forms.
+        Build a valid proposal first, then inject the removed value directly
+        into the raw dict. Avoids depending on make_proposal accepting the
+        deprecated value (which may become stricter over time).
         """
-        with pytest.warns(PICSemiTrustedDeprecationWarning):
-            p = Provenance(id="x", trust=TrustLevel.SEMI_TRUSTED)
-        assert p.trust == TrustLevel.UNTRUSTED
-
-    def test_warning_cascades_through_action_proposal_per_entry(self) -> None:
-        """Constructing ActionProposal with N semi_trusted entries fires N warnings
-        (one per Provenance instance — the field-validator fires per-instance,
-        not once-per-proposal)."""
-        proposal_dict = {
-            "protocol": "PIC/1.0",
-            "intent": "x",
-            "impact": "read",
-            "provenance": [
-                {"id": "a", "trust": "semi_trusted"},
-                {"id": "b", "trust": "semi_trusted"},
-            ],
-            "claims": [{"text": "x", "evidence": ["a"]}],
-            "action": {"tool": "t", "args": {}},
-        }
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            ap = ActionProposal(**proposal_dict)
-        semi = [w for w in caught if issubclass(w.category, PICSemiTrustedDeprecationWarning)]
-        assert len(semi) == 2  # one warning per semi_trusted entry
-        assert all(p.trust == TrustLevel.UNTRUSTED for p in ap.provenance)
-
-    def test_verify_proposal_non_strict_fires_warning_and_normalizes(self) -> None:
-        """Non-strict mode: bridge helper triggers validator, warning fires,
-        semi_trusted -> untrusted, existing verdict behavior preserved."""
-        proposal = make_proposal(
-            trust="semi_trusted",
-            impact="read",
-            tool="docs_search",
-            intent="search",
-        )
-        with pytest.warns(PICSemiTrustedDeprecationWarning):
-            r = verify_proposal(proposal, options=PipelineOptions(strict_trust=False))
-        assert r.ok  # low impact, normalization to untrusted is fine
-
-    def test_verify_proposal_strict_trust_still_fires_warning(self) -> None:
-        """Strict mode: warning STILL fires because the bridge helper runs BEFORE
-        strict-trust flattening. This is the load-bearing Path A property — the
-        whole reason the pipeline triggers the validator early instead of relying
-        on full ActionProposal instantiation alone."""
-        proposal = make_proposal(
-            trust="semi_trusted",
-            impact="read",
-            tool="docs_search",
-            intent="search",
-        )
-        with pytest.warns(PICSemiTrustedDeprecationWarning):
-            r = verify_proposal(proposal, options=PipelineOptions(strict_trust=True))
-        assert r.ok  # low impact
-
-    def test_mixed_provenance_only_fires_for_semi_trusted_entries(self) -> None:
-        """Proposal with one trusted, one semi_trusted, one untrusted entry:
-        exactly one PICSemiTrustedDeprecationWarning fires (for the single
-        semi_trusted entry); trusted and untrusted pass through unchanged."""
-        proposal = make_proposal(
-            trust="trusted",
-            impact="read",
-            tool="docs_search",
-            intent="search",
-            extra_provenance=[
-                {"id": "p2", "trust": "semi_trusted"},
-                {"id": "p3", "trust": "untrusted"},
-            ],
-        )
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            verify_proposal(proposal, options=PipelineOptions(strict_trust=False))
-        semi = [w for w in caught if issubclass(w.category, PICSemiTrustedDeprecationWarning)]
-        assert len(semi) == 1
-
-    def test_no_warning_when_no_semi_trusted_present(self) -> None:
-        """Regression guard: no semi_trusted -> no PICSemiTrustedDeprecationWarning."""
         proposal = make_proposal(
             trust="untrusted",
             impact="read",
             tool="docs_search",
             intent="search",
         )
-        with warnings.catch_warnings(record=True) as caught:
-            warnings.simplefilter("always")
-            verify_proposal(proposal, options=PipelineOptions(strict_trust=False))
-        semi = [w for w in caught if issubclass(w.category, PICSemiTrustedDeprecationWarning)]
-        assert not semi
-
-    def test_warning_message_contains_migration_guidance(self) -> None:
-        """Warning text mentions key migration concepts."""
-        with pytest.warns(PICSemiTrustedDeprecationWarning) as record:
-            Provenance(id="x", trust="semi_trusted")
-        assert len(record) == 1
-        msg = str(record[0].message)
-        assert "deprecated in v0.8.1" in msg
-        assert "v0.9.0" in msg
-        assert "migration-trust-sanitization.md" in msg
-
-
-class TestPICTrustFutureWarningStillWorksAfterRefactor:
-    """Regression guard: PICTrustFutureWarning behavior is unchanged after
-    v0.8.1's bridge-helper insertion. The two warnings are independent
-    (different layers, different conditions)."""
-
-    def test_self_asserted_trusted_still_warns_after_v081_refactor(self) -> None:
-        """The existing self-asserted 'trusted' + no-evidence warning still fires
-        after the v0.8.1 bridge helper was inserted. The bridge only normalizes
-        semi_trusted; it does not interfere with the trusted-flow warning logic."""
-        proposal = make_proposal(trust="trusted", impact="money")
-        with pytest.warns(PICTrustFutureWarning):
-            r = verify_proposal(
-                proposal,
-                options=PipelineOptions(verify_evidence=False, strict_trust=False),
-            )
-        assert r.ok
+        proposal["provenance"][0]["trust"] = "semi_trusted"
+        result = verify_proposal(proposal, options=PipelineOptions(strict_trust=False))
+        assert not result.ok
+        assert result.error is not None
+        assert result.error.code == PICErrorCode.SCHEMA_INVALID
 
 
 # ============================================================================
-# v0.8.1: Verdict-regression matrix (codified, parametrized)
+# Verdict-regression matrix (codified, parametrized)
 # ============================================================================
 #
-# Permanent CI guard against any future refactor that touches the dict-vs-model
-# boundary in pipeline.verify_proposal(). Asserts only the STABLE verdict-bearing
-# fields of PipelineResult — `ok` (bool) and, when ok=False, `error.code`
-# compared against a PICErrorCode enum member. Does NOT assert on
-# `error.message`, `impact`, `eval_ms`, or other unstable fields. Does NOT
-# compare against the enum's `.value` string — the enum member is the stable
-# API; `.value` is an implementation detail.
+# Permanent CI guard against any future refactor that touches pipeline verdict
+# behavior. Asserts only the STABLE verdict-bearing fields of PipelineResult:
+# `ok` (bool) and, when ok=False, `error.code` compared against a PICErrorCode
+# enum member. Does NOT assert on `error.message`, `impact`, `eval_ms`, or
+# other unstable fields. Does NOT compare against the enum's `.value` string;
+# the enum member is the stable API, `.value` is an implementation detail.
 #
 # Expected baseline values are HARDCODED LITERALS (enum members for error
-# codes; bool / None for verdicts) captured at v0.8.1 design time from the
-# v0.8.0 baseline behavior. They are NOT derived at test time by calling
-# verify_proposal() or any helper that shares a code path with the system
-# under test — that would defeat the guard's purpose (the test would just
-# assert that the current behavior matches the current behavior).
+# codes; bool / None for verdicts) captured from prior baseline behavior.
+# They are NOT derived at test time by calling verify_proposal() or any helper
+# that shares a code path with the system under test; that would defeat the
+# guard's purpose (the test would just assert that the current behavior matches
+# the current behavior).
 #
-# Excluded: financial_sig_ok.json — its verify_evidence=True path requires
+# Excluded: financial_sig_ok.json. Its verify_evidence=True path requires
 # keyring environment setup (PIC_KEYS_PATH or explicit key_resolver) and would
 # make the regression matrix brittle. Sig-flow regression is covered by
 # dedicated sig tests elsewhere in the suite.
@@ -388,7 +251,7 @@ def test_verdict_regression_matrix(
     expected_ok: bool,
     expected_error_code: PICErrorCode | None,
 ) -> None:
-    """Pins v0.8.0 baseline outcomes for representative example proposals.
+    """Pins baseline outcomes for representative example proposals.
 
     Asserts only the stable verdict-bearing fields. See module-level matrix
     comment for the design rationale.
@@ -401,10 +264,9 @@ def test_verdict_regression_matrix(
 
     proposal = json.loads((EXAMPLES_DIR / filename).read_text(encoding="utf-8"))
 
-    # Suppress deprecation warnings — they fire for some examples (semi_trusted
-    # in financial_irreversible/robotic_action pre-migration; PICTrustFutureWarning
-    # for self-asserted trusted entries). The matrix asserts verdicts, not
-    # warning emission. Warning emission is covered by the dedicated tests above.
+    # Suppress PICTrustFutureWarning: it fires for examples carrying self-asserted
+    # trusted entries. The matrix asserts verdicts, not warning emission. Warning
+    # emission is covered by the dedicated TestTrustFutureWarning tests above.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         result = verify_proposal(
@@ -431,24 +293,18 @@ def test_verdict_regression_matrix(
 
 
 # ============================================================================
-# v0.8.1: Public API surface — package-root re-export pin
+# Public API surface, package-root re-export pin
 # ============================================================================
 
 
 class TestPublicAPISurface:
-    """Pins v0.8.1's package-root re-export of both deprecation warning classes.
+    """Pins package-root warning exports after the semi_trusted removal."""
 
-    Future refactors that touch ``sdk-python/pic_standard/__init__.py`` cannot
-    silently drop these re-exports without this test failing.
-    """
+    def test_pic_trust_future_warning_importable_at_package_root(self) -> None:
+        from pic_standard import PICTrustFutureWarning as PicTrust
 
-    def test_deprecation_warnings_importable_at_package_root(self) -> None:
-        from pic_standard import (
-            PICSemiTrustedDeprecationWarning as PicSemi,
-        )
-        from pic_standard import (
-            PICTrustFutureWarning as PicTrust,
-        )
-
-        assert issubclass(PicSemi, FutureWarning)
         assert issubclass(PicTrust, FutureWarning)
+
+    def test_semi_trusted_deprecation_warning_not_importable_at_package_root(self) -> None:
+        with pytest.raises(ImportError):
+            from pic_standard import PICSemiTrustedDeprecationWarning  # noqa: F401

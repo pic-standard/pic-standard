@@ -24,7 +24,7 @@ from jsonschema import validate as js_validate
 
 from pic_standard.errors import PICError, PICErrorCode, _debug_enabled
 from pic_standard.policy import PICPolicy
-from pic_standard.verifier import ActionProposal, Provenance
+from pic_standard.verifier import ActionProposal
 
 # v0.3+ evidence (optional — graceful degradation when crypto not installed)
 try:
@@ -192,80 +192,6 @@ def _verify_tool_binding(
             message="Tool binding mismatch",
             details=details,
         )
-
-
-# ------------------------------------------------------------------
-# v0.8.1: Bridge to the model-validation boundary
-# ------------------------------------------------------------------
-#
-# pic_standard.verifier defines the canonical normalization boundary for
-# the deprecated 'semi_trusted' provenance trust value: a pydantic field
-# validator on Provenance.trust that emits PICSemiTrustedDeprecationWarning
-# and normalizes 'semi_trusted' -> 'untrusted' at construction time.
-#
-# The helper below triggers that validator on the raw proposal dict
-# immediately after JSON Schema validation and BEFORE strict-trust
-# flattening or evidence verification, so the warning fires regardless
-# of strict_trust mode and the dict consumed by downstream pipeline
-# steps is already normalized.
-#
-# Full ActionProposal instantiation still happens later in
-# verify_proposal() so verify_causal_contract observes the final
-# post-evidence-verification trust state.
-
-
-def _normalize_provenance_entries_via_model_validator(
-    proposal: Dict[str, Any],
-) -> Dict[str, Any]:
-    """Trigger the Provenance.trust field validator on each provenance entry.
-
-    Emits PICSemiTrustedDeprecationWarning for any 'semi_trusted' entries and
-    normalizes them to 'untrusted' in the returned dict. Does not duplicate
-    normalization logic; only triggers the canonical validator at the right
-    point in the raw-dict pipeline.
-
-    Writeback uses a merge pattern: ``{**entry, "trust": pv.trust.value}``.
-    This is deliberate. ``Provenance`` currently models only ``id`` and
-    ``trust``; using ``pv.model_dump(...)`` would silently drop any extra
-    keys an entry may carry now or in the future (schema extensions,
-    annotations, attestation fields, etc.). The merge pattern keeps the
-    helper future-proof against forward-compatible extensions while still
-    letting the canonical validator be the only source of truth for the
-    ``trust`` value.
-
-    Returns a new dict; does not mutate the input. Malformed entries are
-    passed through unchanged so the main _instantiate_action_proposal step
-    can surface a precise error.
-    """
-    prov = proposal.get("provenance") or []
-    if not prov:
-        return proposal
-
-    new_prov: List[Any] = []
-    any_changed = False
-    for entry in prov:
-        if not isinstance(entry, dict):
-            new_prov.append(entry)
-            continue
-        try:
-            pv = Provenance.model_validate(entry)
-        except Exception:
-            # Defer to main instantiation, which produces the precise error.
-            new_prov.append(entry)
-            continue
-        normalized = {**entry, "trust": pv.trust.value}
-        # Narrower change-detection: this helper only ever rewrites `trust`,
-        # so check exactly that field rather than diffing the full dict.
-        if entry.get("trust") != pv.trust.value:
-            any_changed = True
-        new_prov.append(normalized)
-
-    if not any_changed:
-        return proposal
-
-    out = dict(proposal)
-    out["provenance"] = new_prov
-    return out
 
 
 # ------------------------------------------------------------------
@@ -462,17 +388,14 @@ def verify_proposal(
     Pipeline steps (in order):
       1.  Limits check (skip if ``options.limits`` is None)
       2.  JSON Schema validation
-      3.  Trigger Provenance field validator on each provenance entry
-          (v0.8.1+; emits PICSemiTrustedDeprecationWarning and normalizes
-          'semi_trusted' -> 'untrusted' before downstream pipeline steps)
-      4.  Resolve impact (policy + proposal, falls back to expected_tool)
-      5.  Determine whether evidence verification will actually run
-      6.  Emit migration warning if legacy self-asserted trust would be accepted
-      7.  Build working proposal (sanitize trust when ``strict_trust=True``)
-      8.  Optional evidence verification + trust upgrade
-      9.  Final ``ActionProposal`` instantiation (pydantic + PIC rules)
-     10.  Tool binding via ``verify_with_context`` (skip if ``expected_tool`` is None)
-     11.  Time budget check
+      3.  Resolve impact (policy + proposal, falls back to expected_tool)
+      4.  Determine whether evidence verification will actually run
+      5.  Emit migration warning if legacy self-asserted trust would be accepted
+      6.  Build working proposal (sanitize trust when ``strict_trust=True``)
+      7.  Optional evidence verification + trust upgrade
+      8.  Final ``ActionProposal`` instantiation (pydantic + PIC rules)
+      9.  Tool binding via ``verify_with_context`` (skip if ``expected_tool`` is None)
+     10.  Time budget check
 
     Returns ``PipelineResult`` — **never raises**.
     """
@@ -502,26 +425,18 @@ def verify_proposal(
                 )
             )
 
-        # 3. Trigger model-validation boundary for deprecated provenance values (v0.8.1+)
-        # This fires Provenance.trust field validator on each entry, emitting
-        # PICSemiTrustedDeprecationWarning and normalizing 'semi_trusted' to
-        # 'untrusted' BEFORE strict-trust flattening or evidence verification.
-        # Full ActionProposal instantiation still happens at step 9 so
-        # verify_causal_contract observes the final post-evidence trust state.
-        proposal = _normalize_provenance_entries_via_model_validator(proposal)
-
-        # 4. Resolve impact
+        # 3. Resolve impact
         impact = _resolve_impact(proposal, opts)
         tool_for_policy = opts.tool_name or opts.expected_tool
 
-        # 5. Determine whether evidence verification will actually run
+        # 4. Determine whether evidence verification will actually run
         should_verify, _ = _should_verify_evidence(
             proposal,
             impact=impact,
             opts=opts,
         )
 
-        # 6. Migration warning for legacy trust behavior (v0.8+)
+        # 5. Migration warning for legacy trust behavior (v0.8+)
         if _should_warn_on_self_asserted_trust(
             proposal,
             opts=opts,
@@ -540,10 +455,10 @@ def verify_proposal(
                 stacklevel=2,
             )
 
-        # 7. Build working proposal for this run
+        # 6. Build working proposal for this run
         working_proposal = _sanitize_provenance_trust(proposal) if opts.strict_trust else proposal
 
-        # 8. Optional evidence verification + trust upgrade
+        # 7. Optional evidence verification + trust upgrade
         evidence_report = None
         final_proposal = working_proposal
 
@@ -559,18 +474,18 @@ def verify_proposal(
             if upgraded is not None:
                 final_proposal = upgraded
 
-        # 9. Final semantic validation from finalized trust state
+        # 8. Final semantic validation from finalized trust state
         ap, err = _instantiate_action_proposal(final_proposal)
         if err is not None:
             return _fail(err, impact=impact)
 
-        # 10. Tool binding
+        # 9. Tool binding
         if opts.expected_tool is not None:
             bind_err = _verify_tool_binding(ap, opts.expected_tool)  # type: ignore[arg-type]
             if bind_err is not None:
                 return _fail(bind_err, impact=impact)
 
-        # 11. Time budget check (effective budget: explicit > limits.max_eval_ms)
+        # 10. Time budget check (effective budget: explicit > limits.max_eval_ms)
         eval_ms = _elapsed_ms()
         effective_budget_ms = opts.time_budget_ms
         if effective_budget_ms is None and opts.limits is not None:
