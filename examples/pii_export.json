@@ -4,7 +4,7 @@
   "impact": "privacy",
   "provenance": [
     { "id": "privacy_request_ticket", "trust": "trusted" },
-    { "id": "support_history", "trust": "semi_trusted" }
+    { "id": "support_history", "trust": "untrusted" }
   ],
   "claims": [
     {

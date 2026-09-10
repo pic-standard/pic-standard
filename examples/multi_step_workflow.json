@@ -16,8 +16,19 @@
     "tool": "workflow.run",
     "args": {
       "steps": [
-        { "tool": "incident.archive", "incident_id": "INC-1042" },
-        { "tool": "notifications.send", "recipient": "incident-owner" }
+        {
+          "id": "archive_incident",
+          "tool": "incident.archive",
+          "incident_id": "INC-1042",
+          "outputs": ["archived_incident"]
+        },
+        {
+          "id": "notify_incident_owner",
+          "depends_on": ["archive_incident"],
+          "requires": ["archived_incident"],
+          "tool": "notifications.send",
+          "recipient": "incident-owner"
+        }
       ]
     }
   }
