@@ -214,11 +214,12 @@ Each `provenance[]` entry is an object with:
 - `id` (string, MUST) — stable identifier, used for ID binding with
   `claims[].evidence[]` and `evidence[].id` per
   [`RFC-0001 §ID Binding Convention`](RFC-0001-pic-standard.md#id-binding-convention).
-- `trust` (enum, MUST) — stable PIC/1.0 trust values are
-  `"trusted"` and `"untrusted"`. The legacy value `"semi_trusted"`
-  is deprecated and exists only during the v0.8.x transition; it
-  MUST NOT be assigned distinct protocol semantics. Implementations
-  MUST handle it according to the migration timeline in Appendix A.
+- `trust` (enum, MUST) — the only conformant PIC/1.0 trust values
+  are `"trusted"` and `"untrusted"`. The legacy value
+  `"semi_trusted"` was removed from the schema in v0.9.0a1;
+  proposals carrying it fail JSON Schema validation with
+  `PIC_SCHEMA_INVALID`. Historical migration notes are in
+  Appendix A.
 - `source` (string, OPTIONAL) — human-readable origin descriptor;
   Informative.
 
@@ -480,7 +481,7 @@ The trust-axiom rollout is documented normatively in
 | v0.7.x | Inbound trust accepted at face value; no warnings. |
 | v0.8.0 | `PICTrustFutureWarning` emitted; `strict_trust` option added (default `False`). |
 | v0.8.1 | `PICSemiTrustedDeprecationWarning` for `trust="semi_trusted"`; value normalized to `"untrusted"` at model-validation boundary. |
-| v0.9.0 (planned) | `"semi_trusted"` removed from the schema enum. |
+| v0.9.0a1 | `"semi_trusted"` removed from the schema enum. `PICSemiTrustedDeprecationWarning` and the v0.8.1 model-validation normalization are deleted. Proposals carrying it fail validation with `PIC_SCHEMA_INVALID`. |
 | v1.0 (planned) | `strict_trust=True` is the default and the only conformant mode. Non-sanitizing mode is explicitly legacy and non-conformant. |
 
 Implementations targeting PIC v1.0 SHOULD enable `strict_trust=True`
@@ -605,22 +606,24 @@ re-interpretation.
 
 ---
 
-## Appendix A. `semi_trusted` Deprecation (Informative — Migration Note)
+## Appendix A. `semi_trusted` Removal (Historical Migration Note)
 
-The `provenance[].trust` enum historically included
-`"semi_trusted"`. This value is deprecated and will be removed in
-v0.9.0. The migration path is:
+The `provenance[].trust` enum historically included `"semi_trusted"`.
+This value was deprecated in v0.8.1 and removed in v0.9.0a1.
+Starting in v0.9.0a1, proposals carrying it fail JSON Schema
+validation with `PIC_SCHEMA_INVALID`.
 
 | Version | Behavior |
 |---|---|
-| ≤ v0.8.0 | `"semi_trusted"` accepted; silently sanitized to `"untrusted"` only in `strict_trust=True` mode. |
-| v0.8.1 | `PICSemiTrustedDeprecationWarning` emitted on any `"semi_trusted"` observed; value normalized to `"untrusted"` at the `Provenance.trust` pydantic field validator, in ALL modes. Schema enum unchanged in v0.8.1. |
-| v0.9.0 (planned) | `"semi_trusted"` removed from the JSON Schema enum. Proposals carrying it fail validation with `PIC_SCHEMA_INVALID`. |
+| through v0.8.0 | `"semi_trusted"` accepted; silently sanitized to `"untrusted"` only in `strict_trust=True` mode. |
+| v0.8.1 through v0.8.3 | `PICSemiTrustedDeprecationWarning` emitted on any `"semi_trusted"` observed; value normalized to `"untrusted"` at the `Provenance.trust` pydantic field validator, in ALL modes. Schema enum still accepted the string. |
+| v0.9.0a1 | `"semi_trusted"` removed from the JSON Schema enum. Proposals carrying it fail validation with `PIC_SCHEMA_INVALID`. `PICSemiTrustedDeprecationWarning` and the normalization validator are deleted. |
 
-Producers SHOULD migrate any remaining `"semi_trusted"` provenance
-entries to `"untrusted"` immediately. If the proposal carries
-verifiable evidence, the verifier will derive effective `"trusted"`
-status through evidence verification per §6.2. See
+Producers that still emit `"semi_trusted"` MUST migrate to
+`"untrusted"`. If the proposal carries authority-bearing verifiable
+evidence, such as signature evidence accepted by the verifier
+keyring, the verifier can derive effective `"trusted"` status
+through evidence verification per §6.2. See
 [`migration-trust-sanitization.md §FAQ`](migration-trust-sanitization.md#faq)
 for the full migration guide.
 

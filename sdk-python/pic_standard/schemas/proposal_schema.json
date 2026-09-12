@@ -34,7 +34,6 @@
             "type": "string",
             "enum": [
               "trusted",
-              "semi_trusted",
               "untrusted"
             ]
           },
