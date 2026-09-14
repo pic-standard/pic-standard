@@ -5,28 +5,151 @@ All notable changes to this project will be documented in this file.
 This project follows Semantic Versioning:
 https://semver.org/
 
-## [0.9.0a1] - UNRELEASED
+## [0.9.0a1] - 2026-09-14
 
-Alpha preparation for the v0.9.0 cross-implementation milestone. This entry records merged changes on `main`; A6a will date the release at tag time.
+Alpha preparation for the v0.9.0 cross-implementation milestone.
+Schema/spec/conformance, HTTP bridge, OpenAPI, and Docker hardening
+cleanup that prepares the second-language verifier interop planned for
+v0.9.0. This alpha is the first stop in the planned
+v0.9.0a1 → v0.9.0a2 → v0.9.0 sequence.
 
-### Removed
+### Added
 
-- Removed the legacy `provenance[].trust = "semi_trusted"` value from the proposal schema. Proposals carrying `"semi_trusted"` now fail JSON Schema validation with `PIC_SCHEMA_INVALID`.
-- Removed the v0.8.1 `semi_trusted` compatibility path: `PICSemiTrustedDeprecationWarning`, `TrustLevel.SEMI_TRUSTED`, the `Provenance.trust` normalization validator, and the pipeline bridge helper that triggered that normalization.
-- Removed the deprecated `apply_verified_ids_to_provenance` wrapper (introduced in v0.8.3 with a `DeprecationWarning`). Callers must use `apply_trust_upgrade_ids_to_provenance` fed from `EvidenceReport.trust_upgrade_ids`.
+- **`docs/ERRORS.md`** (A2): documents the full `PICErrorCode` taxonomy for
+  v0.9.0a1 with retryability, HTTP mapping, operator meaning, and example
+  wire shapes. Regression test in `tests/test_errors_md.py` enforces
+  heading-to-enum parity (documented headings must match enum length and
+  membership).
+- Per-member Sphinx-style `#:` comments on `PICErrorCode` in
+  `sdk-python/pic_standard/errors.py`; parity note added to
+  `integrations/openclaw/lib/types.ts`.
+- **`canonical_reject` verdict in the conformance runner** (A3): the runner
+  now supports negative canonicalization vectors alongside `canonical_match`.
+  First negative vector `canon-010-lone-surrogate-rejection` pins the
+  canonicalizer's rejection contract for a string containing a lone UTF-16
+  surrogate. Manifest total: 73 vectors (was 72).
+- **Pipeline-layer lone-surrogate guard** (A3): `verify_proposal` gains a
+  step 2b that scans all proposal string values and object keys after JSON
+  Schema validation and rejects any lone surrogate with
+  `PIC_SCHEMA_INVALID`. Regression test in `tests/test_pipeline.py`.
+- **`openapi/pic-bridge.v1.yaml`** (A4): OpenAPI 3.0.3 contract for the
+  reference HTTP bridge covering `POST /verify`, `GET /health`, and
+  `GET /v1/version`. Enumerates the 9 v0.9.0a1 `PICErrorCode` members.
+- **`.spectral.yaml`** and **`.github/workflows/openapi.yml`** (A4):
+  Spectral (built-in `spectral:oas` ruleset) lints the OpenAPI file in CI
+  on every PR that touches `openapi/**`, `.spectral.yaml`, or the
+  workflow itself. Node 22, spectral-cli 6.16.3, `contents: read`, 10-min
+  timeout.
+- **OpenAPI-derived contract tests** in `tests/test_http_bridge.py` (A4):
+  POST examples from the yaml exercise the live bridge without local
+  patching; response shape (required fields, no unexpected fields, error
+  code enum) is derived from the yaml at runtime so the tests track the
+  spec automatically.
+- **`PyYAML>=6.0`** dev-only dependency in `sdk-python/requirements-dev.txt`
+  so the OpenAPI contract tests actually run in CI.
+- **`docs/deploy-docker.md`** (A5): deployment guide for the hardened
+  compose profile with per-control rationale, nine exact `docker inspect`
+  verification commands, file-permission requirements
+  (`uid/gid 10001:10001`), safe local-override patterns, hardening
+  non-coverage list, and a Docker availability gate.
 
 ### Changed
 
-- Replaced `semi_trusted` warning/normalization tests with a schema-rejection regression guard and a package-root negative import test.
-- Updated trust-sanitization and core-spec documentation to describe `semi_trusted` as removed starting in v0.9.0a1.
-- Updated `docs/spec-status.md` with the missing v0.8.3 status row and the new v0.9.0a1 removal row.
+- **`docs/spec-core.md` §9.1** (A3): reworded the
+  `PIC_SCHEMA_INVALID` vs `PIC_VERIFIER_FAILED` boundary
+  language-independently. Schema-layer failures MUST emit
+  `SCHEMA_INVALID`; semantic post-schema PIC contract violations MUST
+  emit `VERIFIER_FAILED`. Removes the pydantic-specific framing so a
+  non-Python verifier (e.g., Ajv-based TS) lands the same boundary.
+- **`docs/spec-core.md` §9.2** (A3): explicit error-code precedence pinned
+  as `SCHEMA_INVALID > TOOL_BINDING_MISMATCH >
+  EVIDENCE_REQUIRED / EVIDENCE_FAILED > VERIFIER_FAILED`. Appendix C
+  moves `OQ-CORE-001` from Open to Resolved.
+- **`docs/canonicalization.md` §7.13** (A3): tightens the lone-surrogate
+  MUST-reject clause with "before emitting any canonical bytes" timing
+  and maps the rejection to `PIC_SCHEMA_INVALID` at the verifier
+  boundary. §10.1 references `canon-010`.
+- **`GET /v1/version` response body** (A4): additive — adds `impl_name`
+  (`"pic-standard-py"`), `impl_version`, `pic_protocol_version`
+  (`"PIC/1.0"`), `conformance_manifest_ref` (`{path, sha256, commit}`),
+  and `supported_modes`. Legacy fields (`pic_version`,
+  `package_version`, `commit`, `policy_version`, `request_id`) preserved
+  verbatim. `conformance_manifest_ref.sha256` content-addresses
+  `conformance/manifest.json` as `"sha256:<64 lowercase hex>"` in a repo
+  checkout and degrades to `"unknown"` in a packaged wheel that does not
+  bundle the conformance suite. `commit` fields degrade to `"unknown"`
+  when git is unavailable at bridge startup.
+- **Centralized invalid `X-Request-ID` rejection** (A4): the bridge now
+  enforces `docs/ERRORS.md`'s pre-pipeline validation contract — an
+  invalid supplied header returns HTTP 400 with `PIC_INVALID_REQUEST`
+  and a freshly generated `request_id` (never echoing the invalid
+  supplied value). Uniform across `/verify`, `/health`, `/v1/version`,
+  unknown paths, and disallowed methods. Prior silent-substitute
+  behavior removed.
+- **`docker-compose.yml` hardened** (A5): loopback-only host port
+  binding, read-only rootfs with a bounded
+  `/tmp:size=64m,noexec,nosuid,nodev` tmpfs, `cap_drop: [ALL]`,
+  `security_opt: [no-new-privileges:true]`, non-root uid `10001:10001`
+  pin, resource limits (`mem_limit: 512m`, `cpus: "0.5"`,
+  `pids_limit: 128`) mirrored in `deploy.resources.limits`, `init: true`,
+  `stop_grace_period: 10s`, and an explicit `pic-internal` user-defined
+  bridge network. The dead `./sdk-python:/workspace:ro` source-code
+  mount is removed; the compose `command:` override drops
+  `--repo-root /workspace` so the CLI falls back to `/app`.
+- Replaced `semi_trusted` warning/normalization tests with a
+  schema-rejection regression guard and a package-root negative import
+  test.
+- Updated trust-sanitization and core-spec documentation to describe
+  `semi_trusted` as removed starting in v0.9.0a1.
+- Updated `docs/spec-status.md` with the missing v0.8.3 status row and
+  the new v0.9.0a1 removal row.
+
+### Removed
+
+- Removed the legacy `provenance[].trust = "semi_trusted"` value from the
+  proposal schema. Proposals carrying `"semi_trusted"` now fail JSON
+  Schema validation with `PIC_SCHEMA_INVALID`.
+- Removed the v0.8.1 `semi_trusted` compatibility path:
+  `PICSemiTrustedDeprecationWarning`, `TrustLevel.SEMI_TRUSTED`, the
+  `Provenance.trust` normalization validator, and the pipeline bridge
+  helper that triggered that normalization.
+- Removed the deprecated `apply_verified_ids_to_provenance` wrapper
+  (introduced in v0.8.3 with a `DeprecationWarning`). Callers must use
+  `apply_trust_upgrade_ids_to_provenance` fed from
+  `EvidenceReport.trust_upgrade_ids`.
+- Removed the redundant `./sdk-python:/workspace:ro` volume mount from
+  `docker-compose.yml` (source was already installed in the image; mount
+  provided no runtime value).
+
+### Fixed
+
+- **`docker-compose.yml` pids-limit alignment**: Docker Compose engine
+  5.5.1+ rejects the project when service-level `pids_limit` is set
+  without a matching `deploy.resources.limits.pids`. Both are now `128`.
 
 ### Notes
 
-- Breaking change only for producers still emitting `"semi_trusted"`. Replace it with `"untrusted"`; high-impact flows that need trusted status under strict mode should rely on verifier-controlled context or authority-bearing evidence such as signature evidence.
-- No canonicalization changes. PIC-CJSON/1.0 remains frozen.
-- TypeScript verifier work is not included in this entry; it remains the final v0.9.0 interop milestone.
-
+- Protocol-level breaking change for producers still emitting
+  `"semi_trusted"`: replace it with `"untrusted"`; high-impact flows
+  that need trusted status under strict mode should rely on
+  verifier-controlled context or authority-bearing evidence such as
+  signature evidence.
+- Breaking change for HTTP bridge consumers that previously supplied an
+  invalid `X-Request-ID` and expected silent UUID substitution; those
+  callers now receive HTTP 400 / `PIC_INVALID_REQUEST`. The valid form
+  is `^[A-Za-z0-9._:-]+$` up to 128 characters.
+- Breaking change for the reference `docker-compose.yml` profile: host
+  port bind moves from `0.0.0.0:7580` to `127.0.0.1:7580`. Callers on
+  other hosts must add a narrow `docker-compose.override.yml` to
+  rebind, or connect through localhost.
+- No change to canonical byte output for conformant inputs. Existing
+  PIC-CJSON/1.0 positive canonicalization vectors remain unchanged.
+  v0.9.0a1 adds the first negative canonicalization vector
+  (`canon-010-lone-surrogate-rejection`) and a `canonical_reject`
+  runner verdict for inputs that must be rejected before canonical bytes
+  are emitted.
+- TypeScript verifier work is not included in this entry; it remains
+  the final v0.9.0 interop milestone.
 ---
 
 ## [0.8.3] - 2026-09-07
