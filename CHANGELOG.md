@@ -13,6 +13,7 @@ Alpha preparation for the v0.9.0 cross-implementation milestone. This entry reco
 
 - Removed the legacy `provenance[].trust = "semi_trusted"` value from the proposal schema. Proposals carrying `"semi_trusted"` now fail JSON Schema validation with `PIC_SCHEMA_INVALID`.
 - Removed the v0.8.1 `semi_trusted` compatibility path: `PICSemiTrustedDeprecationWarning`, `TrustLevel.SEMI_TRUSTED`, the `Provenance.trust` normalization validator, and the pipeline bridge helper that triggered that normalization.
+- Removed the deprecated `apply_verified_ids_to_provenance` wrapper (introduced in v0.8.3 with a `DeprecationWarning`). Callers must use `apply_trust_upgrade_ids_to_provenance` fed from `EvidenceReport.trust_upgrade_ids`.
 
 ### Changed
 
