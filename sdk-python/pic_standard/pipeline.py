@@ -118,6 +118,49 @@ def _enforce_limits(proposal: Dict[str, Any], limits: PICEvaluateLimits) -> None
         )
 
 
+def _reject_lone_surrogates_in_proposal(proposal: Dict[str, Any]) -> None:
+    """Reject strings containing lone UTF-16 surrogates.
+
+    Checks both object keys and scalar string values recursively.
+
+    Per docs/canonicalization.md §7.13, lone surrogate code points
+    (U+D800..U+DFFF) cannot be represented as well-formed UTF-8
+    (RFC 3629). JSON Schema draft-07 cannot cleanly express the
+    "well-formed UTF-8 string" constraint, so this enforcement lives
+    at the pipeline layer as an extension of the schema-layer
+    boundary defined by docs/spec-core.md §9.1. Raises
+    PICError(SCHEMA_INVALID) on the first offending string
+    encountered.
+    """
+
+    def _validate(s: str) -> None:
+        try:
+            s.encode("utf-8", errors="strict")
+        except UnicodeEncodeError:
+            raise PICError(
+                code=PICErrorCode.SCHEMA_INVALID,
+                message=(
+                    "proposal contains a string with a lone UTF-16 surrogate "
+                    "code point (non-conformant input; see "
+                    "docs/canonicalization.md §7.13)"
+                ),
+            ) from None
+
+    def _walk(node: Any) -> None:
+        if isinstance(node, str):
+            _validate(node)
+        elif isinstance(node, dict):
+            for k, v in node.items():
+                if isinstance(k, str):
+                    _validate(k)
+                _walk(v)
+        elif isinstance(node, list):
+            for item in node:
+                _walk(item)
+
+    _walk(proposal)
+
+
 # ------------------------------------------------------------------
 # Pipeline input / output types
 # ------------------------------------------------------------------
@@ -424,6 +467,18 @@ def verify_proposal(
                     message=f"PIC schema validation failed: {e.message}",
                 )
             )
+
+        # 2b. Lone-surrogate rejection (schema-layer semantic guard).
+        # Per docs/canonicalization.md §7.13 and docs/spec-core.md §9.1,
+        # strings containing lone UTF-16 surrogates are non-conformant
+        # input and MUST be rejected as PIC_SCHEMA_INVALID before
+        # ActionProposal construction. JSON Schema draft-07 cannot
+        # cleanly express the "well-formed UTF-8 string" constraint,
+        # so this is enforced here as an extension of step 2.
+        try:
+            _reject_lone_surrogates_in_proposal(proposal)
+        except PICError as e:
+            return _fail(e)
 
         # 3. Resolve impact
         impact = _resolve_impact(proposal, opts)
