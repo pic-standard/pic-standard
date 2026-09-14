@@ -13,8 +13,19 @@
 // -----------------------------------------------------------------
 
 /**
- * All possible PIC error codes.
+ * Error codes exposed to TypeScript consumers.
+ *
  * Mirrors PICErrorCode enum in sdk-python/pic_standard/errors.py.
+ * See docs/ERRORS.md in the pic-standard repo for the authoritative
+ * reference (retryability, HTTP mapping, example wire shape).
+ *
+ * PIC_BRIDGE_UNREACHABLE is a client-side-only value emitted by this
+ * package when the HTTP bridge cannot be reached at all (network or
+ * socket layer). It is NOT emitted by the Python guard; do not treat
+ * it as a PIC protocol error.
+ *
+ * When PICErrorCode gains a new value in Python, add the matching
+ * string literal here in the same PR.
  */
 export type PICErrorCode =
     | "PIC_INVALID_REQUEST"
