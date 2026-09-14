@@ -1,0 +1,604 @@
+openapi: 3.0.3
+
+info:
+  title: PIC HTTP Bridge
+  version: 1.0.0
+  description: |
+    HTTP surface of the PIC verifier reference implementation.
+    Wraps `evaluate_pic_for_tool_call` (from
+    `pic_standard.integrations.mcp_pic_guard`) over plain HTTP so that
+    non-Python consumers can verify PIC proposals without shelling out
+    to `pic-cli`.
+
+    This document is a mechanical transcription of the reference
+    implementation in
+    `sdk-python/pic_standard/integrations/http_bridge.py` for PIC
+    v0.9.0a1. It is normative for that build; downstream implementations
+    that expose a compatible HTTP surface must match the shapes below.
+
+    ## Request identity
+
+    All endpoints accept an optional `X-Request-ID` request header and
+    always return an effective request identifier on both the response
+    headers and inside the JSON body under `request_id`.
+
+    * No `X-Request-ID` supplied &rarr; the bridge generates a fresh
+      UUID and returns it in the response header and body.
+    * Valid `X-Request-ID` supplied &rarr; echoed in the response
+      header and body.
+    * Invalid `X-Request-ID` supplied &rarr; rejected with HTTP 400 /
+      `PIC_INVALID_REQUEST`. The response `request_id` is a freshly
+      generated UUID; the invalid supplied value is never echoed back.
+      This rule is centralized in the handler and applies uniformly
+      across every endpoint and every transport response (including
+      would-be 404 and 405 responses).
+
+    ## Response taxonomy
+
+    * **200 OK** &mdash; all PIC pipeline decisions (allow and block),
+      and post-parse request-shape validation errors that surface with
+      `error.code: PIC_INVALID_REQUEST` (missing `tool_name`, missing
+      or non-object `tool_args`, empty `tool_name`).
+    * **400 Bad Request** &mdash; pre-parse transport failures on
+      `/verify` (malformed body, empty body, missing / wrong
+      `Content-Type`, missing / invalid `Content-Length`, body
+      exceeding the bridge's max size, read-timeout) and the
+      centralized invalid-`X-Request-ID` reject on every endpoint.
+      Body still follows the PIC envelope with
+      `error.code: PIC_INVALID_REQUEST`.
+    * **404 Not Found** and **405 Method Not Allowed** &mdash;
+      transport responses on unknown path or disallowed method. Body
+      is a small `TransportError` envelope, not the PIC envelope, and
+      carries no `PICErrorCode`.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  contact:
+    name: PIC Standard
+    url: https://github.com/pic-standard/pic-standard
+
+servers:
+  - url: http://127.0.0.1:7580
+    description: Local bridge (default host/port; localhost-only).
+
+tags:
+  - name: verify
+    description: PIC verification endpoint.
+  - name: system
+    description: Liveness and version metadata.
+
+paths:
+  /verify:
+    post:
+      tags: [verify]
+      operationId: verifyProposal
+      summary: Verify a PIC proposal for a tool call.
+      description: |
+        Evaluates the supplied tool call and, when present, the PIC
+        proposal embedded under `tool_args.__pic`. Runs the full PIC
+        pipeline (limits &rarr; schema &rarr; verifier &rarr;
+        tool-binding &rarr; evidence &rarr; time-budget).
+
+        The response envelope is stable: `{allowed, error, eval_ms,
+        request_id}`. `error` is `null` on allow; on block, `error.code`
+        names a stable `PICErrorCode` value and `error.message` is a
+        short operator-facing summary. Under `PIC_DEBUG=1` on the
+        bridge, `error.details` MAY carry additional debug information;
+        it is not part of the public contract and MUST NOT be exposed
+        to untrusted clients.
+      parameters:
+        - $ref: '#/components/parameters/XRequestIDHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyRequest'
+            examples:
+              allow_low_impact:
+                summary: Low-impact read proposal that ALLOWS.
+                description: |
+                  `docs_search` is not in the fixture policy's tool
+                  map, so the proposal-declared `impact: read` wins.
+                  With trusted provenance, this returns
+                  `allowed: true`.
+                value:
+                  tool_name: docs_search
+                  tool_args:
+                    query: PIC canonicalization
+                    __pic:
+                      protocol: 'PIC/1.0'
+                      intent: Search PIC canonicalization documentation
+                      impact: read
+                      provenance:
+                        - id: user_query_1
+                          trust: trusted
+                          source: unit-test
+                      claims:
+                        - text: user asked about canonicalization
+                          evidence: [user_query_1]
+                      action:
+                        tool: docs_search
+                        args:
+                          query: PIC canonicalization
+              block_untrusted_high_impact:
+                summary: High-impact `money` proposal with untrusted provenance BLOCKS.
+                description: |
+                  `payments_send` maps to impact `money` under the
+                  fixture policy. With `provenance[0].trust: untrusted`
+                  the verifier rejects the proposal with
+                  `error.code: PIC_VERIFIER_FAILED`.
+                value:
+                  tool_name: payments_send
+                  tool_args:
+                    amount: 500
+                    __pic:
+                      protocol: 'PIC/1.0'
+                      intent: Send payment
+                      impact: money
+                      provenance:
+                        - id: invoice_123
+                          trust: untrusted
+                          source: unit-test
+                      claims:
+                        - text: Pay $500
+                          evidence: [invoice_123]
+                      action:
+                        tool: payments_send
+                        args:
+                          amount: 500
+      responses:
+        '200':
+          description: |
+            PIC pipeline decision (allow or block), or post-parse
+            request-shape validation error surfaced with
+            `error.code: PIC_INVALID_REQUEST`.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyResponse'
+              examples:
+                allow:
+                  summary: Allow decision envelope.
+                  value:
+                    allowed: true
+                    error: null
+                    eval_ms: 3
+                    request_id: '3bce7e9a-0d0e-4d02-9e57-6c7d7c2fcd8e'
+                block:
+                  summary: Block decision envelope.
+                  value:
+                    allowed: false
+                    error:
+                      code: PIC_VERIFIER_FAILED
+                      message: PIC contract violation
+                    eval_ms: 4
+                    request_id: '8f18a1de-a7cb-4d0e-b7a1-08d6f3f6bea1'
+                post_parse_invalid_request:
+                  summary: Post-parse request-shape rejection (missing tool_args).
+                  value:
+                    allowed: false
+                    error:
+                      code: PIC_INVALID_REQUEST
+                      message: "'tool_args' must be an object"
+                    eval_ms: 0
+                    request_id: 'd5d61713-035c-450c-b5b4-519c7cf1c764'
+        '400':
+          description: |
+            Pre-parse transport failure (malformed body, empty body,
+            missing / wrong `Content-Type`, missing / invalid
+            `Content-Length`, over-limit body, read-timeout), or the
+            centralized invalid-`X-Request-ID` rejection. Body still
+            follows the PIC envelope with
+            `error.code: PIC_INVALID_REQUEST`.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyResponse'
+              examples:
+                malformed_json:
+                  value:
+                    allowed: false
+                    error:
+                      code: PIC_INVALID_REQUEST
+                      message: 'Expecting value: line 1 column 1 (char 0)'
+                    eval_ms: 0
+                    request_id: 'aea2dbd6-c040-463b-9f82-bccc42c32b00'
+                invalid_x_request_id:
+                  value:
+                    allowed: false
+                    error:
+                      code: PIC_INVALID_REQUEST
+                      message: Invalid X-Request-ID header
+                    eval_ms: 0
+                    request_id: '3bce7e9a-0d0e-4d02-9e57-6c7d7c2fcd8e'
+        '405':
+          description: |
+            Wrong method on `/verify` (`PUT`, `DELETE`, `PATCH`).
+            Transport envelope only; not a PIC decision.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+              example:
+                error: Method not allowed
+                request_id: '6e538c47-cdcc-49b8-bbf8-f68be42dea96'
+
+  /health:
+    get:
+      tags: [system]
+      operationId: getHealth
+      summary: Liveness probe.
+      description: 'Always returns `{"status": "ok"}` when the bridge is running.'
+      parameters:
+        - $ref: '#/components/parameters/XRequestIDHeader'
+      responses:
+        '200':
+          description: Bridge is up.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: ok
+                request_id: '3bce7e9a-0d0e-4d02-9e57-6c7d7c2fcd8e'
+        '400':
+          description: |
+            Centralized invalid-`X-Request-ID` rejection. Body follows
+            the PIC envelope even on this non-`/verify` endpoint.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyResponse'
+
+  /v1/version:
+    get:
+      tags: [system]
+      operationId: getVersion
+      summary: Bridge and protocol version metadata.
+      description: |
+        Returns both legacy version fields (`pic_version`,
+        `package_version`, `commit`, `policy_version`) and
+        machine-readable metadata fields (`impl_name`, `impl_version`,
+        `pic_protocol_version`, `conformance_manifest_ref`,
+        `supported_modes`).
+
+        Legacy fields remain for backward compatibility. The
+        machine-readable fields let a downstream tool (a differential
+        CI harness, or a second implementation) verify that this
+        bridge is speaking the expected PIC protocol version and
+        testing against the expected conformance manifest.
+      parameters:
+        - $ref: '#/components/parameters/XRequestIDHeader'
+      responses:
+        '200':
+          description: Version metadata.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VersionResponse'
+              examples:
+                repo_checkout:
+                  summary: Response from a repo checkout (git + manifest available).
+                  value:
+                    pic_version: '1.0'
+                    package_version: '0.9.0a1'
+                    commit: '137afc59c1c3e01e2a0d9b4c8b1d2e3f4a5b6c7d'
+                    policy_version: '1.0'
+                    impl_name: pic-standard-py
+                    impl_version: '0.9.0a1'
+                    pic_protocol_version: 'PIC/1.0'
+                    conformance_manifest_ref:
+                      path: conformance/manifest.json
+                      sha256: 'sha256:7e41659c8228b8cb247863290c837ec44e5b7f9aac7c940f68c66ef8ccd83f08'
+                      commit: '137afc59c1c3e01e2a0d9b4c8b1d2e3f4a5b6c7d'
+                    supported_modes:
+                      - canonicalization
+                      - core
+                      - evidence
+                      - trust_sanitization
+                    request_id: '3bce7e9a-0d0e-4d02-9e57-6c7d7c2fcd8e'
+                packaged_wheel:
+                  summary: Response from a pip-installed wheel (git and manifest absent).
+                  value:
+                    pic_version: '1.0'
+                    package_version: '0.9.0a1'
+                    commit: unknown
+                    policy_version: '1.0'
+                    impl_name: pic-standard-py
+                    impl_version: '0.9.0a1'
+                    pic_protocol_version: 'PIC/1.0'
+                    conformance_manifest_ref:
+                      path: conformance/manifest.json
+                      sha256: unknown
+                      commit: unknown
+                    supported_modes:
+                      - canonicalization
+                      - core
+                      - evidence
+                      - trust_sanitization
+                    request_id: '3bce7e9a-0d0e-4d02-9e57-6c7d7c2fcd8e'
+        '400':
+          description: Centralized invalid-`X-Request-ID` rejection.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/XRequestID'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyResponse'
+
+components:
+  headers:
+    XRequestID:
+      description: |
+        Correlation identifier. Echoed from the request's
+        `X-Request-ID` header if valid; otherwise a fresh UUID
+        generated by the bridge. On the 400 rejection path this
+        header carries the fresh UUID, never the invalid supplied
+        value.
+      schema:
+        $ref: '#/components/schemas/RequestId'
+
+  parameters:
+    XRequestIDHeader:
+      name: X-Request-ID
+      in: header
+      required: false
+      description: |
+        Optional correlation identifier. If provided, must match
+        `^[A-Za-z0-9._:-]+$` and be at most 128 characters. Invalid
+        values are rejected as HTTP 400 with `PIC_INVALID_REQUEST`.
+      schema:
+        $ref: '#/components/schemas/RequestId'
+
+  schemas:
+    RequestId:
+      type: string
+      maxLength: 128
+      pattern: '^[A-Za-z0-9._:-]+$'
+      description: |
+        Correlation identifier used across the `X-Request-ID` header
+        and every `request_id` body field. Reused by reference so
+        the constraint stays in one place.
+
+    PICErrorCode:
+      type: string
+      description: |
+        Stable error taxonomy for PIC protocol decisions.
+        v0.9.0a1 members only. `PIC_DUPLICATE_ID` is planned for
+        v0.9.0a2 and is intentionally not present here.
+      enum:
+        - PIC_INVALID_REQUEST
+        - PIC_LIMIT_EXCEEDED
+        - PIC_SCHEMA_INVALID
+        - PIC_VERIFIER_FAILED
+        - PIC_TOOL_BINDING_MISMATCH
+        - PIC_EVIDENCE_REQUIRED
+        - PIC_EVIDENCE_FAILED
+        - PIC_POLICY_VIOLATION
+        - PIC_INTERNAL_ERROR
+
+    VerifyRequest:
+      type: object
+      required: [tool_name, tool_args]
+      properties:
+        tool_name:
+          type: string
+          minLength: 1
+          description: |
+            Non-empty name of the tool being invoked. The value is
+            bound to `tool_args.__pic.action.tool`; mismatch returns
+            `PIC_TOOL_BINDING_MISMATCH`. Clients should send an
+            exact, non-whitespace-padded tool name.
+          example: payments_send
+        tool_args:
+          type: object
+          additionalProperties: true
+          description: |
+            Free-form tool arguments as they will be passed to the
+            underlying tool. If a `__pic` key is present, its value
+            must be a well-formed `ActionProposal` per
+            `sdk-python/pic_standard/schemas/proposal_schema.json`.
+            The full proposal schema is intentionally not inlined
+            here to keep this document bounded.
+
+    VerifyResponse:
+      type: object
+      additionalProperties: false
+      required: [allowed, error, eval_ms, request_id]
+      properties:
+        allowed:
+          type: boolean
+          description: |
+            `true` on allow, `false` on block or on any envelope-shape
+            failure (post-parse validation or transport 400 pre-parse
+            rejection).
+        error:
+          # Inlined rather than $ref-wrapped: OpenAPI 3.0 tooling
+          # handles nullable $ref/allOf inconsistently. The inline
+          # shape preserves the PIC error contract while keeping
+          # validation clean.
+          type: object
+          nullable: true
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              $ref: '#/components/schemas/PICErrorCode'
+            message:
+              type: string
+              description: Short operator-facing summary of the failure.
+            details:
+              type: object
+              additionalProperties: true
+              description: |
+                Debug metadata surfaced only when `PIC_DEBUG=1` is
+                set on the bridge process. Not part of the public
+                contract; MUST NOT be relied on by callers or
+                exposed to untrusted clients.
+          description: |
+            `null` on allow. On block or on a `PIC_INVALID_REQUEST`
+            envelope-shape failure, carries the `PICErrorCode` and a
+            short message.
+        eval_ms:
+          type: integer
+          minimum: 0
+          description: |
+            Wall-clock evaluation time in milliseconds. `0` on
+            responses that reject the request before the pipeline
+            runs (transport 400 and post-parse request-shape
+            failures).
+        request_id:
+          $ref: '#/components/schemas/RequestId'
+
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, request_id]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        request_id:
+          $ref: '#/components/schemas/RequestId'
+
+    ConformanceManifestRef:
+      type: object
+      additionalProperties: false
+      required: [path, sha256, commit]
+      properties:
+        path:
+          type: string
+          description: Repository-relative path of the manifest file.
+          example: conformance/manifest.json
+        sha256:
+          type: string
+          description: |
+            Content-addressed digest of the manifest bytes. Either
+            `sha256:<64 lowercase hex>` or exactly `unknown` (returned
+            when the manifest cannot be located, e.g., pip-installed
+            wheel that does not bundle the conformance suite).
+          pattern: '^(sha256:[a-f0-9]{64}|unknown)$'
+        commit:
+          type: string
+          minLength: 1
+          description: |
+            Git commit SHA of the checkout the bridge is running
+            from, or `unknown` when git is unavailable at bridge
+            startup. Refers to the same checkout state as the
+            top-level `commit` field.
+
+    VersionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - pic_version
+        - package_version
+        - commit
+        - policy_version
+        - impl_name
+        - impl_version
+        - pic_protocol_version
+        - conformance_manifest_ref
+        - supported_modes
+        - request_id
+      properties:
+        pic_version:
+          type: string
+          description: |
+            Legacy protocol-version string. Kept for backward
+            compatibility; new consumers should read
+            `pic_protocol_version` instead.
+          example: '1.0'
+        package_version:
+          type: string
+          description: |
+            Legacy implementation-version string. Equal to
+            `impl_version`; kept for backward compatibility.
+        commit:
+          type: string
+          minLength: 1
+          description: |
+            Git commit SHA of the checkout the bridge is running
+            from, or `unknown` when git is unavailable.
+        policy_version:
+          type: string
+          description: |
+            Static policy-version placeholder. Will be surfaced from
+            real `PICPolicy` metadata in a future release.
+          example: '1.0'
+        impl_name:
+          type: string
+          description: |
+            Machine-readable name of the implementation exposing this
+            bridge. The Python reference implementation reports
+            `pic-standard-py`.
+          example: pic-standard-py
+        impl_version:
+          type: string
+          description: |
+            Machine-readable version of the implementation. Same
+            value as `package_version`.
+        pic_protocol_version:
+          type: string
+          description: |
+            Machine-readable PIC wire-format protocol version this
+            implementation claims to speak.
+          example: 'PIC/1.0'
+        conformance_manifest_ref:
+          $ref: '#/components/schemas/ConformanceManifestRef'
+        supported_modes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum:
+              - canonicalization
+              - core
+              - evidence
+              - trust_sanitization
+          description: |
+            Conformance modes this implementation runs. The Python
+            v0.9.0a1 reference bridge reports all four in the exact
+            order `[canonicalization, core, evidence,
+            trust_sanitization]`. Order is significant for
+            differential-CI comparisons and is asserted by the
+            regression tests. Other implementations may report a
+            smaller subset; consumers should compare this list with
+            the conformance modes they intend to exercise.
+        request_id:
+          $ref: '#/components/schemas/RequestId'
+
+    TransportError:
+      type: object
+      additionalProperties: false
+      required: [error, request_id]
+      description: |
+        Transport-level envelope used for 404 (unknown path) and 405
+        (wrong method). These responses are NOT PIC protocol
+        decisions and do NOT carry a `PICErrorCode`.
+      properties:
+        error:
+          type: string
+          description: Short human-readable transport error string.
+        request_id:
+          $ref: '#/components/schemas/RequestId'
