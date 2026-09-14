@@ -4,13 +4,50 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: pic-cli-serve
+    # Repeat non-root uid from Dockerfile so a future Dockerfile edit
+    # cannot silently regress to root.
+    user: "10001:10001"
+    # Publish only on the loopback interface. See docs/deploy-docker.md.
     ports:
-      - "7580:7580"
+      - "127.0.0.1:7580:7580"
     environment:
       PIC_POLICY_PATH: /config/pic_policy.json
       PIC_KEYS_PATH: /config/pic_keys.json
+    # Drop the Dockerfile CMD's `--repo-root /workspace` since the volume
+    # that supplied it is no longer mounted (env vars provide policy/keys).
+    command: ["--host", "0.0.0.0", "--port", "7580"]
     volumes:
       - ./pic_policy.json:/config/pic_policy.json:ro
       - ./pic_keys.example.json:/config/pic_keys.json:ro
-      - ./sdk-python:/workspace:ro
+
+    # --- Security hardening (see docs/deploy-docker.md) --------------
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    init: true
+
+    # Runtime resource fields (make `docker inspect` unambiguous).
+    mem_limit: 512m
+    cpus: "0.5"
+    pids_limit: 128
+
+    # Compose-spec canonical form (used under `deploy` semantics).
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+          pids: 128
+
+    stop_grace_period: 10s
     restart: unless-stopped
+    networks:
+      - pic-internal
+
+networks:
+  pic-internal:
+    driver: bridge
