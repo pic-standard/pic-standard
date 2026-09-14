@@ -1,0 +1,8 @@
+{
+  "id": "canon-010-lone-surrogate-rejection",
+  "description": "String containing a lone UTF-16 surrogate MUST be rejected before any canonical bytes are emitted (docs/canonicalization.md \u00a77.13). At the verifier level this surfaces as PIC_SCHEMA_INVALID per docs/spec-core.md \u00a79.1; at the canonicalizer level, the reference implementation raises CanonicalizationError. This vector pins the canonicalizer's rejection contract only; the pipeline-level PIC_SCHEMA_INVALID enforcement is covered by a dedicated Python regression test.",
+  "source": "docs/canonicalization.md \u00a77.13; canonical_reject runner verdict added in v0.9.0a1.",
+  "input": {
+    "a": "\ud800"
+  }
+}

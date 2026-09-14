@@ -54,22 +54,44 @@ def _load_canonicalization_vectors():
 @pytest.mark.parametrize("vector", _load_canonicalization_vectors())
 def test_canonicalization_vector(vector):
     """
-    Each conformance vector under conformance/canonicalization/ must canonicalize
-    to exactly its expected_canonical_bytes_hex and SHA-256 must match.
-    This is the primary correctness gate for PIC-CJSON/1.0 reference compliance.
+    Each conformance vector under conformance/canonicalization/ must be
+    handled per its declared shape:
+
+    - Positive (canonical_match) vectors carry ``expected_canonical_bytes_hex``
+      and ``expected_sha256_hex``; canonicalize() MUST produce exactly those
+      bytes and the SHA-256 MUST match.
+    - Negative (canonical_reject) vectors omit those fields; canonicalize()
+      MUST raise CanonicalizationError on the vector's ``input``.
+
+    Shape is inferred from the presence of the expected fields so this
+    sweep stays in sync with vector files without depending on
+    conformance/manifest.json. Primary correctness gate for PIC-CJSON/1.0
+    reference compliance.
     """
-    actual_bytes = canonicalize(vector["input"])
-    assert actual_bytes.hex() == vector["expected_canonical_bytes_hex"], (
-        f"canonical bytes mismatch for {vector['id']}\n"
-        f"  actual:   {actual_bytes.hex()}\n"
-        f"  expected: {vector['expected_canonical_bytes_hex']}"
+    has_expected_bytes = "expected_canonical_bytes_hex" in vector
+    has_expected_sha = "expected_sha256_hex" in vector
+
+    assert has_expected_bytes == has_expected_sha, (
+        f"canonicalization vector {vector['id']} must define both "
+        "`expected_canonical_bytes_hex` and `expected_sha256_hex`, or neither"
     )
-    actual_sha = hashlib.sha256(actual_bytes).hexdigest()
-    assert actual_sha == vector["expected_sha256_hex"], (
-        f"SHA-256 mismatch for {vector['id']}\n"
-        f"  actual:   {actual_sha}\n"
-        f"  expected: {vector['expected_sha256_hex']}"
-    )
+
+    if has_expected_bytes:
+        actual_bytes = canonicalize(vector["input"])
+        assert actual_bytes.hex() == vector["expected_canonical_bytes_hex"], (
+            f"canonical bytes mismatch for {vector['id']}\n"
+            f"  actual:   {actual_bytes.hex()}\n"
+            f"  expected: {vector['expected_canonical_bytes_hex']}"
+        )
+        actual_sha = hashlib.sha256(actual_bytes).hexdigest()
+        assert actual_sha == vector["expected_sha256_hex"], (
+            f"SHA-256 mismatch for {vector['id']}\n"
+            f"  actual:   {actual_sha}\n"
+            f"  expected: {vector['expected_sha256_hex']}"
+        )
+    else:
+        with pytest.raises(CanonicalizationError):
+            canonicalize(vector["input"])
 
 
 def test_vector_sweep_nonempty():

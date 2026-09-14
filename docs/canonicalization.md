@@ -150,7 +150,13 @@ No alternate representations are permitted.
 
 ### 7.13 Lone Surrogates
 
-Strings containing lone surrogate code points (unpaired UTF-16 surrogate halves in the range U+D800..U+DFFF) are non-conformant input. Such inputs cannot be represented as well-formed UTF-8 (RFC 3629) and have no valid canonical byte sequence under RFC 8785. Implementations MUST reject such input with a canonicalization error rather than attempting normalization, repair, replacement with U+FFFD, or emission of ill-formed UTF-8. This is a classic cross-language trap, particularly for JavaScript and Python host strings that may carry lone surrogates through their string types without raising errors at the host layer.
+Strings containing lone surrogate code points (unpaired UTF-16 surrogate halves in the range U+D800..U+DFFF) are non-conformant input. Such inputs cannot be represented as well-formed UTF-8 (RFC 3629) and have no valid canonical byte sequence under RFC 8785.
+
+Implementations MUST reject such input **before emitting any canonical bytes**, rather than attempting normalization, repair, replacement with U+FFFD, or emission of ill-formed UTF-8.
+
+When a PIC verifier encounters such input inside a proposal, it MUST surface the rejection as `PIC_SCHEMA_INVALID` per [`spec-core.md` §9.1](spec-core.md#91-error-code-stability): the failure belongs to PIC's schema-layer boundary because the proposal contains a non-conformant string value, not a semantic post-schema contract violation. JSON Schema draft-07 cannot cleanly express this constraint, so PIC v0.9.0a1 pins it via a pipeline-layer guard that scans all proposal string values and object keys after JSON Schema validation and before ActionProposal construction. Conformance vector `canon-010-lone-surrogate-rejection` pins the canonicalizer-level rejection contract in parallel.
+
+This is a classic cross-language trap, particularly for JavaScript and Python host strings that may carry lone surrogates through their string types without raising errors at the host layer.
 
 ---
 
@@ -339,7 +345,7 @@ Each implementation is responsible for asserting that its canonicalizer raises a
 - Duplicate object member names (most parsers collapse duplicates silently).
 - Escaped lone surrogates in raw JSON text (e.g., `"\uD800"` appearing literally in JSON source), as distinct from lone surrogates introduced through host-language strings covered above.
 
-PIC-CJSON/1.0 does not define such vectors in v0.8.0; they are left for a future revision.
+PIC-CJSON/1.0 does not define raw-JSON-text negative vectors in v0.8.0. In v0.9.0a1 the runner gained a `canonical_reject` verdict and the first negative canonicalization vector, `canon-010-lone-surrogate-rejection`, pins rejection of a parsed string value containing a lone surrogate. The vector source uses the JSON escape `\uD800` to construct that value. Broader raw-JSON-text negative cases, such as duplicate object member names, malformed UTF-8 byte streams, and parser-level rejection behavior before a value reaches the canonicalizer, remain deferred to a future revision.
 
 ---
 

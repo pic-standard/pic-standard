@@ -364,7 +364,13 @@ semantics from the v0.8.2 reference implementation:
 
 - `PIC_SCHEMA_INVALID` — PIC/1.0 JSON Schema validation failure on
   the proposal envelope. Emitted by the schema-validation invariant
-  in §8.
+  in §8. Applies to any failure that could be expressed as a
+  JSON Schema constraint on `proposal_schema.json` (missing required
+  field, wrong type, unknown enum value, invalid string format).
+  The JSON Schema is the portable contract; conforming
+  implementations MUST reach this code at the same boundary
+  regardless of validator library (`jsonschema` in Python, Ajv in
+  TypeScript, `jsonschema` in Rust, etc.).
 - `PIC_VERIFIER_FAILED` — Action Proposal structural/model-construction
   failure after schema validation OR causal-rule rejection
   (high-impact action lacks the required trusted-evidence causal
@@ -373,8 +379,18 @@ semantics from the v0.8.2 reference implementation:
   rule). Single emission site in the reference implementation;
   broad scope.
 
-  **Implementation Note (Informative):** the Python reference
-  implementation uses pydantic for the model-construction step.
+  **Semantic boundary vs `PIC_SCHEMA_INVALID` (Normative):**
+
+  - If a failure could be expressed as a JSON Schema constraint on
+    `proposal_schema.json`, it MUST emit `PIC_SCHEMA_INVALID`.
+  - Otherwise, if it is a semantic PIC contract violation, it MUST
+    emit `PIC_VERIFIER_FAILED`.
+
+  This boundary is language-independent. An implementation whose
+  parsing layer catches something the JSON Schema could have caught
+  MUST still classify it as `PIC_SCHEMA_INVALID`. The prior
+  "pydantic model-construction" phrasing in this DRAFT was
+  descriptive of the Python reference and is not normative.
 
 - `PIC_TOOL_BINDING_MISMATCH` — declared `action.tool` does not
   match the `expected_tool` configured at the verification call
@@ -414,18 +430,35 @@ backward-incompatible change.
 
 ### 9.2 Error Code Precedence
 
-When multiple failures are present, implementations SHOULD emit the
-most specific error code whose preconditions are satisfied and
-whose behavior is pinned by conformance vectors. Where precedence
-is not explicitly specified by this DRAFT or by conformance
-vectors, implementations MUST NOT claim cross-implementation
-equivalence for that edge case.
+When multiple failures are present in a single proposal,
+conforming implementations MUST emit codes in the following
+precedence order (highest first):
 
-The conformance vectors pin precedence only for the cases they
-cover. This DRAFT intentionally does not define a total ordering
-for every possible multi-failure proposal. Edge cases where
-multiple independent rules fail in a single proposal fall under
-`OQ-CORE-001`.
+1. `PIC_SCHEMA_INVALID`
+2. `PIC_TOOL_BINDING_MISMATCH`
+3. `PIC_EVIDENCE_REQUIRED` / `PIC_EVIDENCE_FAILED`
+   (see [`spec-evidence.md`](spec-evidence.md) for the boundary
+   between these two evidence-layer codes)
+4. `PIC_VERIFIER_FAILED`
+
+Rationale: schema validation is the earliest and most objective
+gate; tool binding is a contract-level identity check that should
+be evaluated before evidence verification or causal-contract
+evaluation; the evidence-layer codes gate on the resolved impact
+and evidence surface; `PIC_VERIFIER_FAILED` is the semantic
+catch-all for post-schema PIC contract violations.
+
+`PIC_LIMIT_EXCEEDED`, `PIC_INVALID_REQUEST`, `PIC_INTERNAL_ERROR`,
+and `PIC_POLICY_VIOLATION` are outside this core
+verification-failure ordering. `PIC_INVALID_REQUEST` is a
+transport / envelope failure before the PIC pipeline begins.
+`PIC_LIMIT_EXCEEDED` short-circuits at the configured guard limit
+that was exceeded, whether proposal size / count limits or the
+evaluation time budget. `PIC_INTERNAL_ERROR` is a defensive
+catch-all; `PIC_POLICY_VIOLATION` is reserved for downstream
+adapters.
+
+This precedence resolves `OQ-CORE-001` (see Appendix C).
 
 ---
 
@@ -674,19 +707,33 @@ silently deleted.
 
 | ID | Summary | Resolution status |
 |---|---|---|
-| OQ-CORE-001 | Complete error precedence table | Open |
+| OQ-CORE-001 | Complete error precedence table | **Resolved in v0.9.0a1; see §9.2** |
 | OQ-CORE-002 | Multi-source requirement for `irreversible` impact | Open |
 | OQ-CORE-003 | Policy-engine surface naming + standardization | Open |
 
-### OQ-CORE-001 — Complete error precedence table
+### OQ-CORE-001 — Complete error precedence table (resolved v0.9.0a1)
 
-Define a total ordering for cases where schema, evidence, verifier,
-tool-binding, and policy failures are all simultaneously possible.
-Until resolved, conformance is pinned only for the precedence cases
-covered by conformance vectors. Resolution requires authoring new
-conformance vectors that pin the ordered precedence and an
-implementation-side audit that the reference verifier emits the
-expected code at every contested junction.
+**Resolution:** §9.2 now defines a total ordering for multi-failure
+proposals across `PIC_SCHEMA_INVALID`, `PIC_TOOL_BINDING_MISMATCH`,
+`PIC_EVIDENCE_REQUIRED` / `PIC_EVIDENCE_FAILED`, and
+`PIC_VERIFIER_FAILED`. The ordering codifies the Python reference
+implementation's observable behavior and is normative for
+cross-implementation parity.
+
+`PIC_LIMIT_EXCEEDED`, `PIC_INVALID_REQUEST`, `PIC_INTERNAL_ERROR`,
+and `PIC_POLICY_VIOLATION` are outside this core
+verification-failure ordering. `PIC_INVALID_REQUEST` is a
+transport / envelope failure before the PIC pipeline begins.
+`PIC_LIMIT_EXCEEDED` short-circuits at the configured guard limit
+that was exceeded, whether proposal size / count limits or the
+evaluation time budget. `PIC_INTERNAL_ERROR` is a defensive
+catch-all; `PIC_POLICY_VIOLATION` is reserved for downstream
+adapters.
+
+Historical context (pre-resolution): before v0.9.0a1, precedence
+was pinned only for the cases covered by conformance vectors; edge
+cases where multiple independent rules fail simultaneously had no
+normative ordering.
 
 ### OQ-CORE-002 — Multi-source requirement for `irreversible` impact
 

@@ -108,7 +108,10 @@ _SDK_PATH = str(_REPO_ROOT / "sdk-python")
 if _SDK_PATH not in sys.path:
     sys.path.insert(0, _SDK_PATH)
 
-from pic_standard.canonical import canonicalize  # noqa: E402 (sys.path setup above)
+from pic_standard.canonical import (  # noqa: E402 (sys.path setup above)
+    CanonicalizationError,
+    canonicalize,
+)
 from pic_standard.keyring import StaticKeyRingResolver, TrustedKeyRing  # noqa: E402
 from pic_standard.pipeline import (  # noqa: E402
     PICTrustFutureWarning,
@@ -123,7 +126,7 @@ from pic_standard.pipeline import (  # noqa: E402
 VALID_MODES = {"canonicalization", "core", "evidence", "trust_sanitization"}
 
 EXPECTED_BY_MODE: Dict[str, set] = {
-    "canonicalization": {"canonical_match"},
+    "canonicalization": {"canonical_match", "canonical_reject"},
     "core": {"allow", "block"},
     "evidence": {"allow", "block"},
     "trust_sanitization": {"allow", "block"},
@@ -158,6 +161,7 @@ TRUST_SANITIZATION_MATRIX_IDS = {
 # from in tests/test_trust_deprecation_warning.py::VERDICT_REGRESSION_MATRIX.
 ENTRY_FIELDS: Dict[tuple, set] = {
     ("canonicalization", "canonical_match"): {"id", "file", "mode", "expected"},
+    ("canonicalization", "canonical_reject"): {"id", "file", "mode", "expected"},
     ("core", "allow"): {"id", "file", "mode", "expected"},
     ("core", "block"): {"id", "file", "mode", "expected", "expected_error_code"},
     ("evidence", "allow"): {"id", "file", "mode", "expected"},
@@ -196,7 +200,9 @@ DC_VERDICT_MISMATCH = "verdict_mismatch"
 # Block verdict happened, but error code differed from ``expected_error_code``.
 DC_ERROR_CODE_MISMATCH = "error_code_mismatch"
 
-# Canonical bytes or canonical SHA-256 mismatch on a canonicalization vector.
+# Canonicalization contract violated on a canonicalization vector (bytes/SHA
+# mismatch for `canonical_match`, or canonicalizer accepted input that should
+# have been rejected for `canonical_reject`).
 DC_CANONICALIZATION_MISMATCH = "canonicalization_mismatch"
 
 # Manifest valid but points at wrong/missing vector file, or vector inline
@@ -922,9 +928,45 @@ def _apply_filters(
 # ---------------------------------------------------------------------------
 
 
-def _run_canonicalization_vector(vec: Dict[str, Any]) -> VectorResult:
-    """Verify byte-exact canonicalization output and SHA-256 against the vector file."""
+def _run_canonicalization_vector(vec: Dict[str, Any], entry: Dict[str, Any]) -> VectorResult:
+    """Execute a canonicalization vector.
+
+    ``entry["expected"]`` is either ``"canonical_match"`` (byte-exact
+    canonical output + SHA-256 check) or ``"canonical_reject"`` (v0.9.0a1+:
+    canonicalizer MUST raise rather than emit bytes for input that violates
+    canonicalization rules; see docs/canonicalization.md §7.13).
+    """
     vid = vec["id"]
+    expected_verdict = entry["expected"]
+
+    if expected_verdict == "canonical_reject":
+        try:
+            input_value = vec["input"]
+        except KeyError as e:
+            return VectorResult(
+                id=vid,
+                mode="canonicalization",
+                passed=False,
+                reason=f"vector file missing required field: {e}",
+                reason_code=DC_VECTOR_INVALID,
+            )
+        try:
+            actual_bytes = canonicalize(input_value)
+        except CanonicalizationError:
+            # The vector pins rejection, not a specific diagnostic message.
+            return VectorResult(id=vid, mode="canonicalization", passed=True)
+        return VectorResult(
+            id=vid,
+            mode="canonicalization",
+            passed=False,
+            reason=(
+                f"canonicalize() accepted input that should have been "
+                f"rejected; emitted {len(actual_bytes)} bytes"
+            ),
+            reason_code=DC_CANONICALIZATION_MISMATCH,
+        )
+
+    # expected_verdict == "canonical_match" — existing byte-exact path unchanged below.
     try:
         input_value = vec["input"]
         expected_hex = vec["expected_canonical_bytes_hex"]
@@ -1872,7 +1914,7 @@ def run_manifest(
             continue
 
         if entry["mode"] == "canonicalization":
-            report.results.append(_run_canonicalization_vector(vec))
+            report.results.append(_run_canonicalization_vector(vec, entry))
         elif entry["mode"] == "evidence":
             report.results.append(_run_evidence_vector(vec, entry))
         elif entry["mode"] == "trust_sanitization":

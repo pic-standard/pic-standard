@@ -64,6 +64,26 @@ class TestPipelineSchemaValidation:
         assert not result.ok
         assert result.error.code == PICErrorCode.SCHEMA_INVALID
 
+    def test_lone_surrogate_in_claim_text_rejected_as_schema_invalid(self) -> None:
+        """Strings with lone UTF-16 surrogates must fail with PIC_SCHEMA_INVALID.
+
+        Per docs/canonicalization.md §7.13 and docs/spec-core.md §9.1, lone
+        surrogates are non-conformant input at the schema-layer boundary.
+        A low-impact proposal that would otherwise pass MUST still be
+        rejected purely on the lone-surrogate rule.
+        """
+        proposal = make_proposal(
+            impact="read",
+            trust="untrusted",
+            tool="docs_search",
+            intent="Search docs",
+            claim_text="\ud800",
+        )
+        result = verify_proposal(proposal)
+        assert not result.ok
+        assert result.error is not None
+        assert result.error.code == PICErrorCode.SCHEMA_INVALID
+
 
 # ---------------------------------------------------------------------------
 # Verifier rules (ActionProposal instantiation)

@@ -56,6 +56,12 @@
       "expected": "canonical_match"
     },
     {
+      "id": "canon-010-lone-surrogate-rejection",
+      "file": "canonicalization/010_lone_surrogate_rejection.json",
+      "mode": "canonicalization",
+      "expected": "canonical_reject"
+    },
+    {
       "id": "core-allow-001-read-only",
       "file": "core/allow/001_read_only.json",
       "mode": "core",
