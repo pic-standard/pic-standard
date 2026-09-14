@@ -5,7 +5,6 @@ import hashlib
 import hmac
 import json
 import re
-import warnings
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -758,29 +757,3 @@ def apply_trust_upgrade_ids_to_provenance(
 
     out["provenance"] = prov
     return out
-
-
-def apply_verified_ids_to_provenance(
-    proposal: Dict[str, Any], verified_ids: Set[str]
-) -> Dict[str, Any]:
-    """Deprecated. Use ``apply_trust_upgrade_ids_to_provenance`` instead.
-
-    This wrapper preserves the pre-v0.8.3 mechanical behavior for one release
-    to avoid an immediate import break for any third-party consumer. It
-    forwards to ``apply_trust_upgrade_ids_to_provenance`` with the passed
-    set, so any hash-verified IDs in the set will still trigger the
-    (semantically unsafe) trust upgrade. Calls
-    ``warnings.warn(..., DeprecationWarning)`` when invoked.
-
-    Internal PIC code MUST NOT use this wrapper. A grep gate enforces it.
-
-    Removal target: v0.9.0.
-    """
-    warnings.warn(
-        "apply_verified_ids_to_provenance is deprecated because verified_ids "
-        "may include non-authority evidence such as hash matches. Use "
-        "apply_trust_upgrade_ids_to_provenance instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return apply_trust_upgrade_ids_to_provenance(proposal, verified_ids)

@@ -1,12 +1,10 @@
 import hashlib
 import json
-import warnings
 from pathlib import Path
 
 from pic_standard.evidence import (
     EvidenceSystem,
     apply_trust_upgrade_ids_to_provenance,
-    apply_verified_ids_to_provenance,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -238,23 +236,3 @@ def test_evidence_multiple_pieces_verification(tmp_path):
     # Verify each result is successful
     for result in summary["results"]:
         assert result.ok, f"Evidence {result.id} should be verified"
-
-
-def test_apply_verified_ids_to_provenance_emits_deprecation_warning():
-    """Legacy wrapper warns and preserves one-release compatibility behavior."""
-    proposal = {"provenance": [{"id": "x", "trust": "untrusted"}]}
-
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        upgraded = apply_verified_ids_to_provenance(proposal, {"x"})
-
-    deprecations = [w for w in caught if issubclass(w.category, DeprecationWarning)]
-    assert len(deprecations) == 1
-
-    msg = str(deprecations[0].message)
-    assert "apply_verified_ids_to_provenance" in msg
-    assert "apply_trust_upgrade_ids_to_provenance" in msg
-
-    # Compatibility behavior: the deprecated wrapper still applies the passed
-    # set mechanically for one release. Internal code must not use it.
-    assert upgraded["provenance"][0]["trust"] == "trusted"
