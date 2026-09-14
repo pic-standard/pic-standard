@@ -9,6 +9,7 @@ import urllib.request
 from pathlib import Path
 
 import pytest
+import yaml
 from pic_standard.integrations.http_bridge import (
     PICBridgeServer,
     PICEvaluateLimits,
@@ -189,20 +190,63 @@ def test_bridge_audit_shape_block(caplog):
     assert isinstance(payload["timestamp"], str)
 
 
-def test_bridge_request_id_header_invalid_falls_back_to_generated(bridge_url):
-    invalid_request_id = "bad@value"
-    req = urllib.request.Request(
-        f"{bridge_url}/health",
-        method="GET",
-        headers={"X-Request-ID": invalid_request_id},
-    )
-    with urllib.request.urlopen(req) as resp:
-        result = json.loads(resp.read())
-        returned = result["request_id"]
-        assert returned != invalid_request_id
-        assert isinstance(returned, str)
-        assert len(returned) > 0
-        assert resp.headers.get("X-Request-ID") == returned
+_INVALID_X_REQUEST_ID = "bad id with spaces!"
+
+
+# Each entry: (method, path, body-or-None).
+# The centralized invalid-X-Request-ID rule must apply BEFORE any per-endpoint
+# routing, so we cover representative endpoints across all shapes: the two GET
+# endpoints, the POST endpoint (with a body that would otherwise ALLOW), an
+# unknown path (would otherwise 404), and a disallowed method (would otherwise
+# 405). Each MUST return 400 + PIC_INVALID_REQUEST + a fresh generated UUID.
+_INVALID_XRID_CASES = [
+    pytest.param("GET", "/health", None, id="get_health"),
+    pytest.param("GET", "/v1/version", None, id="get_version"),
+    pytest.param(
+        "POST",
+        "/verify",
+        {"tool_name": "docs_search", "tool_args": {}},
+        id="post_verify",
+    ),
+    pytest.param("GET", "/not-found", None, id="get_not_found"),
+    pytest.param("PUT", "/verify", None, id="put_verify"),
+]
+
+
+@pytest.mark.parametrize("method,path,body", _INVALID_XRID_CASES)
+def test_bridge_invalid_x_request_id_rejected_uniformly(bridge_url, method, path, body):
+    """Invalid X-Request-ID MUST be rejected before any endpoint work.
+
+    Per docs/ERRORS.md, an invalid supplied X-Request-ID is a pre-pipeline
+    validation error surfacing as HTTP 400 with PIC_INVALID_REQUEST. The
+    rule is centralized in the handler so it applies uniformly to /verify,
+    /health, /v1/version, unknown paths (would otherwise 404) and
+    disallowed methods (would otherwise 405). The response request_id MUST
+    be a freshly generated UUID, never echoing the invalid supplied value.
+    """
+    data = json.dumps(body).encode("utf-8") if body is not None else None
+    headers = {"X-Request-ID": _INVALID_X_REQUEST_ID}
+    if data is not None:
+        headers["Content-Type"] = "application/json"
+    req = urllib.request.Request(f"{bridge_url}{path}", data=data, headers=headers, method=method)
+    with pytest.raises(urllib.error.HTTPError) as excinfo:
+        urllib.request.urlopen(req)
+    err = excinfo.value
+    assert err.code == 400
+
+    result = json.loads(err.read())
+    assert result["allowed"] is False
+    assert result["error"]["code"] == "PIC_INVALID_REQUEST"
+    assert isinstance(result["error"]["message"], str) and result["error"]["message"]
+    assert result["eval_ms"] == 0
+
+    # request_id must be a fresh UUID, never the invalid supplied value.
+    returned = result["request_id"]
+    assert isinstance(returned, str) and returned
+    assert returned != _INVALID_X_REQUEST_ID
+
+    # Response X-Request-ID header MUST match the body request_id.
+    assert err.headers.get("X-Request-ID") == returned
 
 
 # ------------------------------------------------------------------
@@ -244,6 +288,43 @@ def _http_get(url: str) -> dict:
         return json.loads(resp.read())
 
 
+# ------------------------------------------------------------------
+# OpenAPI contract helpers (A4)
+# ------------------------------------------------------------------
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+_OPENAPI_SPEC_PATH = _REPO_ROOT / "openapi" / "pic-bridge.v1.yaml"
+
+
+def _load_openapi_spec() -> dict:
+    """Load the bridge OpenAPI spec once; used by every contract test.
+
+    The spec file is the source of truth for expected shape (required
+    fields, error-code enum, request examples). If PyYAML is missing
+    the test suite must FAIL loudly rather than skip, because the
+    contract test not running defeats its purpose.
+    """
+    with _OPENAPI_SPEC_PATH.open("rb") as f:
+        return yaml.safe_load(f)
+
+
+def _assert_response_shape(response: dict, schema: dict, *, label: str) -> None:
+    """Assert a live response has exactly the keys the yaml schema declares.
+
+    Required properties must all be present. Because every stable
+    response envelope in the yaml uses ``additionalProperties: false``,
+    unexpected top-level keys are also a contract violation. Both
+    failure messages are sorted for deterministic diffs.
+    """
+    required = set(schema["required"])
+    properties = set(schema["properties"])
+    keys = set(response.keys())
+    missing = required - keys
+    assert not missing, f"{label} missing required keys: {sorted(missing)}"
+    unexpected = keys - properties
+    assert not unexpected, f"{label} has unexpected keys: {sorted(unexpected)}"
+
+
 def test_bridge_health_endpoint(bridge_url):
     result = _http_get(f"{bridge_url}/health")
     assert result["status"] == "ok"
@@ -263,6 +344,43 @@ def test_bridge_version_endpoint(bridge_url):
     assert result["policy_version"] == "1.0"
     # Phase 2.2: request_id should be present
     assert "request_id" in result
+
+    # v0.9.0a1 (§15.3): machine-readable version metadata for cross-impl parity.
+    # These fields are additive on top of the legacy fields above; the legacy
+    # names remain for backward compat; the §15.3 names are intended for
+    # Repo B's TS runner and the differential CI harness.
+    assert result["impl_name"] == "pic-standard-py"
+    assert isinstance(result["impl_version"], str) and result["impl_version"]
+    # impl_version and package_version must agree: splitting them would let
+    # the wheel's version and the reported impl version drift apart.
+    assert result["impl_version"] == result["package_version"]
+    assert result["pic_protocol_version"] == "PIC/1.0"
+
+    manifest_ref = result["conformance_manifest_ref"]
+    assert isinstance(manifest_ref, dict)
+    assert manifest_ref["path"] == "conformance/manifest.json"
+    # sha256 is either "sha256:<64 lowercase hex>" or exactly "unknown" when
+    # the manifest file cannot be located (packaged/wheel layout).
+    sha = manifest_ref["sha256"]
+    assert isinstance(sha, str)
+    if sha != "unknown":
+        assert sha.startswith("sha256:")
+        hex_part = sha[len("sha256:") :]
+        assert len(hex_part) == 64
+        assert all(c in "0123456789abcdef" for c in hex_part)
+    # commit degrades to "unknown" when git is not available; never empty.
+    assert isinstance(manifest_ref["commit"], str)
+    assert manifest_ref["commit"]
+    # Top-level `commit` and manifest_ref.commit refer to the same checkout
+    # state and must agree so consumers can cross-reference safely.
+    assert manifest_ref["commit"] == result["commit"]
+
+    # supported_modes is the machine-checkable list of conformance modes this
+    # implementation runs. Python supports all four; TS in v0.9.0 will report
+    # only the three modes it implements (evidence deferred to v0.9.x).
+    modes = result["supported_modes"]
+    assert isinstance(modes, list)
+    assert modes == ["canonicalization", "core", "evidence", "trust_sanitization"]
 
 
 def test_bridge_http_allows_trusted(bridge_url):
@@ -521,3 +639,67 @@ def test_bridge_http_non_dict_json_body(bridge_url):
             assert result["error"]["code"] == "PIC_INVALID_REQUEST"
             assert "dict" in result["error"]["message"]
             assert expected_type in result["error"]["message"]
+
+
+def test_openapi_contract_verify_examples_match_bridge(bridge_url):
+    """POST /verify examples from the yaml exercise the live bridge.
+
+    Loads both documented examples (allow_low_impact and
+    block_untrusted_high_impact), POSTs each without local patching,
+    and asserts the response matches the yaml's VerifyResponse shape:
+      * required top-level keys present (derived from the yaml)
+      * no unexpected top-level keys (yaml uses additionalProperties: false)
+      * allowed is boolean
+      * eval_ms is a non-negative integer
+      * request_id is a non-empty string
+      * allow: error is None
+      * block: error.code is a documented PICErrorCode enum value
+    """
+    spec = _load_openapi_spec()
+    examples = spec["paths"]["/verify"]["post"]["requestBody"]["content"]["application/json"][
+        "examples"
+    ]
+    verify_response_schema = spec["components"]["schemas"]["VerifyResponse"]
+    codes = set(spec["components"]["schemas"]["PICErrorCode"]["enum"])
+    assert "allow_low_impact" in examples
+    assert "block_untrusted_high_impact" in examples
+
+    # allow_low_impact must land as a genuine allow.
+    r = _http_post(f"{bridge_url}/verify", examples["allow_low_impact"]["value"])
+    _assert_response_shape(r, verify_response_schema, label="allow response")
+    assert isinstance(r["allowed"], bool) and r["allowed"] is True
+    assert r["error"] is None
+    assert isinstance(r["eval_ms"], int) and r["eval_ms"] >= 0
+    assert isinstance(r["request_id"], str) and r["request_id"]
+
+    # block_untrusted_high_impact must land as a block with a documented code.
+    r = _http_post(f"{bridge_url}/verify", examples["block_untrusted_high_impact"]["value"])
+    _assert_response_shape(r, verify_response_schema, label="block response")
+    assert isinstance(r["allowed"], bool) and r["allowed"] is False
+    assert isinstance(r["error"], dict)
+    assert r["error"]["code"] in codes, (
+        f"error code {r['error']['code']} not in yaml enum {sorted(codes)}"
+    )
+    assert isinstance(r["error"]["message"], str) and r["error"]["message"]
+    assert isinstance(r["eval_ms"], int) and r["eval_ms"] >= 0
+    assert isinstance(r["request_id"], str) and r["request_id"]
+
+
+def test_openapi_contract_version_response_has_all_required_fields(bridge_url):
+    """/v1/version response carries every field the yaml marks as required.
+
+    Also asserts no unexpected top-level fields, since the yaml's
+    VersionResponse uses additionalProperties: false. Same shape check
+    is applied to conformance_manifest_ref, which is also
+    additionalProperties: false.
+    """
+    spec = _load_openapi_spec()
+    version_schema = spec["components"]["schemas"]["VersionResponse"]
+    manifest_schema = spec["components"]["schemas"]["ConformanceManifestRef"]
+
+    result = _http_get(f"{bridge_url}/v1/version")
+    _assert_response_shape(result, version_schema, label="/v1/version")
+
+    manifest = result["conformance_manifest_ref"]
+    assert isinstance(manifest, dict)
+    _assert_response_shape(manifest, manifest_schema, label="conformance_manifest_ref")

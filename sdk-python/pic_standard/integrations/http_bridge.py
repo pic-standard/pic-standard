@@ -18,8 +18,16 @@ GET  /health
     200:  {"status": "ok", "request_id": "<UUID>"}
 
 GET  /v1/version
-    200:  {"pic_version": "1.0", "package_version": "0.8.1",
-           "commit": "<hash>", "policy_version": "1.0", "request_id": "<UUID>"}
+    200:  {"pic_version": "1.0", "package_version": "0.9.0a1",
+           "commit": "<hex-or-unknown>", "policy_version": "1.0",
+           "impl_name": "pic-standard-py", "impl_version": "0.9.0a1",
+           "pic_protocol_version": "PIC/1.0",
+           "conformance_manifest_ref": {"path": "conformance/manifest.json",
+                                        "sha256": "sha256:<hex>|unknown",
+                                        "commit": "<hex-or-unknown>"},
+           "supported_modes": ["canonicalization", "core", "evidence",
+                               "trust_sanitization"],
+           "request_id": "<UUID>"}
 
 Design notes
 ------------
@@ -36,6 +44,7 @@ Design notes
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -64,6 +73,16 @@ PIC_VERSION = "1.0"
 # TODO: Replace static placeholder when PIC policy objects expose an explicit
 # version field that can be surfaced by the bridge.
 POLICY_VERSION = "1.0"
+
+# §15.3 machine-readable version metadata.
+IMPL_NAME = "pic-standard-py"
+PIC_PROTOCOL_VERSION = "PIC/1.0"
+SUPPORTED_MODES = (
+    "canonicalization",
+    "core",
+    "evidence",
+    "trust_sanitization",
+)
 
 # Maximum request body size (1MB) to prevent memory exhaustion attacks
 MAX_REQUEST_BYTES = 1024 * 1024
@@ -103,6 +122,43 @@ def _get_package_version() -> str:
         return metadata.version("pic-standard")
     except metadata.PackageNotFoundError:
         return "unknown"
+
+
+@lru_cache(maxsize=1)
+def _find_conformance_manifest() -> Optional[Path]:
+    """Locate ``conformance/manifest.json`` from the current install layout.
+
+    Walks parent directories of this module looking for a ``conformance``
+    directory containing ``manifest.json``. Works in a repo checkout where
+    the file lives at ``<repo>/conformance/manifest.json``. Returns
+    ``None`` from a packaged/wheel install that does not bundle the
+    conformance suite; ``/v1/version`` degrades to ``sha256: "unknown"``
+    in that case rather than raising.
+    """
+    here = Path(__file__).resolve()
+    for parent in list(here.parents)[:6]:
+        candidate = parent / "conformance" / "manifest.json"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+@lru_cache(maxsize=1)
+def _get_conformance_manifest_sha256() -> str:
+    """Return ``sha256:<hex>`` of the conformance manifest, or ``"unknown"``.
+
+    Content-addresses the manifest so ``/v1/version`` consumers can pin
+    conformance runs to an exact manifest byte sequence regardless of
+    whether git is available on the host.
+    """
+    path = _find_conformance_manifest()
+    if path is None:
+        return "unknown"
+    try:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return "unknown"
+    return f"sha256:{digest}"
 
 
 def _sanitize_request_id(request_id: Optional[str]) -> Optional[str]:
@@ -369,15 +425,68 @@ class PICBridgeHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: Any) -> None:  # type: ignore[override]
         log.debug(fmt, *args)
 
-    def _get_or_create_request_id(self) -> str:
-        """Extract X-Request-ID from request headers or create a new one."""
-        request_id = _sanitize_request_id(self.headers.get("X-Request-ID"))
-        if request_id:
-            return request_id
-        return _generate_request_id()
+    def _resolve_request_id(self) -> tuple[str, bool]:
+        """Resolve the effective request ID and detect invalid supplied headers.
+
+        Returns ``(request_id, invalid_supplied)``:
+
+        * No ``X-Request-ID`` header supplied → ``(fresh_uuid, False)``.
+        * Valid ``X-Request-ID`` supplied → ``(sanitized_value, False)``.
+        * Invalid ``X-Request-ID`` supplied → ``(fresh_uuid, True)``. The
+          caller MUST reject the request with 400 / ``PIC_INVALID_REQUEST``
+          via :meth:`_reject_invalid_request_id` rather than proceeding to
+          endpoint-specific handling.
+
+        Centralized so the invalid-header rule applies uniformly across
+        every endpoint (``/verify``, ``/health``, ``/v1/version``) and
+        every transport response (unknown path 404, disallowed method
+        405). Aligns runtime behavior with the ``PIC_INVALID_REQUEST``
+        contract in ``docs/ERRORS.md``.
+        """
+        raw = self.headers.get("X-Request-ID")
+        if raw is None:
+            return _generate_request_id(), False
+        sanitized = _sanitize_request_id(raw)
+        if sanitized is None:
+            return _generate_request_id(), True
+        return sanitized, False
+
+    def _reject_invalid_request_id(self, request_id: str) -> None:
+        """Emit the 400 / ``PIC_INVALID_REQUEST`` envelope for a bad header.
+
+        ``request_id`` is a freshly generated UUID (never the invalid
+        supplied value) so downstream log correlation stays clean.
+        """
+        message = "Invalid X-Request-ID header"
+        _json_response(
+            self,
+            400,
+            {
+                "allowed": False,
+                "error": {
+                    "code": PICErrorCode.INVALID_REQUEST.value,
+                    "message": message,
+                },
+                "eval_ms": 0,
+                "request_id": request_id,
+            },
+            request_id=request_id,
+        )
+        _log_audit(
+            request_id=request_id,
+            tool="",
+            allowed=False,
+            eval_ms=0,
+            code=PICErrorCode.INVALID_REQUEST.value,
+            error_message=message,
+            event="request_validation_failed",
+        )
 
     def do_GET(self) -> None:
-        request_id = self._get_or_create_request_id()
+        request_id, invalid = self._resolve_request_id()
+        if invalid:
+            self._reject_invalid_request_id(request_id)
+            return
 
         if self.path.rstrip("/") == "/health":
             _json_response(
@@ -385,14 +494,25 @@ class PICBridgeHandler(BaseHTTPRequestHandler):
             )
             return
         if self.path.rstrip("/") == "/v1/version":
+            commit = _get_git_commit()
+            package_version = _get_package_version()
             _json_response(
                 self,
                 200,
                 {
                     "pic_version": PIC_VERSION,
-                    "package_version": _get_package_version(),
-                    "commit": _get_git_commit(),
+                    "package_version": package_version,
+                    "commit": commit,
                     "policy_version": POLICY_VERSION,
+                    "impl_name": IMPL_NAME,
+                    "impl_version": package_version,
+                    "pic_protocol_version": PIC_PROTOCOL_VERSION,
+                    "conformance_manifest_ref": {
+                        "path": "conformance/manifest.json",
+                        "sha256": _get_conformance_manifest_sha256(),
+                        "commit": commit,
+                    },
+                    "supported_modes": list(SUPPORTED_MODES),
                     "request_id": request_id,
                 },
                 request_id=request_id,
@@ -403,7 +523,10 @@ class PICBridgeHandler(BaseHTTPRequestHandler):
         )
 
     def do_POST(self) -> None:
-        request_id = self._get_or_create_request_id()
+        request_id, invalid = self._resolve_request_id()
+        if invalid:
+            self._reject_invalid_request_id(request_id)
+            return
 
         if self.path.rstrip("/") != "/verify":
             _json_response(
@@ -476,7 +599,10 @@ class PICBridgeHandler(BaseHTTPRequestHandler):
         _json_response(self, 200, result, request_id=request_id)
 
     def do_PUT(self) -> None:
-        request_id = self._get_or_create_request_id()
+        request_id, invalid = self._resolve_request_id()
+        if invalid:
+            self._reject_invalid_request_id(request_id)
+            return
         _json_response(
             self,
             405,
@@ -485,7 +611,10 @@ class PICBridgeHandler(BaseHTTPRequestHandler):
         )
 
     def do_DELETE(self) -> None:
-        request_id = self._get_or_create_request_id()
+        request_id, invalid = self._resolve_request_id()
+        if invalid:
+            self._reject_invalid_request_id(request_id)
+            return
         _json_response(
             self,
             405,
@@ -494,7 +623,10 @@ class PICBridgeHandler(BaseHTTPRequestHandler):
         )
 
     def do_PATCH(self) -> None:
-        request_id = self._get_or_create_request_id()
+        request_id, invalid = self._resolve_request_id()
+        if invalid:
+            self._reject_invalid_request_id(request_id)
+            return
         _json_response(
             self,
             405,

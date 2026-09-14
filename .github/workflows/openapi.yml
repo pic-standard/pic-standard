@@ -1,0 +1,37 @@
+name: OpenAPI
+
+on:
+  push:
+    paths:
+      - "openapi/**"
+      - ".spectral.yaml"
+      - ".github/workflows/openapi.yml"
+  pull_request:
+    paths:
+      - "openapi/**"
+      - ".spectral.yaml"
+      - ".github/workflows/openapi.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  spectral-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Spectral lint (OpenAPI)
+        run: >
+          npx --yes @stoplight/spectral-cli@6.16.3
+          lint
+          --ruleset .spectral.yaml
+          --fail-severity=error
+          openapi/pic-bridge.v1.yaml
