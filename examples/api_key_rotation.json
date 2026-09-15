@@ -1,0 +1,23 @@
+{
+  "protocol": "PIC/1.0",
+  "intent": "Rotate the production payment API key and revoke the previous key.",
+  "impact": "irreversible",
+  "provenance": [
+    { "id": "security_change_ticket", "trust": "trusted" },
+    { "id": "on_call_approval", "trust": "trusted" }
+  ],
+  "claims": [
+    {
+      "text": "Security approved the rotation and the replacement key is ready for deployment.",
+      "evidence": ["security_change_ticket", "on_call_approval"]
+    }
+  ],
+  "action": {
+    "tool": "secrets.rotate_api_key",
+    "args": {
+      "service": "payments",
+      "environment": "production",
+      "revoke_previous": true
+    }
+  }
+}
