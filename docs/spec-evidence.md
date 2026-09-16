@@ -102,9 +102,9 @@ Each entry is a JSON object with the following fields:
 | `id` | string | MUST | Stable identifier, expected to match a `provenance[].id` for trust upgrade (see §8). |
 | `type` | string | MUST | One of `"hash"` or `"sig"`. The PIC/1.0 JSON Schema defines `type` as a closed enum; unknown values are schema-rejected with `PIC_SCHEMA_INVALID`. If an implementation's schema layer is more permissive, the evidence handler MUST reject the unknown type fail-closed with `PIC_EVIDENCE_FAILED`. |
 | `ref` | string | MUST | URI referencing the artifact. `file://<path>` for hash evidence (see §5); `inline:attestation` or implementation-defined for sig evidence (see §6). |
-| `sha256` | string | MUST when `type="hash"` | 64-character lowercase hex digest of the referenced file bytes. |
+| `sha256` | string | MUST when `type="hash"` | Exactly 64 ASCII characters of lowercase hexadecimal (`^[a-f0-9]{64}$`) denoting the SHA-256 digest of the referenced file bytes. See §4.1 for the full representation rule. |
 | `payload` | string | MUST when `type="sig"` | UTF-8 string carrying the bytes that were signed; in canonical-signing mode this string parses as a JSON attestation object (see §6.2). |
-| `signature` | string | MUST when `type="sig"` | Base64 (standard alphabet per [RFC 4648 §4](https://www.rfc-editor.org/rfc/rfc4648#section-4)) Ed25519 signature. URL-safe and unpadded variants are non-conformant per [`canonicalization.md §7.10`](canonicalization.md#710-base64-variant-pic-protocol-constraint-adjacent-to-canonicalization). |
+| `signature` | string | MUST when `type="sig"` | Standard RFC 4648 Base64 using the ASCII alphabet `A-Za-z0-9+/` with required `=` padding, encoding the Ed25519 signature bytes. See §4.1 for the full representation rule. |
 | `alg` | string | MUST when `type="sig"` | Signature algorithm identifier. v1 supports `"ed25519"` only. Implementations MUST reject unknown algorithms fail-closed. |
 | `key_id` | string | MUST when `type="sig"` | Key identifier resolved against the trusted keyring (see §9). |
 
@@ -129,6 +129,88 @@ Each entry is a JSON object with the following fields:
   }
 ]
 ```
+
+### 4.1 Representation of security-relevant strings (Normative)
+
+The `sha256` and `signature` fields carry security-relevant values
+that this specification validates as exact. Per
+[`spec-core.md §7.2`](spec-core.md#72-representation-vs-normalization-normative),
+implementations MUST NOT trim, case-fold, Unicode-normalize, alias,
+repair, re-pad, or otherwise transform these values before
+validating them.
+
+#### 4.1.1 SHA-256 digest (`sha256`)
+
+The `sha256` field represents a SHA-256 digest, but the PIC wire
+representation is lowercase hexadecimal only. Conformant values
+MUST be exactly 64 ASCII characters of lowercase hexadecimal and
+MUST satisfy the regular expression `^[a-f0-9]{64}$`. Uppercase or
+mixed-case hexadecimal strings are non-conformant **even when they
+denote the same underlying digest value**; the PIC wire
+representation is not hash-equivalence.
+
+The digest comparison is made against the SHA-256 digest of the
+referenced bytes exactly as supplied to the evidence verifier; PIC
+does not normalize text encodings, line endings, BOMs, or file
+contents before hashing.
+
+When a non-conformant value appears in an Action Proposal, the
+PIC/1.0 JSON Schema pattern rejects it at schema-validation time
+with `PIC_SCHEMA_INVALID`. A conforming proposal-verification
+pipeline MUST NOT defer this check to evidence verification.
+
+For standalone `PIC-Evidence` entry validation outside Action
+Proposal schema validation, implementations MUST reject
+non-conformant `sha256` values fail-closed with
+`PIC_EVIDENCE_FAILED`.
+
+Non-conformant forms include, but are not limited to:
+
+- uppercase or mixed-case hexadecimal (e.g., `"A2E8..."`,
+  `"a2E8..."`);
+- a `0x` or any other prefix;
+- fewer than 64 or more than 64 hex characters;
+- non-hex characters, including whitespace anywhere in the string;
+- leading, trailing, or internal whitespace of any kind.
+
+Implementations MUST NOT case-fold uppercase hex to lowercase, strip
+whitespace, or otherwise repair a non-conformant `sha256` value
+before computing or comparing digests.
+
+#### 4.1.2 Base64 signature (`signature`)
+
+The `signature` field carries a standard RFC 4648 Base64 encoding of
+the Ed25519 signature bytes. Conformant values MUST use only:
+
+- the standard ASCII Base64 alphabet — `A-Z`, `a-z`, `0-9`, `+`, `/`;
+- required `=` padding. For PIC/1.0 Ed25519 signatures, the decoded
+  signature is exactly 64 bytes and the encoded value is exactly 88
+  characters with exactly two trailing `=` padding characters.
+
+The following forms are non-conformant:
+
+- the URL-safe alphabet (`-` and `_` in place of `+` and `/`);
+- omitted or missing `=` padding;
+- extra `=` padding beyond RFC 4648's requirement;
+- whitespace characters anywhere in the encoded value, including
+  leading, trailing, or embedded newlines, carriage returns, tabs,
+  or spaces;
+- non-Base64 characters of any kind;
+- any decoded signature length other than exactly 64 bytes.
+
+When a non-conformant `signature` value appears in an Action
+Proposal, a schema layer MAY reject it with `PIC_SCHEMA_INVALID` if
+the active schema expresses the constraint. Otherwise, the evidence
+handler MUST reject it fail-closed with `PIC_EVIDENCE_FAILED` before
+signature verification.
+
+Implementations MUST NOT rewrite URL-safe characters back to the
+standard alphabet, restore missing padding, or strip embedded
+whitespace before decoding. Per
+[`spec-core.md §7.2`](spec-core.md#72-representation-vs-normalization-normative),
+the encoded form is validated as exact. See
+[`canonicalization.md §7.10`](canonicalization.md#710-base64-variant-pic-protocol-constraint-adjacent-to-canonicalization)
+for the canonicalization-adjacent origin of this constraint.
 
 ---
 
