@@ -1,0 +1,34 @@
+{
+  "id": "core-block-005-whitespace-tool-binding",
+  "description": "Proposal that would otherwise pass the verifier (trusted-money shape) is rejected with PIC_TOOL_BINDING_MISMATCH because options.expected_tool='payments_send ' (trailing space) does not match proposal.action.tool='payments_send' under exact string equality. Under v0.9.0a2 the reference verifier no longer applies .strip() in verify_with_context (Phase 2.2 removes MAINT-F1 normalization). Paired with core-allow-002-trusted-money, the only content-level difference across the two vectors is the presence of this options field carrying a whitespace-only delta against the proposal tool.",
+  "source": "PIC maintainer follow-up MAINT-F1: verify_with_context previously applied .strip() on both sides of the tool comparison, silently normalizing whitespace. Per docs/spec-core.md §7.2 (Representation vs. normalization) exact protocol values must be compared as represented on the wire; v0.9.0a2 removes the normalization in Phase 2.2.",
+  "mode": "core",
+  "expected": "block",
+  "expected_error_code": "PIC_TOOL_BINDING_MISMATCH",
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send $50 to vendor for invoice #1234",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approved_invoice",
+        "trust": "trusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Send $50 to vendor for invoice #1234",
+        "evidence": [
+          "approved_invoice"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {}
+    }
+  },
+  "options": {
+    "expected_tool": "payments_send "
+  }
+}

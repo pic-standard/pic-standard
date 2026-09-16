@@ -384,12 +384,11 @@ components:
       type: string
       description: |
         Stable error taxonomy for PIC protocol decisions.
-        v0.9.0a1 members only. `PIC_DUPLICATE_ID` is planned for
-        v0.9.0a2 and is intentionally not present here.
       enum:
         - PIC_INVALID_REQUEST
         - PIC_LIMIT_EXCEEDED
         - PIC_SCHEMA_INVALID
+        - PIC_DUPLICATE_ID
         - PIC_VERIFIER_FAILED
         - PIC_TOOL_BINDING_MISMATCH
         - PIC_EVIDENCE_REQUIRED

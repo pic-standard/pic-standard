@@ -31,6 +31,10 @@ class PICErrorCode(str, Enum):
     #: field, wrong type, unknown enum value, etc.).
     SCHEMA_INVALID = "PIC_SCHEMA_INVALID"
 
+    #: Proposal contains duplicate ``provenance[].id`` values after JSON
+    #: Schema validation and lone-surrogate rejection. See ``pipeline.py``.
+    DUPLICATE_ID = "PIC_DUPLICATE_ID"
+
     #: Semantic post-schema validation failed: ``ActionProposal`` pydantic
     #: rejection, ``verify_causal_contract`` violation, or a similar
     #: structural rule violation. See ``pipeline.py``.

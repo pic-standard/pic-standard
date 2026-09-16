@@ -169,3 +169,92 @@ def test_sig_evidence_blocks_large_payload(monkeypatch, tmp_path: Path):
     assert report.ok is False
     msgs = [r.message for r in report.results if r.id == "approval_123"]
     assert msgs and any("payload too large" in m.lower() for m in msgs)
+
+
+# ---------------------------------------------------------------------------
+# Base64 signature representation strictness (MAINT-F2 / HERMETICUM Phase 1)
+# ---------------------------------------------------------------------------
+#
+# Per docs/spec-evidence.md §4.1.2, the ``signature`` field is validated as
+# represented on the wire: standard RFC 4648 alphabet + required ``=``
+# padding, no whitespace anywhere, and the decoded payload MUST be exactly
+# 64 bytes for Ed25519. Under v0.9.0a2 the runtime rejects each of these
+# non-conformant forms fail-closed via ``_b64decode`` pre-checks (URL-safe
+# alphabet, padding modulo, embedded whitespace) and the caller-side
+# Ed25519 decoded-length check. These tests protect that boundary against
+# a regression that would restore lenient decoding.
+#
+# Corrupted signatures are hand-crafted rather than derived from a real
+# Ed25519 signing operation: ``_b64decode`` fails BEFORE any crypto runs,
+# so a real signature is not required. The keyring is still set up so
+# ``_resolve_public_key`` succeeds and the flow reaches
+# ``_verify_ed25519_signature``.
+
+
+def _keyring_only_setup(monkeypatch, tmp_path: Path) -> None:
+    """Register a valid Ed25519 pub key under 'demo_signer_v1'."""
+    _, pub_raw = _make_keypair()
+    keys_path = tmp_path / "pic_keys.json"
+    keys_path.write_text(
+        json.dumps({"trusted_keys": {"demo_signer_v1": _b64(pub_raw)}}, indent=2),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PIC_KEYS_PATH", str(keys_path))
+
+
+@pytest.mark.parametrize(
+    "corrupted_signature,marker",
+    [
+        pytest.param(
+            "A" * 43 + "-" + "A" * 42 + "==",
+            "url-safe",
+            id="url_safe_alphabet",
+        ),
+        pytest.param(
+            "A" * 86,
+            "padding",
+            id="unpadded",
+        ),
+        pytest.param(
+            "A" * 86 + "===",
+            "padding",
+            id="overpadded",
+        ),
+        pytest.param(
+            "A" * 40 + " " + "A" * 45 + "==",
+            "whitespace",
+            id="embedded_whitespace",
+        ),
+        pytest.param(
+            base64.b64encode(b"\x00" * 63).decode("ascii"),
+            "length",
+            id="wrong_decoded_length_63_bytes",
+        ),
+    ],
+)
+def test_signature_strictness_rejects_non_conformant_representation(
+    monkeypatch, tmp_path: Path, corrupted_signature: str, marker: str
+) -> None:
+    """Non-conformant signature representations fail-closed.
+
+    Each parameterized case exercises a distinct wire-representation
+    boundary from docs/spec-evidence.md §4.1.2 and the caller-side
+    Ed25519 decoded-length check. The stable diagnostic marker is
+    asserted as a substring, not the full message wording.
+    """
+    _keyring_only_setup(monkeypatch, tmp_path)
+    proposal = _proposal_with_sig(
+        payload="amount=500;currency=USD",
+        signature_b64=corrupted_signature,
+        key_id="demo_signer_v1",
+    )
+
+    report = EvidenceSystem().verify_all(proposal, base_dir=tmp_path)
+    assert report.ok is False
+    assert report.results, "expected at least one evidence result"
+    result = report.results[0]
+    assert result.id == "approval_123"
+    assert result.ok is False
+    assert marker in result.message.lower(), (
+        f"expected marker {marker!r} in evidence message, got: {result.message!r}"
+    )

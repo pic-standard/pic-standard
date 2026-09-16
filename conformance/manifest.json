@@ -62,6 +62,12 @@
       "expected": "canonical_reject"
     },
     {
+      "id": "canon-011-nfd-no-normalization",
+      "file": "canonicalization/011_nfd_no_normalization.json",
+      "mode": "canonicalization",
+      "expected": "canonical_match"
+    },
+    {
       "id": "core-allow-001-read-only",
       "file": "core/allow/001_read_only.json",
       "mode": "core",
@@ -83,6 +89,27 @@
     {
       "id": "core-block-002-tool-binding-mismatch",
       "file": "core/block/002_tool_binding_mismatch.json",
+      "mode": "core",
+      "expected": "block",
+      "expected_error_code": "PIC_TOOL_BINDING_MISMATCH"
+    },
+    {
+      "id": "core-block-003-uppercase-sha256-schema-reject",
+      "file": "core/block/003_uppercase_sha256_schema_reject.json",
+      "mode": "core",
+      "expected": "block",
+      "expected_error_code": "PIC_SCHEMA_INVALID"
+    },
+    {
+      "id": "core-block-004-duplicate-provenance-id",
+      "file": "core/block/004_duplicate_provenance_id.json",
+      "mode": "core",
+      "expected": "block",
+      "expected_error_code": "PIC_DUPLICATE_ID"
+    },
+    {
+      "id": "core-block-005-whitespace-tool-binding",
+      "file": "core/block/005_whitespace_tool_binding.json",
       "mode": "core",
       "expected": "block",
       "expected_error_code": "PIC_TOOL_BINDING_MISMATCH"
@@ -324,6 +351,54 @@
       "mode": "evidence",
       "expected": "block",
       "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-029-urlsafe-base64",
+      "file": "evidence/block/029_sig_urlsafe_base64.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-030-unpadded-base64",
+      "file": "evidence/block/030_sig_unpadded_base64.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-031-overpadded-base64",
+      "file": "evidence/block/031_sig_overpadded_base64.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-032-whitespace-in-base64",
+      "file": "evidence/block/032_sig_whitespace_in_base64.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-sig-block-033-wrong-decoded-length",
+      "file": "evidence/block/033_sig_wrong_decoded_length.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_EVIDENCE_FAILED"
+    },
+    {
+      "id": "evidence-block-034-orphaned-evidence-no-trust-upgrade",
+      "file": "evidence/block/034_orphaned_evidence_no_trust_upgrade.json",
+      "mode": "evidence",
+      "expected": "block",
+      "expected_error_code": "PIC_VERIFIER_FAILED"
+    },
+    {
+      "id": "evidence-allow-010-hash-raw-bytes-bom-crlf",
+      "file": "evidence/allow/010_hash_raw_bytes_bom_crlf.json",
+      "mode": "evidence",
+      "expected": "allow"
     },
     {
       "id": "trust-compute_risk-strict-f-verify-f",

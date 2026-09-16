@@ -1,0 +1,44 @@
+{
+  "id": "evidence-allow-010-hash-raw-bytes-bom-crlf",
+  "description": "Hash-evidence over an artifact whose exact bytes begin with the UTF-8 BOM (0xEF 0xBB 0xBF) and use CRLF line endings. The SHA-256 in the evidence entry is computed over the exact raw bytes on disk; the pipeline verifies the digest against those bytes verbatim, without stripping the BOM or normalizing CRLF to LF. The proposal is low-impact (read) so trust-upgrade semantics do not interfere; the load-bearing assertion is that hash verification treats the artifact bytes as opaque and does not re-encode line endings or strip byte-order marks. Corresponds to HERMETICUM Phase 2 case ADV-005. The artifact is protected from line-ending / text-normalization filters by a narrow .gitattributes rule ('conformance/artifacts/bom_crlf_payload.bin binary').",
+  "source": "PIC-maintained adaptation of HERMETICUM Phase 2 case ADV-005. Methodology attribution: HERMETICUM B.C.E. S.r.l., Independent Protocol Stress Test methodology, Manuel Coletta, Founder. Original HERMETICUM sealed artifacts are not redistributed. Full provenance table: docs/independent-reviews/hermeticum-v0.8.3.md.",
+  "mode": "evidence",
+  "expected": "allow",
+  "options": {
+    "verify_evidence": true,
+    "evidence_root_dir": "conformance/artifacts",
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Read a document whose bytes contain a BOM and CRLF line endings",
+    "impact": "read",
+    "provenance": [
+      {
+        "id": "bom_crlf_payload",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Document bytes match the recorded digest",
+        "evidence": [
+          "bom_crlf_payload"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "docs_search",
+      "args": {}
+    },
+    "evidence": [
+      {
+        "id": "bom_crlf_payload",
+        "type": "hash",
+        "ref": "file://bom_crlf_payload.bin",
+        "sha256": "4840e67fafc3f5d27cd4c1a2b136b9c7073b9b533eb90219880322b725397403"
+      }
+    ]
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "id": "canon-011-nfd-no-normalization",
+  "description": "Object key 'caf' + U+0065 (LATIN SMALL LETTER E) + U+0301 (COMBINING ACUTE ACCENT) is a five-code-point NFD form of the visually identical four-code-point NFC 'caf\u00e9'. The canonicalizer MUST NOT Unicode-normalize security-relevant string content per docs/spec-core.md \u00a77.2 (Representation vs. normalization) and docs/canonicalization.md \u00a77 (no normalization beyond the RFC 8785 profile PIC uses). The expected canonical output preserves the NFD byte sequence (UTF-8: 0xCC 0x81 for U+0301). The regression pinned here: an implementation that normalized inputs to NFC before canonicalization would produce 0xC3 0xA9 for U+00E9 instead, yielding a different byte string and a different SHA-256. The NFD key is written in the vector as the ASCII-safe JSON escape '\\u0301' so no editor or filesystem filter can silently reconstitute the precomposed form.",
+  "source": "PIC-maintained adaptation of HERMETICUM Phase 2 case ADV-007. Methodology attribution: HERMETICUM B.C.E. S.r.l., Independent Protocol Stress Test methodology, Manuel Coletta, Founder. Original HERMETICUM sealed artifacts are not redistributed. Full provenance table: docs/independent-reviews/hermeticum-v0.8.3.md.",
+  "input": {
+    "cafe\u0301": 1
+  },
+  "expected_canonical_bytes_hex": "7b2263616665cc81223a317d",
+  "expected_sha256_hex": "26a86d452316c9c5fbd357205471fe96854efae9c460b0497c3b512f66172d60"
+}

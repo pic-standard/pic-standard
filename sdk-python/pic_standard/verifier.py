@@ -76,16 +76,16 @@ class ActionProposal(BaseModel):
         if expected_tool is None:
             return
 
-        exp = expected_tool.strip()
+        exp = expected_tool
         if not exp:
             return
 
         tool = self.action.get("tool")
-        if not isinstance(tool, str) or not tool.strip():
+        if not isinstance(tool, str) or not tool:
             raise ValueError("Contract Violation: proposal.action.tool must be a non-empty string")
 
-        if tool.strip() != exp:
+        if tool != exp:
             raise ValueError(
-                f"Contract Violation: Tool binding mismatch (proposal.action.tool='{tool.strip()}' "
-                f"but actual tool='{exp}')."
+                f"Contract Violation: Tool binding mismatch (proposal.action.tool={tool!r} "
+                f"but actual tool={exp!r})."
             )

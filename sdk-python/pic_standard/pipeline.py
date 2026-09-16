@@ -161,6 +161,39 @@ def _reject_lone_surrogates_in_proposal(proposal: Dict[str, Any]) -> None:
     _walk(proposal)
 
 
+def _reject_duplicate_provenance_ids(proposal: Dict[str, Any]) -> None:
+    """Reject proposals containing duplicate ``provenance[].id`` values.
+
+    Per docs/spec-core.md §6.1, ``provenance[].id`` values MUST be
+    unique within a single proposal — duplicate IDs poison the causal-
+    taint interpretation and the evidence lineage. This check runs
+    after JSON Schema validation and lone-surrogate rejection (so
+    ``id`` values are already well-formed strings) but before impact
+    resolution, tool binding, evidence verification, and causal-taint
+    evaluation. Comparison is exact per docs/spec-core.md §7.2:
+    implementations MUST NOT trim, case-fold, Unicode-normalize, or
+    otherwise transform IDs before comparing them. Detection is
+    deterministic in array order — the first duplicate encountered is
+    reported. Raises PICError(DUPLICATE_ID) on the first duplicate.
+    """
+    prov = proposal.get("provenance")
+    if not isinstance(prov, list):
+        return
+    seen: set[str] = set()
+    for entry in prov:
+        if not isinstance(entry, dict):
+            continue
+        id_ = entry.get("id")
+        if not isinstance(id_, str):
+            continue
+        if id_ in seen:
+            raise PICError(
+                code=PICErrorCode.DUPLICATE_ID,
+                message=f"Duplicate provenance id: {id_!r}",
+            )
+        seen.add(id_)
+
+
 # ------------------------------------------------------------------
 # Pipeline input / output types
 # ------------------------------------------------------------------
@@ -477,6 +510,21 @@ def verify_proposal(
         # so this is enforced here as an extension of step 2.
         try:
             _reject_lone_surrogates_in_proposal(proposal)
+        except PICError as e:
+            return _fail(e)
+
+        # 2c. Duplicate provenance-ID rejection.
+        # Per docs/spec-core.md §6.1, provenance[].id values MUST be
+        # unique within a proposal. Duplicate IDs poison the causal-
+        # taint interpretation and the evidence lineage, so this check
+        # runs after JSON Schema validation and lone-surrogate
+        # rejection but BEFORE impact resolution, tool binding,
+        # evidence verification, and causal-taint evaluation. Exact
+        # comparison per docs/spec-core.md §7.2: implementations MUST
+        # NOT trim, case-fold, or Unicode-normalize IDs before
+        # comparing them.
+        try:
+            _reject_duplicate_provenance_ids(proposal)
         except PICError as e:
             return _fail(e)
 

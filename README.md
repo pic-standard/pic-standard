@@ -153,7 +153,7 @@ PIC's pre-execution surface can contribute to Article 12-style traceability on t
 
 ## Evidence Verification
 
-PIC supports deterministic evidence verification that upgrades provenance trust in-memory.
+PIC supports deterministic evidence verification. Authority-bearing signature evidence, verified against the configured keyring, can upgrade matching `provenance[].trust` in-memory. Hash evidence establishes content integrity for referenced bytes only and does not, by itself, upgrade trust. See `docs/spec-evidence.md` section 8.
 
 | Type | Description |
 |------|-------------|
@@ -193,7 +193,7 @@ pic-cli keys --write-example        # Generate starter keyring
 from pic_standard import KeyResolver, StaticKeyRingResolver
 ```
 
-**Trust controls (v0.7.5+):** PIC v0.7.5 introduces `strict_trust` mode — when enabled, all inbound provenance trust is sanitized to "untrusted" and only evidence verification can upgrade it. See [docs/migration-trust-sanitization.md](docs/migration-trust-sanitization.md) for migration guide.
+**Trust controls (v0.7.5+):** PIC v0.7.5 introduces `strict_trust` mode — when enabled, all inbound provenance trust is sanitized to "untrusted" and only authority-bearing evidence verification, currently signature evidence, can upgrade it. See [docs/migration-trust-sanitization.md](docs/migration-trust-sanitization.md) for migration guide.
 
 Full guide: [docs/keyring.md](docs/keyring.md)
 

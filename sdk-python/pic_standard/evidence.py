@@ -155,27 +155,24 @@ def _read_sandboxed_file(
     return p.read_bytes()
 
 
-def _b64decode(s: str, *, what: str, strict: bool = False) -> bytes:
-    """Accept standard or urlsafe base64, with/without padding.
+def _b64decode(s: str, *, what: str) -> bytes:
+    """Decode standard RFC 4648 Base64 fail-closed.
 
-    When ``strict=True`` (Phase 1 canonicalization), require standard
-    RFC 4648 base64 alphabet with correct padding — no lenient fixups.
+    Per docs/spec-evidence.md §4.1.2, the encoded value is validated
+    as represented on the wire: implementations MUST NOT rewrite
+    URL-safe characters (``-``/``_``) to the standard alphabet, restore
+    missing padding, or strip whitespace before decoding. All of
+    those forms are non-conformant and rejected. Pre-checks raise
+    specific ValueErrors so operator diagnostics carry the reason.
     """
+    if len(s) % 4 != 0:
+        raise ValueError(f"Invalid base64 for {what}: missing/invalid padding")
+    if any(ch.isspace() for ch in s):
+        raise ValueError(f"Invalid base64 for {what}: whitespace not allowed")
+    if "-" in s or "_" in s:
+        raise ValueError(f"Invalid base64 for {what}: URL-safe base64 alphabet not allowed")
     try:
-        if strict:
-            raw = s.strip()
-            if raw != s:
-                raise ValueError(
-                    f"Invalid base64 for {what}: leading/trailing whitespace not allowed"
-                )
-            if "-" in raw or "_" in raw:
-                raise ValueError(f"Invalid base64 for {what}: URL-safe base64 alphabet not allowed")
-            if len(raw) % 4 != 0:
-                raise ValueError(f"Invalid base64 for {what}: missing/invalid padding")
-            return base64.b64decode(raw, validate=True)
-        raw = s.strip().replace("-", "+").replace("_", "/")
-        pad = "=" * ((4 - len(raw) % 4) % 4)
-        return base64.b64decode(raw + pad, validate=True)
+        return base64.b64decode(s, validate=True)
     except Exception as e:
         raise ValueError(f"Invalid base64 for {what}") from e
 
@@ -625,9 +622,9 @@ class EvidenceSystem:
                     if not self.allow_file_evidence:
                         raise ValueError("file evidence is disabled by policy")
 
-                    expected = (ev.sha256 or "").strip().lower()
-                    if len(expected) != 64:
-                        raise ValueError("Invalid sha256 (expected 64 hex chars)")
+                    expected = ev.sha256 or ""
+                    if not _DIGEST_HEX_RE.match(expected):
+                        raise ValueError("Invalid sha256 (expected 64 lowercase hex chars)")
 
                     data = _read_sandboxed_file(
                         ev.ref,
@@ -635,7 +632,7 @@ class EvidenceSystem:
                         evidence_root_dir=root_dir,
                         max_file_bytes=self.max_file_bytes,
                     )
-                    actual = _compute_sha256(data).lower()
+                    actual = _compute_sha256(data)
 
                     if actual != expected:
                         results.append(

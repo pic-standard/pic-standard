@@ -1,3 +1,9 @@
 # Conformance artifacts may be referenced by SHA-256 in portable vectors.
 # Keep text artifact checkout bytes stable across platforms.
 conformance/artifacts/*.txt text eol=lf
+
+# BOM/CRLF payload for the ADV-005 raw-byte hash evidence vector.
+# MUST NOT be text-normalized on checkout: the SHA-256 in the
+# corresponding conformance vector is computed over the exact bytes
+# on disk.
+conformance/artifacts/bom_crlf_payload.bin binary
