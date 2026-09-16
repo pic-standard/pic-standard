@@ -106,6 +106,7 @@ def _http_post(url: str, body: Dict[str, Any]) -> Dict[str, Any]:
 
 # --- Demo scenarios ----------------------------------------------------------
 
+
 def run_demo(base_url: str) -> None:
     print("\n" + "=" * 60)
     print("  PIC HTTP Bridge Demo")
@@ -149,6 +150,7 @@ def run_demo(base_url: str) -> None:
 
 
 # --- Main --------------------------------------------------------------------
+
 
 def main() -> None:
     log.info("Policy: payments_send -> money (high-impact)")

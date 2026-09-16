@@ -9,7 +9,6 @@ if str(SDK_DIR) not in sys.path:
 
 from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
-
 from pic_standard.integrations import PICToolNode
 
 
@@ -65,7 +64,10 @@ def main():
                     tool_calls=[
                         {
                             "name": "payments_send",
-                            "args": {"amount": 500, "__pic": make_money_proposal(trust="untrusted")},
+                            "args": {
+                                "amount": 500,
+                                "__pic": make_money_proposal(trust="untrusted"),
+                            },
                             "id": "1",
                         }
                     ],
@@ -107,4 +109,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
