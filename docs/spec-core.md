@@ -1,7 +1,7 @@
 # PIC Core Verifier Semantics — DRAFT
 
-> **Status:** DRAFT — v0.8.2 snapshot of PIC/1.0 core verifier
-> semantics. Not final-normative until PIC v1.0.
+> **Status:** DRAFT — PIC/1.0 core verifier semantics.
+> Not final-normative until PIC v1.0.
 > Published for community feedback per ROADMAP §1.3.
 >
 > **What this DRAFT does:** restates the normative core verifier
@@ -16,7 +16,7 @@
 >
 > **What is still open:** see Appendix C ("Open Questions Registry")
 > for IDed open questions tracked through DRAFT → final cleanup. DRAFT
-> text uses proposed normative language to preview intended Phase 1.3
+> text uses proposed normative language to preview intended PIC/1.0
 > semantics; these requirements are not binding until the specification
 > is formally adopted.
 >
@@ -52,8 +52,8 @@ do not impose conformance requirements.
 This specification cites
 [`RFC-0001 §Conformance Levels`](RFC-0001-pic-standard.md#conformance-levels)
 as the historical anchor and decouples it into three named profiles
-that an implementation MUST self-declare. The two profiles defined
-by this specification family are:
+that an implementation MUST self-declare. The profiles defined by
+this specification family are:
 
 - **`PIC-Core`** — Action Proposal parsing, impact taxonomy, trust
   sanitization, tool binding, verifier outcomes. Passes
@@ -71,9 +71,10 @@ implementation MUST NOT claim `PIC-Full` unless it satisfies both
 
 A conformance claim MUST identify both the profile name and the
 specification snapshot/version being claimed, for example
-`PIC-Core / v0.8.2 DRAFT`, `PIC-Evidence / v0.8.2 DRAFT`, or
-`PIC-Full / v1.0` once PIC v1.0 is finalized. A claim to a DRAFT
-profile MUST NOT be represented as final PIC v1.0 conformance.
+`PIC-Core / DRAFT at tag v0.9.0-alpha.2`,
+`PIC-Evidence / DRAFT at tag v0.9.0-alpha.2`, or `PIC-Full / v1.0`
+once PIC v1.0 is finalized. A claim to a DRAFT profile MUST NOT be
+represented as final PIC v1.0 conformance.
 
 `PIC-Core` MAY be deployed independently of a standalone
 `PIC-Evidence` implementation. However, this repository's
@@ -88,9 +89,9 @@ the implementation also claims `PIC-Evidence`.
 
 A `PIC-Core` implementation that does not implement `PIC-Evidence`
 MUST NOT mark evidence entries as verified and MUST NOT perform
-evidence-driven trust upgrade itself unless it implements the
-relevant `PIC-Evidence` rules or delegates to a component that
-does.
+authority-bearing evidence-driven trust upgrade itself unless it
+implements the relevant `PIC-Evidence` rules or delegates to a
+component that does.
 
 ---
 
@@ -136,10 +137,12 @@ schema-validation failure MUST result in the action being blocked
 with `PIC_SCHEMA_INVALID` (see §9).
 
 This specification does NOT redefine the wire-format field set; it
-restates the validation discipline in BCP 14 language. The
-authoritative wire format is the JSON Schema artifact whose SHA-256
-fingerprint is anchored in
-[`RFC-0001 §Spec Fingerprint`](RFC-0001-pic-standard.md#spec-fingerprint).
+restates the validation discipline in BCP 14 language. For any
+release snapshot, the authoritative wire format is the
+`proposal_schema.json` artifact at that release tag. Historical
+fingerprints in RFC-0001 anchor earlier snapshots; they do not
+silently override versioned schema changes made in later release
+tags.
 
 ---
 
@@ -175,7 +178,7 @@ is:
 
 Where "Tainted" data is data originating from `untrusted` provenance,
 and "Untrusted" is the trust level on provenance entries before any
-evidence-driven trust upgrade (§6.2).
+authority-bearing evidence-driven trust upgrade (§6.2).
 
 Normatively, for any Action Proposal whose `impact` is in
 `{money, privacy, irreversible}`:
@@ -186,9 +189,10 @@ Normatively, for any Action Proposal whose `impact` is in
 - if no such causal chain exists, the verifier MUST reject the
   proposal with `PIC_VERIFIER_FAILED` (see §9).
 
-When a matching `evidence[].id` is successfully verified by
-`PIC-Evidence`, it MAY upgrade the corresponding `provenance[].id`
-to effective `trusted` status for the current verification only
+When a matching authority-bearing `evidence[].id` is successfully
+verified and is permitted by `PIC-Evidence` trust-upgrade rules, it
+MAY upgrade the corresponding `provenance[].id` to effective
+`trusted` status for the current verification only
 (see [`spec-evidence.md §8`](spec-evidence.md#8-trust-upgrade-rules)).
 
 The causal-taint check is an ID-binding and trust-level check. It
@@ -223,6 +227,17 @@ Each `provenance[]` entry is an object with:
 - `source` (string, OPTIONAL) — human-readable origin descriptor;
   Informative.
 
+**Uniqueness (Normative).** The `provenance[].id` values in a single
+proposal MUST be unique. Duplicate IDs make trust-upgrade binding,
+evidence resolution, and causal-taint interpretation ambiguous.
+Uniqueness is evaluated over the parsed JSON string values exactly
+as provided after JSON parsing and after the lone-surrogate
+rejection required by PIC-CJSON/1.0. Implementations MUST NOT trim,
+case-fold, Unicode-normalize, alias, or otherwise transform
+`provenance[].id` values before comparing them for uniqueness. On
+duplicate IDs, the verifier MUST reject the proposal with
+`PIC_DUPLICATE_ID` (see §9.1).
+
 ### 6.2 ID binding for trust upgrade
 
 Per [`RFC-0001 §ID Binding Convention`](RFC-0001-pic-standard.md#id-binding-convention),
@@ -234,14 +249,15 @@ evidence IDs SHOULD be stable identifiers reused across `provenance`,
 2. `claims[].evidence[]` references provenance IDs supporting the
    claim.
 3. `evidence[].id` matches a provenance ID; successful verification
-   ([`spec-evidence.md §5`](spec-evidence.md#5-hash-evidence-verification)
-   or [§6](spec-evidence.md#6-signature-evidence-verification))
+   of authority-bearing evidence permitted by
+   [`spec-evidence.md §8`](spec-evidence.md#8-trust-upgrade-rules)
    upgrades that provenance entry's effective trust (§6.4) to
    `trusted` for the duration of the current verification.
 
 Implementations MUST apply the trust upgrade BEFORE the causal-taint
-check (§5.2) so that successful evidence verification can bridge an
-otherwise untrusted provenance into satisfying the gating rule.
+check (§5.2) so that successful authority-bearing evidence
+verification can bridge an otherwise untrusted provenance into
+satisfying the gating rule.
 
 ### 6.3 Trust as output, not input
 
@@ -249,22 +265,23 @@ Per [`RFC-0001 §Security Properties #5`](RFC-0001-pic-standard.md#security-prop
 trust is an *output* of cryptographic verification, not an *input*
 assumption. Under `strict_trust=True` (§10), self-asserted
 `trust="trusted"` on inbound provenance is sanitized to `untrusted`
-before any verifier rule runs; only successful evidence verification
-can subsequently upgrade it back to `trusted`.
+before any verifier rule runs; only successful authority-bearing
+evidence verification permitted by `PIC-Evidence` trust-upgrade
+rules can subsequently upgrade it back to `trusted`.
 
 ### 6.4 Effective trust
 
-"Effective trust" is the trust value used by the verifier after all
-applicable normalization, sanitization, and evidence-driven upgrades
-for the current proposal verification.
+"Effective trust" is the trust value used by the verifier after
+schema validation, trust sanitization, and authority-bearing
+evidence-driven trust upgrades for the current proposal verification.
 
 Effective trust is computed in this order:
 
-1. parse and normalize provenance trust values according to the
-   active schema and migration rules;
+1. parse and validate provenance trust values according to the
+   active schema;
 2. apply trust sanitization when `strict_trust=True` (§10);
-3. apply successful evidence-driven trust upgrades from
-   `PIC-Evidence` (§6.2 and
+3. apply successful authority-bearing evidence-driven trust upgrades
+   permitted by `PIC-Evidence` (§6.2 and
    [`spec-evidence.md §8`](spec-evidence.md#8-trust-upgrade-rules)).
 
 Effective trust is scoped to the current verification only. It MUST
@@ -279,13 +296,16 @@ Per [`RFC-0001 §Security Properties #3`](RFC-0001-pic-standard.md#security-prop
 the proposal's declared `action.tool` MUST match the actual tool
 being invoked at the dispatch site. The verifier API surfaces this
 via an `expected_tool` option (or equivalent integration-level
-binding):
+binding).
+
+### 7.1 Exact string equality
 
 - when the verifier is called with an `expected_tool` value, it
   MUST compare `expected_tool` against `proposal.action.tool` using
   exact string equality after JSON parsing. Implementations MUST NOT
-  apply case-folding, Unicode normalization, alias expansion, prefix
-  matching, or tool-name rewriting when enforcing tool binding.
+  apply whitespace trimming, whitespace repair, case-folding,
+  Unicode normalization, alias expansion, prefix matching, or
+  tool-name rewriting when enforcing tool binding.
 - on mismatch, the verifier MUST reject the proposal with
   `PIC_TOOL_BINDING_MISMATCH` (see §9);
 - when no `expected_tool` is configured, tool-binding integrity is
@@ -298,6 +318,27 @@ e.g., a proposal declaring `action.tool="docs_search"` being used
 to dispatch `payments_send`. Without this check, an attacker could
 craft a low-impact proposal and reuse it to authorize a high-impact
 call.
+
+### 7.2 Representation vs. normalization (Normative)
+
+Unless a PIC specification section explicitly defines normalization,
+implementations MUST NOT trim, case-fold, Unicode-normalize, alias,
+repair, re-pad, or otherwise transform security-relevant protocol
+values before validating requirements defined as exact.
+
+This rule applies at least to `provenance[].id` (§6.1),
+`expected_tool`, `proposal.action.tool` (§7.1), SHA-256 digest
+strings ([`spec-evidence.md §4`](spec-evidence.md#4-evidence-object-format)),
+and Base64-encoded signature strings
+([`spec-evidence.md §4`](spec-evidence.md#4-evidence-object-format)).
+Future spec fields defined as exact values inherit the principle
+unless they explicitly declare their own normalization.
+
+The rule does NOT prohibit normalization that a PIC specification
+section explicitly defines — most notably, PIC Canonical JSON v1
+([`canonicalization.md`](canonicalization.md)) is a defined
+transformation applied to specific inputs at specific points in
+verification.
 
 ---
 
@@ -316,21 +357,32 @@ Required invariants:
 - **Schema validation** (§4). Implementations MUST validate every
   Action Proposal against the PIC/1.0 JSON Schema and reject schema
   failures with `PIC_SCHEMA_INVALID`.
+- **Duplicate provenance-ID rejection** (§6.1). After JSON Schema
+  validation, implementations MUST reject any proposal containing
+  duplicate `provenance[].id` values with `PIC_DUPLICATE_ID`.
+- **Tool-binding check** (§7), when `expected_tool` is configured.
+  Mismatch MUST be rejected with `PIC_TOOL_BINDING_MISMATCH`.
 - **Trust sanitization** (§10), when `strict_trust=True`.
-- **Evidence-driven trust upgrade**, delegated to `PIC-Evidence`
-  (per [`spec-evidence.md §8`](spec-evidence.md#8-trust-upgrade-rules))
+- **Authority-bearing evidence-driven trust upgrade**, delegated to
+  `PIC-Evidence` (per
+  [`spec-evidence.md §8`](spec-evidence.md#8-trust-upgrade-rules))
   when applicable per policy and the proposal's evidence array.
 - **Causal-taint check** (§5.2). High-impact proposals lacking a
   trusted-evidence causal chain MUST be rejected with
   `PIC_VERIFIER_FAILED`.
-- **Tool-binding check** (§7), when `expected_tool` is configured.
-  Mismatch MUST be rejected with `PIC_TOOL_BINDING_MISMATCH`.
 
 Order constraints that are security-relevant and MUST be honored:
 
-- Trust sanitization MUST run before evidence-driven trust upgrade.
-- Evidence-driven trust upgrade MUST run before the causal-taint
-  check.
+- Duplicate-ID detection MUST run after JSON Schema validation and
+  before tool-binding, authority-bearing evidence-driven trust
+  upgrade, or causal-taint evaluation.
+- When `expected_tool` is configured, tool-binding MUST be checked
+  before evidence verification or causal-taint evaluation for
+  purposes of error-code precedence (§9.2).
+- Trust sanitization MUST run before authority-bearing
+  evidence-driven trust upgrade.
+- Authority-bearing evidence-driven trust upgrade MUST run before
+  the causal-taint check.
 - Tool-binding MUST be checked before dispatching the actual tool.
 
 Any check's failure produces a fail-closed outcome
@@ -349,18 +401,19 @@ security-relevant ordering constraints are preserved.
 
 ### 9.1 Error Code Stability
 
-The error code identifiers defined in
-`sdk-python/pic_standard/errors.py` (and mirrored in
-`integrations/openclaw/lib/types.ts`) are the **portable error-code
-namespace** for PIC implementations. When a conforming implementation
-reports a failure covered by one of the semantics below, it MUST
-emit the corresponding identifier and MUST NOT substitute
-implementation-local or message-text-only identifiers. Reserved
-identifiers are listed for compatibility but are not required to be
-emitted unless their stated semantics are implemented.
+The error code identifiers defined by this specification family are
+the **portable error-code namespace** for PIC implementations.
+Reference implementations and integration mirrors, including
+`sdk-python/pic_standard/errors.py` and
+`integrations/openclaw/lib/types.ts`, MUST mirror the applicable
+stable codes for the release snapshot they implement. When a
+conforming implementation reports a failure covered by one of the
+semantics below, it MUST emit the corresponding identifier and MUST
+NOT substitute implementation-local or message-text-only identifiers.
+Reserved identifiers are listed for compatibility but are not
+required to be emitted unless their stated semantics are implemented.
 
-Codes relevant to this specification, with verified emission
-semantics from the v0.8.2 reference implementation:
+Codes relevant to this specification snapshot:
 
 - `PIC_SCHEMA_INVALID` — PIC/1.0 JSON Schema validation failure on
   the proposal envelope. Emitted by the schema-validation invariant
@@ -371,18 +424,41 @@ semantics from the v0.8.2 reference implementation:
   implementations MUST reach this code at the same boundary
   regardless of validator library (`jsonschema` in Python, Ajv in
   TypeScript, `jsonschema` in Rust, etc.).
-- `PIC_VERIFIER_FAILED` — Action Proposal structural/model-construction
-  failure after schema validation OR causal-rule rejection
-  (high-impact action lacks the required trusted-evidence causal
-  chain; under `strict_trust=True`, self-asserted trusted provenance
-  sanitized to untrusted causes a high-impact proposal to fail this
-  rule). Single emission site in the reference implementation;
-  broad scope.
+- `PIC_DUPLICATE_ID` — a proposal carries two or more
+  `provenance[].id` values that are equal within the same proposal.
+  This is a post-schema semantic validation error: JSON Schema
+  validation may pass even when duplicate `provenance[].id` values
+  are present, because the schema dialect used by
+  `proposal_schema.json` does not express this constraint portably.
+  Conforming implementations MUST emit `PIC_DUPLICATE_ID` after JSON
+  Schema validation and before tool-binding, evidence, or
+  causal-contract evaluation, because duplicate IDs poison the
+  causal interpretation of the provenance array (§6.1). Uniqueness
+  comparison follows the representation rule in §7.2 — no trimming,
+  case-folding, Unicode normalization, or aliasing.
+- `PIC_TOOL_BINDING_MISMATCH` — declared `action.tool` does not
+  match the `expected_tool` configured at the verification call
+  site. Emitted by the tool-binding invariant in §8.
+- `PIC_EVIDENCE_REQUIRED` / `PIC_EVIDENCE_FAILED` — evidence-layer
+  rejection codes defined normatively in
+  [`spec-evidence.md`](spec-evidence.md). They participate in the
+  core precedence order only after schema validation, duplicate-ID
+  detection, and tool binding have passed (§9.2).
+- `PIC_VERIFIER_FAILED` — fallback semantic verifier rejection after
+  schema validation for PIC contract violations not covered by a more
+  specific stable error code. This includes causal-rule rejection
+  where a high-impact action lacks the required trusted-evidence
+  causal chain. Under `strict_trust=True`, self-asserted trusted
+  provenance sanitized to untrusted can cause a high-impact proposal
+  to fail this rule.
 
-  **Semantic boundary vs `PIC_SCHEMA_INVALID` (Normative):**
+  **Semantic boundary vs specific error codes (Normative):**
 
   - If a failure could be expressed as a JSON Schema constraint on
     `proposal_schema.json`, it MUST emit `PIC_SCHEMA_INVALID`.
+  - If a post-schema semantic failure has a more specific stable
+    PIC error code, the implementation MUST emit that specific code
+    according to §9.2.
   - Otherwise, if it is a semantic PIC contract violation, it MUST
     emit `PIC_VERIFIER_FAILED`.
 
@@ -392,9 +468,6 @@ semantics from the v0.8.2 reference implementation:
   "pydantic model-construction" phrasing in this DRAFT was
   descriptive of the Python reference and is not normative.
 
-- `PIC_TOOL_BINDING_MISMATCH` — declared `action.tool` does not
-  match the `expected_tool` configured at the verification call
-  site. Emitted by the tool-binding invariant in §8.
 - `PIC_INVALID_REQUEST` — request shape malformed before
   verification can begin. Emitted by guard/bridge layers (MCP guard,
   HTTP bridge) when the request envelope itself is invalid (missing
@@ -435,18 +508,39 @@ conforming implementations MUST emit codes in the following
 precedence order (highest first):
 
 1. `PIC_SCHEMA_INVALID`
-2. `PIC_TOOL_BINDING_MISMATCH`
-3. `PIC_EVIDENCE_REQUIRED` / `PIC_EVIDENCE_FAILED`
+2. `PIC_DUPLICATE_ID`
+3. `PIC_TOOL_BINDING_MISMATCH`
+4. `PIC_EVIDENCE_REQUIRED` / `PIC_EVIDENCE_FAILED`
    (see [`spec-evidence.md`](spec-evidence.md) for the boundary
    between these two evidence-layer codes)
-4. `PIC_VERIFIER_FAILED`
+5. `PIC_VERIFIER_FAILED`
 
 Rationale: schema validation is the earliest and most objective
-gate; tool binding is a contract-level identity check that should
-be evaluated before evidence verification or causal-contract
-evaluation; the evidence-layer codes gate on the resolved impact
-and evidence surface; `PIC_VERIFIER_FAILED` is the semantic
-catch-all for post-schema PIC contract violations.
+gate; duplicate-ID detection is next because uniqueness cannot be
+expressed as a JSON Schema constraint on `proposal_schema.json` but
+poisons every subsequent evaluation that binds against
+`provenance[].id`; tool binding is a contract-level identity check
+that should be evaluated before evidence verification or
+causal-contract evaluation; the evidence-layer codes gate on the
+resolved impact and evidence surface; `PIC_VERIFIER_FAILED` is the
+semantic catch-all for post-schema PIC contract violations.
+
+**Worked examples (Informative).**
+
+- Schema violation (e.g., uppercase SHA-256 hex) + duplicate ID →
+  `PIC_SCHEMA_INVALID`. The schema-layer failure fires first; the
+  duplicate-ID check does not need to run.
+- Valid schema + duplicate ID + tool-binding mismatch →
+  `PIC_DUPLICATE_ID`. The proposal parsed and validated, but
+  ambiguous provenance IDs are surfaced before tool binding.
+- Valid schema + unique IDs + tool-binding mismatch →
+  `PIC_TOOL_BINDING_MISMATCH`. The tool-binding invariant is the
+  highest-precedence remaining failure.
+- Valid schema + unique IDs + valid tool binding + missing required
+  evidence → `PIC_EVIDENCE_REQUIRED`.
+- Valid schema + unique IDs + valid tool binding + evidence
+  verification passes + causal-taint rule rejects the high-impact
+  action → `PIC_VERIFIER_FAILED`.
 
 `PIC_LIMIT_EXCEEDED`, `PIC_INVALID_REQUEST`, `PIC_INTERNAL_ERROR`,
 and `PIC_POLICY_VIOLATION` are outside this core
@@ -458,7 +552,8 @@ evaluation time budget. `PIC_INTERNAL_ERROR` is a defensive
 catch-all; `PIC_POLICY_VIOLATION` is reserved for downstream
 adapters.
 
-This precedence resolves `OQ-CORE-001` (see Appendix C).
+This precedence resolves `OQ-CORE-001` (see Appendix C); the
+`PIC_DUPLICATE_ID` position is added in v0.9.0a2 (§9.1).
 
 ---
 
@@ -480,14 +575,15 @@ This axiom is enforced behaviorally via the `strict_trust` option:
 - when `strict_trust=False` (legacy, current default), the verifier
   accepts inbound `provenance[].trust` values at face value. An
   implementation SHOULD surface an operator-visible migration signal
-  when self-asserted `trust="trusted"` is present and effective
-  evidence verification will not run for the proposal. The Python
-  reference implementation emits `PICTrustFutureWarning`; warning
-  class names are implementation-specific and Informative.
+  when self-asserted `trust="trusted"` is present and authority-bearing
+  evidence verification will not derive effective trust for the
+  proposal. The Python reference implementation emits
+  `PICTrustFutureWarning`; warning class names are
+  implementation-specific and Informative.
 - when `strict_trust=True`, the verifier sanitizes all inbound
   `provenance[].trust` values from `"trusted"` to `"untrusted"`
-  before evidence-driven trust upgrade and before the causal-taint
-  check.
+  before authority-bearing evidence-driven trust upgrade and before
+  the causal-taint check.
 
 ### 10.2 Sanitization mechanics
 
@@ -496,10 +592,10 @@ Under `strict_trust=True`, implementations MUST:
 1. iterate the `provenance` array;
 2. for each entry whose `trust` value is `"trusted"`, replace the
    in-memory value with `"untrusted"`;
-3. apply the sanitization BEFORE evidence-driven trust upgrade
-   (§6.2), so that evidence verification is the only mechanism by
-   which a provenance entry can reach effective `"trusted"` status
-   (§6.4).
+3. apply the sanitization BEFORE authority-bearing evidence-driven
+   trust upgrade (§6.2), so that only evidence permitted by
+   `PIC-Evidence` trust-upgrade rules can cause a provenance entry
+   to reach effective `"trusted"` status (§6.4).
 
 Sanitization is in-memory and applies only to the current
 verification; the on-the-wire proposal is not modified.
@@ -611,25 +707,27 @@ This document is DRAFT until PIC v1.0. Where its requirements
 interact with the frozen normative artifacts of PIC/1.0, the
 following precedence applies:
 
-1. [`RFC-0001-pic-standard.md`](RFC-0001-pic-standard.md) — defensive
-   publication anchor, frozen for v0.1.0–v0.5.5. Wire-format and
-   security-property requirements that originate in RFC-0001 are
-   authoritative; this DRAFT restates them in BCP 14 form but does
-   NOT override them.
-2. [`canonicalization.md`](canonicalization.md) — PIC-CJSON/1.0,
-   frozen as of v0.8.0. Byte-level serialization rules originate
-   here; this DRAFT cites them via
-   [`spec-evidence.md`](spec-evidence.md) and MUST NOT redefine
-   them.
+1. [`RFC-0001-pic-standard.md`](RFC-0001-pic-standard.md) —
+   defensive publication anchor for early PIC/1.0 requirements.
+   Requirements that originate in RFC-0001 remain authoritative
+   unless a later release-tagged specification document or schema
+   artifact explicitly amends them. Later release-tagged amendments
+   MUST be written down in the release snapshot and MUST NOT occur
+   by silent re-interpretation.
+2. [`canonicalization.md`](canonicalization.md) — PIC-CJSON/1.0.
+   Byte-level serialization rules originate here. Later
+   release-tagged revisions may add explicit rejection rules or
+   clarifications without changing canonical bytes; such changes
+   MUST be recorded in the relevant release snapshot.
 3. [`spec-evidence.md`](spec-evidence.md) — companion DRAFT
    specifying `PIC-Evidence` semantics. Evidence-side requirements
    originate there; this DRAFT cites them and adds the verifier-side
    ordering (§8) and trust-upgrade application point (§6.2) that
    tie evidence verification into the core verifier flow.
-4. This DRAFT — restates v0.7.5–v0.8.x post-RFC normative core
-   verifier semantics that were previously scattered across
-   `causal_logic.md`, `migration-trust-sanitization.md`, and the
-   reference implementation.
+4. This DRAFT — restates post-RFC normative core verifier semantics
+   that were previously scattered across `causal_logic.md`,
+   `migration-trust-sanitization.md`, and the reference
+   implementation.
 
 If text in this DRAFT appears to conflict with a higher-precedence
 artifact, the conflict MUST be raised as an Open Question (Appendix
@@ -687,7 +785,7 @@ cells additionally exercise §9.1 (`PIC_VERIFIER_FAILED`).
 |---|---|
 | `compute_risk` | §5.1 (low-impact), §10 (all four cells allow) |
 | `read_only_query` | §5.1 (low-impact), §10 (all four cells allow) |
-| `financial_hash_ok` | §5.2 (high-impact), §6.2 (evidence-driven upgrade), §6.4 (effective trust), §10 (sanitization × verify matrix) |
+| `financial_hash_ok` | §5.2 (high-impact), §6.2 (authority-bearing evidence-driven trust upgrade), §6.4 (effective trust), §10 (sanitization × verify matrix) |
 | `financial_irreversible` | §5.2 (money-impact), §10 (strict-true cells block with `PIC_VERIFIER_FAILED`) |
 | `privacy_risk` | §5.2 (privacy-impact), §10 (strict-true cells block) |
 | `robotic_action` | §5.2 (irreversible-impact), §10 (strict-true cells block) |
@@ -707,18 +805,23 @@ silently deleted.
 
 | ID | Summary | Resolution status |
 |---|---|---|
-| OQ-CORE-001 | Complete error precedence table | **Resolved in v0.9.0a1; see §9.2** |
+| OQ-CORE-001 | Complete error precedence table | **Resolved in v0.9.0a1; extended in v0.9.0a2 with `PIC_DUPLICATE_ID`; see §9.2** |
 | OQ-CORE-002 | Multi-source requirement for `irreversible` impact | Open |
 | OQ-CORE-003 | Policy-engine surface naming + standardization | Open |
 
 ### OQ-CORE-001 — Complete error precedence table (resolved v0.9.0a1)
 
 **Resolution:** §9.2 now defines a total ordering for multi-failure
-proposals across `PIC_SCHEMA_INVALID`, `PIC_TOOL_BINDING_MISMATCH`,
-`PIC_EVIDENCE_REQUIRED` / `PIC_EVIDENCE_FAILED`, and
-`PIC_VERIFIER_FAILED`. The ordering codifies the Python reference
-implementation's observable behavior and is normative for
-cross-implementation parity.
+proposals across `PIC_SCHEMA_INVALID`, `PIC_DUPLICATE_ID`,
+`PIC_TOOL_BINDING_MISMATCH`, `PIC_EVIDENCE_REQUIRED` /
+`PIC_EVIDENCE_FAILED`, and `PIC_VERIFIER_FAILED`. The ordering
+codifies the existing reference behavior for previously defined
+codes and extends it in v0.9.0a2 with `PIC_DUPLICATE_ID`. It is
+normative for cross-implementation parity. `PIC_DUPLICATE_ID` was
+inserted at position 2 in v0.9.0a2 to close the
+duplicate-provenance-ID ambiguity surfaced by the HERMETICUM Phase
+2 review; see §9.1 for the code's semantics and §9.2 for the
+updated precedence and worked examples.
 
 `PIC_LIMIT_EXCEEDED`, `PIC_INVALID_REQUEST`, `PIC_INTERNAL_ERROR`,
 and `PIC_POLICY_VIOLATION` are outside this core

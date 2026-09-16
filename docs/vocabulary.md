@@ -55,6 +55,12 @@ The party deploying and configuring PIC: the team that runs the agent runtime, o
 
 **Source:** [RFC-0001 §Core Claims #5](RFC-0001-pic-standard.md), [README.md](../README.md)
 
+### Representation-vs-normalization boundary
+
+The rule that security-relevant PIC protocol values are validated as represented on the wire: implementations do not trim, case-fold, Unicode-normalize, alias, repair, or re-pad these values before comparing them. Applies to fields defined as exact, including `provenance[].id`, `expected_tool` and `proposal.action.tool`, SHA-256 digest strings, and Base64-encoded signature strings. Does not prohibit normalization that a PIC specification section explicitly defines (for example, PIC Canonical JSON v1 applied to specific inputs at specific points in verification).
+
+**Source:** [spec-core.md §7.2](spec-core.md), [spec-core.md §6.1](spec-core.md), [spec-evidence.md §4.1](spec-evidence.md)
+
 ---
 
 ## Action Proposal
@@ -235,6 +241,18 @@ Trust-sanitization mode introduced in v0.7.5. When enabled, all inbound provenan
 
 ## Evidence
 
+### Content integrity
+
+A property established when the SHA-256 digest of an artifact's bytes exactly matches a claimed digest. Content integrity says the bytes have not changed since the digest was computed; it does not by itself imply authority, approval, provenance trust, or truth about the content. Hash evidence establishes content integrity for the referenced bytes.
+
+**Source:** [spec-evidence.md §5](spec-evidence.md), [spec-evidence.md §4.1](spec-evidence.md)
+
+### Authority-bearing evidence
+
+Evidence whose successful verification is permitted to upgrade a provenance entry's effective trust from `untrusted` to `trusted` under the trust-upgrade rules. Signature evidence accepted by the configured verifier keyring is the current main case; hash evidence is not authority-bearing on its own (see Content integrity above).
+
+**Source:** [spec-evidence.md §8](spec-evidence.md), [spec-core.md §6.2](spec-core.md), [spec-core.md §6.4](spec-core.md)
+
 ### Hash evidence
 
 An evidence entry of `type: "hash"` whose `id` resolves to a real artifact (typically `file://...`) and is verified by recomputing the SHA-256 digest and comparing it byte-exactly. Introduced in v0.3. File resolution is sandboxed against `evidence_root_dir`.
@@ -249,9 +267,14 @@ An evidence entry of `type: "sig"` carrying a `payload`, an Ed25519 `signature`,
 
 ### Evidence verification
 
-The deterministic, in-memory check that runs before the verifier (when enabled). Each evidence entry is verified independently according to its type. Successful verification of an evidence entry upgrades the trust attribution of any provenance entry whose `id` it matches. Failure blocks the action.
+The process of checking an evidence entry according to its type. Hash
+verification establishes content integrity for the referenced bytes
+but does not by itself upgrade provenance trust. Authority-bearing
+evidence, such as signature evidence accepted by the configured
+verifier keyring, can support trust upgrade only when permitted by
+the trust-upgrade rules.
 
-**Source:** [evidence.md](evidence.md)
+**Source:** [spec-evidence.md §5](spec-evidence.md), [spec-evidence.md §6](spec-evidence.md), [spec-evidence.md §8](spec-evidence.md)
 
 ### Sandboxed evidence resolution
 
