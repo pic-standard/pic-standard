@@ -109,10 +109,13 @@ Update your pipeline or guard configuration to enable evidence verification:
 ```python
 from pic_standard.pipeline import PipelineOptions, verify_proposal
 
-result = verify_proposal(proposal, options=PipelineOptions(
-    verify_evidence=True,
-    # ... other options
-))
+result = verify_proposal(
+    proposal,
+    options=PipelineOptions(
+        verify_evidence=True,
+        # ... other options
+    ),
+)
 ```
 
 **MCP guard:**
@@ -121,7 +124,8 @@ result = verify_proposal(proposal, options=PipelineOptions(
 from pic_standard.integrations.mcp_pic_guard import guard_mcp_tool
 
 guarded = guard_mcp_tool(
-    "payments_send", tool_fn,
+    "payments_send",
+    tool_fn,
     policy=policy,
     verify_evidence=True,
 )
@@ -148,14 +152,18 @@ To test v1.0 behavior now, enable `strict_trust=True`:
 
 ```python
 # Pipeline
-result = verify_proposal(proposal, options=PipelineOptions(
-    strict_trust=True,
-    verify_evidence=True,
-))
+result = verify_proposal(
+    proposal,
+    options=PipelineOptions(
+        strict_trust=True,
+        verify_evidence=True,
+    ),
+)
 
 # MCP guard
 guarded = guard_mcp_tool(
-    "payments_send", tool_fn,
+    "payments_send",
+    tool_fn,
     policy=policy,
     strict_trust=True,
     verify_evidence=True,

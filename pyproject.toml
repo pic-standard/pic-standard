@@ -93,6 +93,9 @@ select = ["E", "F", "W", "I", "N", "B", "SIM", "RUF"]
 # unused-import where pytest discovers fixtures, etc.). Loosen the strictest
 # line-length rule in tests rather than littering files with `# noqa`.
 "tests/**/*.py" = ["E501"]
+# Examples support running from a repo checkout before package install; the
+# sys.path bootstrap must precede pic_standard imports for that flow to work.
+"examples/*.py" = ["E402"]
 
 [tool.ruff.format]
 # Defaults are black-equivalent: double-quote strings, magic trailing commas

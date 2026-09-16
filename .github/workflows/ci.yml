@@ -56,12 +56,12 @@ jobs:
       # OpenSSF Passing-tier: coding standards enforced.
       # Ruff lint (rule sets: E F W I N B SIM RUF — see pyproject.toml).
       - name: Lint check (ruff)
-        run: ruff check sdk-python/ tests/ conformance/
+        run: ruff check .
 
       # OpenSSF Passing-tier: coding standards enforced.
       # Ruff format drift check (no auto-write; fails if anything would change).
       - name: Format check (ruff)
-        run: ruff format --check sdk-python/ tests/ conformance/
+        run: ruff format --check .
 
       # OpenSSF Passing-tier: ≥80% statement coverage (Python).
       # `coverage run` wraps pytest; `--fail-under=80` is the gate.

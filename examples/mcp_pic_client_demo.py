@@ -24,6 +24,7 @@ from mcp.client.stdio import stdio_client
 ServerParameters = None
 try:
     from mcp.client.stdio import ServerParameters as _ServerParameters  # type: ignore
+
     ServerParameters = _ServerParameters
 except Exception:
     pass
@@ -31,11 +32,13 @@ except Exception:
 if ServerParameters is None:
     try:
         from mcp.client.stdio import StdioServerParameters as _ServerParameters  # type: ignore
+
         ServerParameters = _ServerParameters
     except Exception:
         pass
 
 if ServerParameters is None:
+
     @dataclass
     class ServerParameters:  # type: ignore
         command: str
@@ -115,26 +118,25 @@ async def run() -> None:
         env=os.environ.copy(),
     )
 
-    async with stdio_client(server) as (read, write):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
+    async with stdio_client(server) as (read, write), ClientSession(read, write) as session:
+        await session.initialize()
 
-            tools = await session.list_tools()
-            print("Tools:", [t.name for t in tools.tools])
+        tools = await session.list_tools()
+        print("Tools:", [t.name for t in tools.tools])
 
-            print("\n1) untrusted money -> should be BLOCKED")
-            r1 = await session.call_tool(
-                "payments_send_tool",
-                {"amount": 500, "pic": _proposal("untrusted"), "request_id": "demo-req-001"},
-            )
-            _print_pic(r1, expect_block=True)
+        print("\n1) untrusted money -> should be BLOCKED")
+        r1 = await session.call_tool(
+            "payments_send_tool",
+            {"amount": 500, "pic": _proposal("untrusted"), "request_id": "demo-req-001"},
+        )
+        _print_pic(r1, expect_block=True)
 
-            print("\n2) trusted money -> should be ALLOWED")
-            r2 = await session.call_tool(
-                "payments_send_tool",
-                {"amount": 500, "pic": _proposal("trusted"), "request_id": "demo-req-002"},
-            )
-            _print_pic(r2, expect_block=False)
+        print("\n2) trusted money -> should be ALLOWED")
+        r2 = await session.call_tool(
+            "payments_send_tool",
+            {"amount": 500, "pic": _proposal("trusted"), "request_id": "demo-req-002"},
+        )
+        _print_pic(r2, expect_block=False)
 
 
 def main() -> None:

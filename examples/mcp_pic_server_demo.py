@@ -16,6 +16,7 @@ stderr_handler = logging.StreamHandler(sys.stderr)
 stderr_handler.setLevel(logging.INFO)
 stderr_handler.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
 
+
 def _setup_logger(name: str) -> logging.Logger:
     lg = logging.getLogger(name)
     lg.setLevel(logging.INFO)
@@ -24,6 +25,7 @@ def _setup_logger(name: str) -> logging.Logger:
         lg.addHandler(file_handler)
         lg.addHandler(stderr_handler)
     return lg
+
 
 # Demo logger + PIC guard logger
 log = _setup_logger("pic_standard.mcp.demo")
@@ -39,8 +41,7 @@ except ModuleNotFoundError:
         log.info("Demo bootstrap: added %s to sys.path", sdk_python)
 
 from mcp.server.fastmcp import FastMCP
-
-from pic_standard.config import load_policy, dump_policy
+from pic_standard.config import dump_policy, load_policy
 from pic_standard.integrations.mcp_pic_guard import guard_mcp_tool
 
 mcp = FastMCP("pic-mcp-demo")

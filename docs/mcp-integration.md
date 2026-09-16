@@ -67,8 +67,10 @@ policy = load_policy(repo_root=Path("."))
 ```python
 from pic_standard.integrations.mcp_pic_guard import guard_mcp_tool
 
+
 def _payments_send(amount: int) -> str:
     return f"sent ${amount}"
+
 
 guarded_send = guard_mcp_tool(
     "payments_send",
@@ -87,6 +89,7 @@ The low-level guard expects `__pic` and `__pic_request_id` in `tool_args`. In a 
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("my-server")
+
 
 @mcp.tool()
 def payments_send_tool(
@@ -122,13 +125,13 @@ python -u examples/mcp_pic_client_demo.py
 
 ```python
 guarded = guard_mcp_tool(
-    tool_name,                    # str — must match action.tool in proposal
-    tool_fn,                      # Callable — your sync tool function
-    policy=policy,                # PICPolicy (default: empty policy)
-    limits=limits,                # PICEvaluateLimits (default: standard limits)
-    verify_evidence=True,         # bool — enable evidence verification
+    tool_name,  # str — must match action.tool in proposal
+    tool_fn,  # Callable — your sync tool function
+    policy=policy,  # PICPolicy (default: empty policy)
+    limits=limits,  # PICEvaluateLimits (default: standard limits)
+    verify_evidence=True,  # bool — enable evidence verification
     proposal_base_dir=Path("."),  # Path — base dir for file evidence
-    evidence_root_dir=None,       # Path — sandbox root for evidence files
+    evidence_root_dir=None,  # Path — sandbox root for evidence files
 )
 ```
 
@@ -146,7 +149,7 @@ guarded = guard_mcp_tool_async(
     tool_name,
     async_tool_fn,
     policy=policy,
-    max_tool_ms=5000,    # optional tool execution timeout (async only)
+    max_tool_ms=5000,  # optional tool execution timeout (async only)
 )
 ```
 
@@ -209,6 +212,7 @@ Configure the logger in your application:
 
 ```python
 import logging
+
 logging.getLogger("pic_standard.mcp").setLevel(logging.INFO)
 ```
 
