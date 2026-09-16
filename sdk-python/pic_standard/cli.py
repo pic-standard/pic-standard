@@ -273,8 +273,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--verify-evidence",
         action="store_true",
         help=(
-            "Verify evidence (v0.3: sha256) and upgrade provenance to TRUSTED "
-            "based on verified IDs before running verifier."
+            "Verify evidence entries before running the verifier. "
+            "Authority-bearing signature evidence can upgrade matching "
+            "provenance[].trust to 'trusted' in-memory. Hash evidence establishes "
+            "content integrity for referenced bytes only and does not upgrade trust. "
+            "See docs/spec-evidence.md section 8."
         ),
     )
 

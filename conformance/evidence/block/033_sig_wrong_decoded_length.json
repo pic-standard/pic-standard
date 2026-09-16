@@ -1,0 +1,54 @@
+{
+  "id": "evidence-sig-block-033-wrong-decoded-length",
+  "description": "Signature Base64 decodes cleanly (mod-4 clean, standard alphabet, no whitespace) but yields 63 raw bytes instead of the Ed25519 signature length of exactly 64 bytes. The caller-side check in _verify_ed25519_signature rejects with 'Invalid Ed25519 signature length (expected 64 raw bytes)'. Under v0.9.0a2 this length check is unchanged from v0.8.3 but is now locked as a conformance vector.",
+  "source": "Ed25519 signature-shape rule: decoded signature MUST be exactly 64 bytes. Base64 that decodes to any other length is rejected by the caller-side check in _verify_ed25519_signature (unchanged from v0.8.3 but locked here for cross-implementation conformance).",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_EVIDENCE_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Approve invoice 001 for payment",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approval_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "approval_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "approval_001",
+        "type": "sig",
+        "ref": "inline:approval_payload",
+        "payload": "amount=500;currency=USD;invoice=001",
+        "alg": "ed25519",
+        "signature": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "key_id": "demo_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "demo_signer_v1": "n1JZysh+m9PcsahigA9akomr73Ha6F/AkyUoqDyH4pg="
+    }
+  }
+}

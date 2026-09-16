@@ -86,6 +86,120 @@ class TestPipelineSchemaValidation:
 
 
 # ---------------------------------------------------------------------------
+# Duplicate provenance-ID rejection (step 2c)
+# ---------------------------------------------------------------------------
+
+
+class TestPipelineDuplicateProvenanceId:
+    """Step 2c: duplicate provenance-ID rejection.
+
+    Runs after JSON Schema validation (step 2) and lone-surrogate
+    rejection (step 2b), and before impact resolution, tool
+    binding, evidence verification, and causal-taint evaluation.
+    Per docs/spec-core.md §7.2, comparison is exact — no trim,
+    no case-fold, no Unicode normalization.
+    """
+
+    def test_duplicate_provenance_id_rejected(self) -> None:
+        proposal = make_proposal(
+            impact="read",
+            trust="untrusted",
+            tool="docs_search",
+            intent="Search docs",
+            prov_id="approved_invoice",
+            extra_provenance=[{"id": "approved_invoice", "trust": "untrusted"}],
+        )
+        result = verify_proposal(proposal)
+        assert not result.ok
+        assert result.error is not None
+        assert result.error.code == PICErrorCode.DUPLICATE_ID
+
+    def test_first_duplicate_reported_deterministically(self) -> None:
+        # Provenance in array order: p1, p2, p1, p2. The first
+        # collision encountered is the second 'p1' (index 2); a
+        # naive report would also flag the second 'p2' at index 3,
+        # but this must report 'p1' because it comes first.
+        proposal = make_proposal(
+            impact="read",
+            trust="untrusted",
+            tool="docs_search",
+            intent="Search docs",
+            prov_id="p1",
+            extra_provenance=[
+                {"id": "p2", "trust": "untrusted"},
+                {"id": "p1", "trust": "untrusted"},
+                {"id": "p2", "trust": "untrusted"},
+            ],
+        )
+        result = verify_proposal(proposal)
+        assert not result.ok
+        assert result.error is not None
+        assert result.error.code == PICErrorCode.DUPLICATE_ID
+        assert "p1" in result.error.message
+
+    def test_schema_invalid_beats_duplicate_id(self) -> None:
+        # Proposal has duplicate provenance IDs AND is missing a
+        # required top-level field. JSON Schema validation (step 2)
+        # runs before duplicate-ID rejection (step 2c), so
+        # SCHEMA_INVALID must win.
+        bad = make_proposal(
+            impact="read",
+            trust="untrusted",
+            tool="docs_search",
+            intent="Search docs",
+            prov_id="approved_invoice",
+            extra_provenance=[{"id": "approved_invoice", "trust": "untrusted"}],
+        )
+        del bad["protocol"]
+        result = verify_proposal(bad)
+        assert not result.ok
+        assert result.error is not None
+        assert result.error.code == PICErrorCode.SCHEMA_INVALID
+
+    def test_lone_surrogate_beats_duplicate_id(self) -> None:
+        # Proposal has duplicate provenance IDs AND a lone-surrogate
+        # code point in a claim text. Lone-surrogate rejection
+        # (step 2b) runs before duplicate-ID rejection (step 2c),
+        # so SCHEMA_INVALID must win.
+        proposal = make_proposal(
+            impact="read",
+            trust="untrusted",
+            tool="docs_search",
+            intent="Search docs",
+            claim_text="\ud800",
+            prov_id="approved_invoice",
+            extra_provenance=[{"id": "approved_invoice", "trust": "untrusted"}],
+        )
+        result = verify_proposal(proposal)
+        assert not result.ok
+        assert result.error is not None
+        assert result.error.code == PICErrorCode.SCHEMA_INVALID
+
+    def test_similar_looking_ids_are_not_duplicates(self) -> None:
+        # Exact-comparison control: three IDs that a naive normalizer
+        # would collapse to the same value (trailing whitespace and
+        # different case) must NOT be treated as duplicates per
+        # docs/spec-core.md §7.2. The proposal may still fail for
+        # another valid reason, but the outcome must not be
+        # PIC_DUPLICATE_ID.
+        proposal = make_proposal(
+            impact="read",
+            trust="untrusted",
+            tool="docs_search",
+            intent="Search docs",
+            prov_id="invoice_123",
+            extra_provenance=[
+                {"id": "invoice_123 ", "trust": "untrusted"},
+                {"id": "Invoice_123", "trust": "untrusted"},
+            ],
+        )
+        result = verify_proposal(proposal)
+        if not result.ok:
+            assert result.error is not None
+            assert result.error.code != PICErrorCode.DUPLICATE_ID
+
+
+# ---------------------------------------------------------------------------
 # Verifier rules (ActionProposal instantiation)
 # ---------------------------------------------------------------------------
 

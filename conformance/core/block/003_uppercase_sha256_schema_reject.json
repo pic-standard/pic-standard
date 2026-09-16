@@ -1,0 +1,41 @@
+{
+  "id": "core-block-003-uppercase-sha256-schema-reject",
+  "description": "Hash evidence carries an uppercase SHA-256 hex digest, which is non-conformant per docs/spec-evidence.md §4.1.1 (wire representation is exactly ^[a-f0-9]{64}$). Under v0.9.0a2 the JSON Schema regex in sdk-python/pic_standard/schemas/proposal_schema.json was tightened from ^[a-fA-F0-9]{64}$ to ^[a-f0-9]{64}$, so the proposal is rejected at pipeline step 2 (JSON Schema validation) with PIC_SCHEMA_INVALID BEFORE evidence verification runs. The underlying hex denotes a real digest (sha256 of conformance/artifacts/invoice_001.txt uppercased), so this is a pure wire-representation failure, not a hash mismatch.",
+  "source": "HERMETICUM Phase 1 SHA hex-casing finding, remediated in v0.9.0a2. Schema regex tightened to ^[a-f0-9]{64}$ per docs/spec-evidence.md §4.1.1; rejection surfaces at pipeline step 2 (JSON Schema validation) with PIC_SCHEMA_INVALID. See docs/independent-reviews/hermeticum-v0.8.3.md.",
+  "mode": "core",
+  "expected": "block",
+  "expected_error_code": "PIC_SCHEMA_INVALID",
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send payment for approved invoice",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "invoice_001",
+        "trust": "trusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "invoice_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "invoice_001",
+        "type": "hash",
+        "ref": "file://invoice_001.txt",
+        "sha256": "A2E818612AE44F799BE83833149CDD8A1EA750FA8D40BC8507F874F8AD488FBD"
+      }
+    ]
+  }
+}

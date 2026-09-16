@@ -1,0 +1,54 @@
+{
+  "id": "evidence-block-034-orphaned-evidence-no-trust-upgrade",
+  "description": "Money-impact proposal carries a single provenance entry ('invoice_001') marked untrusted. A signature-evidence entry with a different id ('orphaned_approval') verifies successfully against the embedded keyring, so it enters trust_upgrade_ids. Because the evidence id does not match any provenance id, apply_trust_upgrade_ids_to_provenance leaves 'invoice_001' untrusted; the pipeline then rejects the money-impact proposal at ActionProposal instantiation (step 8) with PIC_VERIFIER_FAILED. The regression invariant pinned here: valid but orphaned evidence MUST NOT upgrade trust on unrelated provenance entries. Corresponds to HERMETICUM Phase 2 case ADV-002, converted to a block-shape vector in v0.9.0a2 to protect the property against a future regression that would apply orphaned trust upgrades to any matching-impact provenance.",
+  "source": "PIC-maintained adaptation of HERMETICUM Phase 2 case ADV-002. Methodology attribution: HERMETICUM B.C.E. S.r.l., Independent Protocol Stress Test methodology, Manuel Coletta, Founder. Original HERMETICUM sealed artifacts are not redistributed. Full provenance table: docs/independent-reviews/hermeticum-v0.8.3.md.",
+  "mode": "evidence",
+  "expected": "block",
+  "expected_error_code": "PIC_VERIFIER_FAILED",
+  "options": {
+    "verify_evidence": true,
+    "strict_trust": true
+  },
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send payment for invoice 001",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "invoice_001",
+        "trust": "untrusted",
+        "source": "evidence"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Invoice #001 approved for $500",
+        "evidence": [
+          "invoice_001"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {
+        "amount": 500
+      }
+    },
+    "evidence": [
+      {
+        "id": "orphaned_approval",
+        "type": "sig",
+        "ref": "inline:approval_payload",
+        "payload": "amount=500;currency=USD;invoice=001",
+        "alg": "ed25519",
+        "signature": "l95Y7AI0yxdP5s0+sx07cHGf5GhfpVdvv8vZmCkCysd8jIB1GELlaygSBifUuoQPJGp6BakgQIEezK+Q0WqoCA==",
+        "key_id": "demo_signer_v1"
+      }
+    ]
+  },
+  "embedded_keyring": {
+    "trusted_keys": {
+      "demo_signer_v1": "wruj/4uIKcU2N6UlTl2hinVkR72heacgG2ZchTfcxy4="
+    }
+  }
+}

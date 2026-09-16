@@ -84,10 +84,11 @@ The proposal can include:
 
 At runtime:
 
-1) Evidence is resolved (e.g. a file path)  
-2) SHA-256 is computed  
-3) Verified evidence IDs can upgrade `provenance[].trust` to `trusted` **in-memory**  
-4) For high-impact actions, enforcement can be **fail-closed** (block on verification failure)
+1) Evidence is resolved (e.g. a file path)
+2) SHA-256 is computed
+3) Verified **authority-bearing signature** evidence IDs can upgrade matching `provenance[].trust` to `trusted` **in-memory**
+4) Verified **hash** evidence IDs establish content integrity for the referenced bytes but do **not** upgrade trust by themselves. See `docs/spec-evidence.md` section 8.
+5) If verification fails, PIC fails closed before the tool runs.
 
 ### Why this matters
 

@@ -236,3 +236,62 @@ def test_evidence_multiple_pieces_verification(tmp_path):
     # Verify each result is successful
     for result in summary["results"]:
         assert result.ok, f"Evidence {result.id} should be verified"
+
+
+# ---------------------------------------------------------------------------
+# Wire-representation strictness (HERMETICUM Phase 1 spec-fix)
+# ---------------------------------------------------------------------------
+
+
+def test_uppercase_sha256_rejected_as_invalid_representation(tmp_path):
+    """Uppercase SHA-256 hex is a wire-representation failure, not a mismatch.
+
+    Per docs/spec-evidence.md §4.1.1, the ``sha256`` field is
+    validated as represented on the wire: values MUST match
+    ``^[a-f0-9]{64}$``. Uppercase or mixed-case hex is non-
+    conformant **even when it denotes the same underlying digest
+    value**. Under v0.9.0a2 the evidence verifier rejects such
+    values fail-closed BEFORE reading the referenced file; the
+    failure is reported as an invalid-representation error, not
+    a hash mismatch. This test protects that boundary against a
+    regression that would restore a ``.strip().lower()`` fixup or
+    otherwise case-fold the expected digest before comparing.
+    """
+    import hashlib
+
+    artifact = tmp_path / "payload.bin"
+    artifact.write_bytes(b"payload bytes")
+    lowercase_digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    uppercase_digest = lowercase_digest.upper()
+    # Sanity: same content, only case differs.
+    assert uppercase_digest != lowercase_digest
+    assert uppercase_digest.lower() == lowercase_digest
+
+    proposal = {
+        "evidence": [
+            {
+                "id": "uppercase_hex_ev",
+                "type": "hash",
+                "ref": f"file://{artifact.name}",
+                "sha256": uppercase_digest,
+            }
+        ]
+    }
+
+    report = EvidenceSystem().verify_all(proposal, base_dir=tmp_path)
+    assert not report.ok
+    assert len(report.results) == 1
+    result = report.results[0]
+    assert result.id == "uppercase_hex_ev"
+    assert not result.ok
+    # Stable diagnostic marker from evidence.py's SHA validation:
+    # 'Invalid sha256 (expected 64 lowercase hex chars)'. Asserting
+    # on 'lowercase hex' pins the *representation* failure mode
+    # and rules out the earlier behavior where uppercase surfaced
+    # as a 'sha256 mismatch (expected ... got ...)' diagnostic.
+    assert "lowercase hex" in result.message.lower(), (
+        f"expected lowercase-hex representation error, got: {result.message!r}"
+    )
+    assert "mismatch" not in result.message.lower(), (
+        f"uppercase SHA must NOT be reported as a hash mismatch, got: {result.message!r}"
+    )

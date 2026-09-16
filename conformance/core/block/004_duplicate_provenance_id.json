@@ -1,0 +1,35 @@
+{
+  "id": "core-block-004-duplicate-provenance-id",
+  "description": "Proposal contains two provenance entries with the same id ('approved_invoice'). Under v0.9.0a2 the pipeline enforces the spec-core §6.1 uniqueness requirement at step 2c (after JSON Schema validation and lone-surrogate rejection, before impact resolution, tool binding, evidence verification, and causal-taint evaluation). The proposal is rejected with PIC_DUPLICATE_ID. Comparison is exact per spec-core §7.2: implementations must not trim, case-fold, or Unicode-normalize IDs before comparing them.",
+  "source": "Converted from AMBIGUOUS_SPEC on v0.8.3 to a permanent BLOCK vector on v0.9.0a2 following the spec-core §6.1 uniqueness rule and pipeline step 2c enforcement (PIC_DUPLICATE_ID). PIC-maintained adaptation of HERMETICUM Phase 2 case ADV-003. Methodology attribution: HERMETICUM B.C.E. S.r.l., Independent Protocol Stress Test methodology, Manuel Coletta, Founder. Original HERMETICUM sealed artifacts are not redistributed. Full provenance table: docs/independent-reviews/hermeticum-v0.8.3.md.",
+  "mode": "core",
+  "expected": "block",
+  "expected_error_code": "PIC_DUPLICATE_ID",
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Send $50 to vendor for invoice #1234",
+    "impact": "money",
+    "provenance": [
+      {
+        "id": "approved_invoice",
+        "trust": "trusted"
+      },
+      {
+        "id": "approved_invoice",
+        "trust": "trusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Send $50 to vendor for invoice #1234",
+        "evidence": [
+          "approved_invoice"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "payments_send",
+      "args": {}
+    }
+  }
+}

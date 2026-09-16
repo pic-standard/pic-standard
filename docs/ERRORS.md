@@ -92,6 +92,7 @@ application-level decision.
 | `PIC_INVALID_REQUEST` | No. Fix the request first. |
 | `PIC_LIMIT_EXCEEDED` | Sometimes; depends on which limit (see per-code notes). |
 | `PIC_SCHEMA_INVALID` | No. Fix the proposal. |
+| `PIC_DUPLICATE_ID` | No. Make each `provenance[].id` distinct. |
 | `PIC_VERIFIER_FAILED` | No. Fix the causal contract, provenance, or claims. |
 | `PIC_TOOL_BINDING_MISMATCH` | No. Fix the `action.tool` value or the guard's expected tool. |
 | `PIC_EVIDENCE_REQUIRED` | No. Attach evidence appropriate to the impact. |
@@ -187,6 +188,41 @@ validation).
 {
   "code": "PIC_SCHEMA_INVALID",
   "message": "PIC schema validation failed: 'impact' is a required property"
+}
+```
+
+### `PIC_DUPLICATE_ID`
+
+**Value:** `"PIC_DUPLICATE_ID"`.
+
+**Meaning:** the proposal contained duplicate `provenance[].id`
+values. Every entry in `provenance[]` must have a unique `id`;
+the causal graph and evidence lineage attach to provenance entries
+by `id`, so collisions leave the proposal's evidence attribution
+undefined.
+
+**Where raised:** `pipeline.verify_proposal` after JSON Schema
+validation and lone-surrogate rejection, and before tool binding,
+evidence verification, and causal-taint evaluation.
+
+**HTTP status:** HTTP 200 with pipeline decision envelope. This is
+a proposal-level defect (a valid HTTP request carrying an invalid
+PIC proposal), not a transport / envelope failure, so it is NOT
+returned as HTTP 400 / `PIC_INVALID_REQUEST`.
+
+**Retryable:** no. Make each `provenance[].id` in the proposal
+distinct before retrying. Per
+[`spec-core.md §7.2`](spec-core.md), IDs are compared exactly as
+represented on the wire, so a caller MUST NOT distinguish colliding
+IDs by trimming, case-folding, or Unicode-normalizing them; the
+fix is to issue genuinely different identifiers.
+
+**Example:**
+
+```json
+{
+  "code": "PIC_DUPLICATE_ID",
+  "message": "Duplicate provenance id: 'invoice_123'"
 }
 ```
 
