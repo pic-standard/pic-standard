@@ -19,6 +19,8 @@
 > and the pinned good-first issues. Today, PIC has a Python reference implementation;
 > a second implementation in TypeScript, Go, or Rust is open to own ([#48](https://github.com/pic-standard/pic-standard/issues/48)).
 
+> **v0.9.0a2 (2026-09-17):** Secure trust default. `strict_trust=True` is now the default; legacy mode remains callable as explicit opt-in. See [CHANGELOG](CHANGELOG.md) for the full v0.9.0a2 alpha changes.
+
 PIC is a lightweight, local-first protocol that forces AI agents to **prove** every important action before it happens. Agents must declare intent, impact, provenance, and evidence; PIC verifies everything and **fails closed** if anything is wrong.
 
 PIC is not agent identity or delegation infrastructure; PIC is the action-bound verification contract that decides whether a high-impact tool call is justified to execute now.
@@ -286,6 +288,7 @@ Verify locally: `sha256sum -c docs/RFC-0001.SHA256`
 - **Code of conduct** — see [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). PIC follows the [Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). Reports go to `team@madeinpluto.com`.
 - **Citation** — see [`CITATION.cff`](CITATION.cff) for full citation metadata. The Zenodo concept DOI [10.5281/zenodo.18725562](https://doi.org/10.5281/zenodo.18725562) (badged at the top of this page) resolves to the latest archived release on Zenodo; per-version DOIs are listed on the Zenodo record.
 - **Foundation-track feedback** — PIC Standard has undergone [AAIF project-proposal review](https://github.com/aaif/project-proposals/issues/16#issuecomment-4455960990). The technical positioning was recognized; the current focus is expanding multi-organization maintainership, production adoption, and standards-track readiness.
+- **Independent reviews** — PIC-authored provenance notes for independent evaluations of PIC releases live under [`docs/independent-reviews/`](docs/independent-reviews/). These pages do not redistribute reviewer-authored sealed reports, PDFs, or methodology documents, and are not certifications, endorsements, audits, or general security guarantees.
 - **License** — Apache-2.0; see [`LICENSE`](LICENSE) (also badged at the top of this page).
 
 ---
