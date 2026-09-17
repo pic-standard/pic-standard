@@ -5,6 +5,181 @@ All notable changes to this project will be documented in this file.
 This project follows Semantic Versioning:
 https://semver.org/
 
+## [0.9.0a2] - 2026-09-17
+
+Alpha 2 stop in the v0.9.0a1 → v0.9.0a2 → v0.9.0 sequence.
+Independent Review Hardening: normative and runtime tightenings from
+an independent Protocol Stress Test on v0.8.3 (HERMETICUM Phase 1 +
+Phase 2) and the PIC maintainer's independent follow-up review. Adds
+one new error code, tightens schema and runtime representations of
+security-relevant values, and flips `PipelineOptions.strict_trust`
+default from `False` to `True` so that self-asserted trusted
+provenance no longer authorizes high-impact actions by default. The
+proposal envelope remains otherwise compatible with v0.9.0a1. The
+schema tightens SHA-256 hex representation to lowercase only, and
+the runtime rejects malformed Base64 signatures fail-closed. PRs in
+this release: #144, #145, #146, #147.
+
+### Added
+
+- **`PIC_DUPLICATE_ID` error code** (A3-HERM.2): new
+  `PICErrorCode.DUPLICATE_ID` enum member with per-code docstring in
+  `sdk-python/pic_standard/errors.py`. Documented in
+  `docs/ERRORS.md` with retryability, HTTP mapping, operator
+  meaning, and example wire shape. Mirrored in
+  `integrations/openclaw/lib/types.ts` and in the `PIC_ERROR_CODES`
+  enum of `openapi/pic-bridge.v1.yaml`. Emitted by a new pipeline
+  step 2c uniqueness check placed after JSON Schema validation and
+  lone-surrogate rejection, and before impact resolution, tool
+  binding, evidence verification, and causal-taint evaluation.
+  Error-code precedence pinned as
+  `SCHEMA_INVALID > DUPLICATE_ID > TOOL_BINDING_MISMATCH >
+  EVIDENCE_REQUIRED/EVIDENCE_FAILED > VERIFIER_FAILED`.
+- **11 new conformance vectors** (A3-HERM.2): manifest total now
+  84 (was 73). New vectors cover uppercase-SHA schema rejection,
+  duplicate-provenance-id rejection, URL-safe Base64 rejection,
+  unpadded Base64 rejection, overpadded Base64 rejection,
+  whitespace-containing Base64 rejection, wrong-decoded-length
+  Base64 rejection, and PIC-authored adapted regressions for
+  selected Phase 2 cases under Apache-2.0, with origin attribution
+  recorded in the adapted-vector provenance table. Phase 2 cases
+  that were not adapted as executable vectors are documented
+  separately in the independent-review provenance notes.
+- **Independent-review provenance docs** (A3-HERM.2): new
+  `docs/independent-reviews/README.md` index and
+  `docs/independent-reviews/hermeticum-v0.8.3.md` PIC-authored
+  summary. Includes non-certification wording, attribution block,
+  frozen baseline commit reference, adapted-vector provenance
+  table, and a placeholder for the forthcoming canonical
+  HERMETICUM case-study URL. HERMETICUM sealed reports, PDFs,
+  ZIPs, and methodology documents are not redistributed and remain
+  under HERMETICUM's canonical control.
+- **`PICLegacyTrustModeWarning`** (A3-HERM.3): new `FutureWarning`
+  subclass exported from `pic_standard.PICLegacyTrustModeWarning`.
+  Fires from `PipelineOptions.__post_init__` when the caller
+  explicitly passes `strict_trust=False`, so the legacy
+  compatibility opt-in cannot silently reintroduce self-asserted
+  trusted provenance semantics. Coexists with the existing
+  `PICTrustFutureWarning`; together they form the migration signal
+  surface.
+- **`pic-cli verify --legacy-trust`** (A3-HERM.3): explicit CLI
+  opt-in for the legacy trust mode. Sets
+  `PipelineOptions.strict_trust=False` and emits
+  `PICLegacyTrustModeWarning`. `pic-cli serve` is untouched in this
+  release; bridge callers select trust mode through the HTTP
+  bridge parameter instead.
+- **HTTP bridge `strict_trust` plumbing** (A3-HERM.3):
+  `handle_verify()` in
+  `sdk-python/pic_standard/integrations/http_bridge.py` gains a
+  `strict_trust: bool = True` parameter forwarded to the shared
+  pipeline, so the secure default is preserved across all bridge
+  callers unless the caller explicitly opts out.
+
+### Changed
+
+- **`PipelineOptions.strict_trust` default flipped `False` → `True`**
+  (A3-HERM.3): secure default. Under the new default, self-asserted
+  `provenance[].trust = "trusted"` no longer authorizes high-impact
+  actions; only authority-bearing signature evidence anchored in the
+  configured keyring can raise trust to `"trusted"` under
+  `strict_trust=True`. `strict_trust=False` remains callable as a
+  compatibility surface and is not scheduled for removal in the
+  v0.9.x series.
+- **Adapter defaults aligned with the secure default** (A3-HERM.3):
+  `sdk-python/pic_standard/integrations/langgraph_pic_toolnode.py`
+  (`PICToolNode`), `sdk-python/pic_standard/integrations/mcp_pic_guard.py`
+  (`guard_mcp_tool`, `guard_mcp_tool_async`, and the internal shared
+  entry), and `sdk-python/pic_standard/integrations/http_bridge.py`
+  (`handle_verify`) all default to `strict_trust=True`.
+- **Spec and docs updated for the two-warning model and legacy
+  compatibility path** (A3-HERM.3):
+  `docs/migration-trust-sanitization.md` rewritten around the
+  flipped default, with sections on what changed, why it matters,
+  the warning model, migration steps, legacy compatibility mode,
+  and FAQ. `docs/spec-core.md` §10 updated with mode ordering
+  (secure default first), a v0.9.0a2 timeline row, and a normative
+  statement that a conformant PIC implementation MUST default to
+  secure trust mode. `README.md`, `docs/vocabulary.md`, and
+  `docs/spec-status.md` updated to reflect the new default.
+- **`docs/spec-core.md` and `docs/spec-evidence.md` tightened**
+  (A3-HERM.1): §6.1 states unique-provenance-id as a normative
+  MUST; §7 reaffirms exact string equality for `expected_tool`; a
+  new "Representation vs. normalization" clause requires
+  implementations to preserve security-relevant protocol values
+  byte-for-byte unless a specification section explicitly defines
+  normalization. `docs/spec-evidence.md` records SHA-256 lowercase
+  and standard-padded RFC 4648 Base64 rules with an enumerated
+  non-conformant list. `docs/vocabulary.md` reinforces the
+  integrity vs authority boundary and adds a normalization-boundary
+  term.
+- **Repo-wide ruff hygiene** (#145): full-repo `ruff check` clean;
+  CI ruff scope expanded from `sdk-python/` to `.`; ruff floor
+  raised to `>=0.16.8`; Python-in-markdown formatter applied to
+  `docs/deploy-docker.md` and `docs/RELEASING.md`. No behavioral
+  change; supports the A3-HERM.2 and A3-HERM.3 drops.
+
+### Fixed
+
+- **Duplicate provenance-id ambiguity** (A3-HERM.1 + A3-HERM.2):
+  the JSON Schema previously permitted duplicate `provenance[].id`
+  values and the runtime's causal interpretation was undefined.
+  Duplicates are now rejected with the new `PIC_DUPLICATE_ID` code
+  before impact resolution or tool binding. Corresponds to the
+  HERMETICUM Phase 2 ADV-003 novel case, previously classified as
+  AMBIGUOUS_SPEC; converted to a PIC-maintained BLOCK vector after
+  the spec fix.
+- **Exact tool binding whitespace normalization removed**
+  (A3-HERM.1 + A3-HERM.2): the reference verifier previously
+  applied `.strip()` on both sides of the `expected_tool` vs
+  `tool` comparison in `verify_with_context`. Whitespace variants
+  now fail closed per the normative no-normalization clause.
+  Corresponds to maintainer follow-up finding MAINT-F1.
+- **Strict SHA-256 lowercase representation** (A3-HERM.1 +
+  A3-HERM.2): the proposal schema regex tightened from
+  `^[a-fA-F0-9]{64}$` to `^[a-f0-9]{64}$`, and the runtime
+  `.strip().lower()` on SHA-256 hex evidence identifiers removed.
+  Uppercase and mixed-case values previously accepted by the schema
+  and normalized by the runtime are now rejected fail closed at
+  both boundaries. Corresponds to HERMETICUM Phase 1 finding.
+- **Strict Base64 signature representation** (A3-HERM.1 +
+  A3-HERM.2): the runtime Base64 decoder in
+  `sdk-python/pic_standard/evidence.py` no longer rewrites
+  URL-safe `-/_` to the standard alphabet or auto-restores missing
+  padding. URL-safe, unpadded, overpadded, whitespace-containing,
+  and wrong-decoded-length signatures are all rejected fail closed
+  via `b64decode(..., validate=True)` with explicit padding and
+  alphabet checks. Corresponds to maintainer follow-up finding
+  MAINT-F2.
+- **Hash evidence remains content-integrity only** (A3-HERM.2):
+  documentation across `README.md`, `docs/evidence.md`,
+  `docs/fail-closed-evidence-mcp.md`, `docs/vocabulary.md`, and
+  `conformance/trust_sanitization/README.md` updated to
+  consistently describe hash evidence as content-integrity and to
+  remove residual wording that could be read as hash evidence
+  upgrading trust. The semantic tightening itself landed in v0.8.3;
+  v0.9.0a2 completes the documentation sweep.
+
+### Security
+
+- **Fail-closed behavior strengthened.** Under the new secure trust
+  default, self-asserted `provenance[].trust = "trusted"` no longer
+  authorizes high-impact actions on its own; only authority-bearing
+  signature evidence anchored in the configured keyring can raise
+  trust to `"trusted"` under `strict_trust=True`. In combination
+  with the new `PIC_DUPLICATE_ID` uniqueness check, the tightened
+  whitespace-free tool binding, and the tightened SHA-256 and
+  Base64 representations, this closes several fail-open paths that
+  a producer could previously reach without violating the v0.8.3
+  wire format. The v0.8.3 frozen review record is not retroactively
+  modified; all hardening lands forward on `main` in v0.9.0a2.
+  Callers relying on self-asserted `trust: "trusted"` provenance
+  for high-impact actions will now block by default; explicit
+  `strict_trust=False` remains available with
+  `PICLegacyTrustModeWarning`. TypeScript verifier parity is not
+  shipped in v0.9.0a2 and remains a v0.9.0 final item.
+
+---
+
 ## [0.9.0a1] - 2026-09-14
 
 Alpha preparation for the v0.9.0 cross-implementation milestone.
