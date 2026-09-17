@@ -193,7 +193,7 @@ pic-cli keys --write-example        # Generate starter keyring
 from pic_standard import KeyResolver, StaticKeyRingResolver
 ```
 
-**Trust controls (v0.7.5+):** PIC v0.7.5 introduces `strict_trust` mode — when enabled, all inbound provenance trust is sanitized to "untrusted" and only authority-bearing evidence verification, currently signature evidence, can upgrade it. See [docs/migration-trust-sanitization.md](docs/migration-trust-sanitization.md) for migration guide.
+**Trust controls (v0.9.0a2+):** `strict_trust=True` is the secure default: all inbound provenance trust is sanitized to `untrusted`, and only authority-bearing evidence verification, currently signature evidence, can upgrade matching provenance trust. Legacy compatibility mode (`strict_trust=False`) remains callable and emits `PICLegacyTrustModeWarning` at construction. See [docs/migration-trust-sanitization.md](docs/migration-trust-sanitization.md) for migration guide.
 
 Full guide: [docs/keyring.md](docs/keyring.md)
 

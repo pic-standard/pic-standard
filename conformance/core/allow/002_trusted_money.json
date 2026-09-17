@@ -1,7 +1,7 @@
 {
   "id": "core-allow-002-trusted-money",
-  "description": "Money-impact proposal with trusted provenance passes the verifier under default PipelineOptions. The legacy trust='trusted' model is accepted in v0.8.x (with a deprecation warning that is not asserted by this vector). strict_trust-mode sanitization would change the outcome for this proposal; evidence-mode verification is out of scope here and is deferred to v0.8.1+ conformance.",
-  "source": "adapted from tests/conftest.py money_proposal fixture (make_proposal() with defaults); exercises the rule that under default PipelineOptions, provenance.trust='trusted' is sufficient for money-impact proposals to pass the verifier",
+  "description": "Money-impact proposal with trusted provenance passes the verifier under legacy trust mode. This vector intentionally exercises legacy trust mode via explicit `strict_trust=false` to isolate legacy trust='trusted' acceptance for money-impact proposals under secure-default semantics. Under the secure default (`strict_trust=true`), the same proposal is sanitized to untrusted and blocks with PIC_VERIFIER_FAILED; that behavior is covered by trust-sanitization matrix vectors. Evidence-mode verification is out of scope here.",
+  "source": "adapted from tests/conftest.py money_proposal fixture (make_proposal() with defaults); exercises the rule that under legacy trust mode (explicit `strict_trust=false`), provenance.trust='trusted' is sufficient for money-impact proposals to pass the verifier",
   "expected": "allow",
   "proposal": {
     "protocol": "PIC/1.0",
@@ -17,5 +17,8 @@
       "tool": "payments_send",
       "args": {}
     }
+  },
+  "options": {
+    "strict_trust": false
   }
 }

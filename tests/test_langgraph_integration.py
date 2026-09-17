@@ -4,6 +4,7 @@ import pytest
 from langchain_core.messages import AIMessage
 from langchain_core.tools import tool
 from pic_standard.integrations import PICToolNode
+from pic_standard.pipeline import PICLegacyTrustModeWarning
 
 
 @tool
@@ -45,7 +46,7 @@ def test_pic_toolnode_blocks_untrusted_money():
 
 
 def test_pic_toolnode_allows_trusted_money():
-    node = PICToolNode([payments_send])
+    node = PICToolNode([payments_send], strict_trust=False)
     state = {
         "messages": [
             AIMessage(
@@ -60,7 +61,11 @@ def test_pic_toolnode_allows_trusted_money():
             )
         ]
     }
-    out = node.invoke(state)
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        out = node.invoke(state)
     assert out["messages"][0].content == "sent $500"
 
 
@@ -69,7 +74,7 @@ def test_pic_toolnode_blocks_tool_binding_mismatch():
     Integration must block when the actual tool call name doesn't match
     proposal.action.tool. This should be enforced via ActionProposal.verify_with_context(...).
     """
-    node = PICToolNode([payments_send])
+    node = PICToolNode([payments_send], strict_trust=False)
 
     proposal = make_money_proposal("trusted")
     proposal["action"]["tool"] = "some_other_tool"  # mismatch on purpose
@@ -89,7 +94,13 @@ def test_pic_toolnode_blocks_tool_binding_mismatch():
         ]
     }
 
-    with pytest.raises(ValueError) as e:
+    with (
+        pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ),
+        pytest.raises(ValueError) as e,
+    ):
         node.invoke(state)
 
     # Don't assert the exact string (too brittle), but require clear intent.

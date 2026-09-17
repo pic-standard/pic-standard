@@ -40,7 +40,7 @@ log = logging.getLogger("pic_standard.pipeline")
 
 
 # ------------------------------------------------------------------
-# v0.8: Trust deprecation warning
+# Trust warnings
 # ------------------------------------------------------------------
 
 
@@ -48,8 +48,26 @@ class PICTrustFutureWarning(FutureWarning):
     """Emitted when a proposal contains self-asserted trusted provenance and
     effective evidence verification will not run for that proposal.
 
-    In PIC/1.0, non-sanitizing mode (``strict_trust=False``) will be legacy
-    and non-conformant.  This warning signals the migration path.
+    ``strict_trust=True`` is the secure default; non-sanitizing mode
+    (``strict_trust=False``) is an explicit compatibility opt-in that
+    additionally fires ``PICLegacyTrustModeWarning`` on construction. This
+    warning signals that the specific proposal in question would be silently
+    accepted under legacy trust. Migrate by attaching authority-bearing
+    evidence, or by dropping the explicit ``strict_trust=False`` opt-in.
+    """
+
+    pass
+
+
+class PICLegacyTrustModeWarning(FutureWarning):
+    """Emitted when a caller explicitly opts into legacy trust behavior via
+    ``strict_trust=False``.
+
+    ``strict_trust=False`` enables legacy trust behavior. The secure default
+    is ``strict_trust=True``, which sanitizes inbound provenance trust to
+    ``untrusted`` and only permits authority-bearing evidence verification
+    to upgrade it. Legacy mode remains callable as a compatibility surface;
+    this warning marks each explicit opt-in.
     """
 
     pass
@@ -214,7 +232,19 @@ class PipelineOptions:
     key_resolver: Any = (
         None  # Optional[KeyResolver] — Any to avoid import issues when crypto missing
     )
-    strict_trust: bool = False  # v0.8: sanitize inbound trust to "untrusted"
+    strict_trust: bool = True  # secure default (v0.9.0a2+); sanitize inbound trust to "untrusted"
+
+    def __post_init__(self) -> None:
+        # Fire PICLegacyTrustModeWarning on every explicit legacy opt-in.
+        # Since the default is True, any strict_trust=False here is by
+        # definition an explicit legacy opt-in by the caller.
+        if not self.strict_trust:
+            warnings.warn(
+                "strict_trust=False enables legacy trust behavior. "
+                "The secure default is strict_trust=True.",
+                PICLegacyTrustModeWarning,
+                stacklevel=2,
+            )
 
 
 @dataclass
@@ -548,11 +578,13 @@ def verify_proposal(
             warnings.warn(
                 "PIC deprecation: proposal contains provenance with trust='trusted' "
                 "but effective evidence verification will not run for this proposal. "
-                "In PIC/1.0, trust will be verifier-derived only — self-asserted "
-                "trust will be sanitized to 'untrusted'. "
-                "To migrate: provide verifiable evidence (hash or signature) and "
-                "enable verify_evidence=True where evidence will actually be enforced, "
-                "or opt in early with strict_trust=True. "
+                "Under the secure default (strict_trust=True), self-asserted trust "
+                "is sanitized to 'untrusted' and only authority-bearing evidence "
+                "can upgrade it. To fix: provide authority-bearing signature evidence "
+                "and enable verify_evidence=True where evidence will actually be "
+                "enforced, or drop the explicit strict_trust=False opt-in to inherit "
+                "the secure default. Hash evidence establishes content integrity only "
+                "and does not upgrade trust by itself. "
                 "See docs/migration-trust-sanitization.md for details.",
                 PICTrustFutureWarning,
                 stacklevel=2,

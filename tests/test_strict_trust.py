@@ -3,10 +3,16 @@
 from __future__ import annotations
 
 import copy
+import warnings
 
+import pytest
 from conftest import make_proposal
 from pic_standard.errors import PICErrorCode
-from pic_standard.pipeline import PipelineOptions, verify_proposal
+from pic_standard.pipeline import (
+    PICLegacyTrustModeWarning,
+    PipelineOptions,
+    verify_proposal,
+)
 
 
 class TestStrictTrust:
@@ -110,12 +116,16 @@ class TestStrictTrust:
         assert result.ok
 
     def test_strict_trust_false_preserves_existing_behavior(self) -> None:
-        """strict_trust=False (default) → legacy behavior: self-asserted trust accepted."""
+        """strict_trust=False (legacy explicit opt-in) preserves self-asserted trust acceptance."""
         proposal = make_proposal(trust="trusted", impact="money")
-        result = verify_proposal(
-            proposal,
-            options=PipelineOptions(strict_trust=False),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                proposal,
+                options=PipelineOptions(strict_trust=False),
+            )
         assert result.ok
 
     def test_verify_evidence_true_without_evidence_or_policy_still_accepts_trust(self) -> None:
@@ -123,12 +133,18 @@ class TestStrictTrust:
 
         Documents the nuance: verify_evidence=True alone is not sufficient without
         evidence entries or policy requiring evidence for the resolved impact.
+        Exercises legacy explicit opt-in (strict_trust=False) so trust is not
+        sanitized; the caller-visible warning is asserted alongside.
         """
         proposal = make_proposal(trust="trusted", impact="money")
-        result = verify_proposal(
-            proposal,
-            options=PipelineOptions(verify_evidence=True, strict_trust=False),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                proposal,
+                options=PipelineOptions(verify_evidence=True, strict_trust=False),
+            )
         assert result.ok
 
     def test_strict_trust_does_not_mutate_input(self) -> None:
@@ -140,3 +156,22 @@ class TestStrictTrust:
             options=PipelineOptions(strict_trust=True),
         )
         assert proposal == original
+
+    def test_default_pipeline_options_strict_trust_is_true(self) -> None:
+        """The secure default: PipelineOptions() constructed without arguments
+        yields strict_trust=True and emits no PICLegacyTrustModeWarning."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", PICLegacyTrustModeWarning)
+            options = PipelineOptions()
+        assert options.strict_trust is True
+
+    def test_explicit_false_emits_legacy_trust_mode_warning(self) -> None:
+        """PipelineOptions(strict_trust=False) fires PICLegacyTrustModeWarning
+        at construction time. The message identifies the legacy opt-in as a
+        compatibility mode, not a removal announcement."""
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            options = PipelineOptions(strict_trust=False)
+        assert options.strict_trust is False

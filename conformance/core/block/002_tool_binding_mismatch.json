@@ -1,7 +1,7 @@
 {
   "id": "core-block-002-tool-binding-mismatch",
-  "description": "Proposal that would otherwise pass the verifier (trusted-money shape, proposal content byte-identical to core-allow-002-trusted-money) is rejected with PIC_TOOL_BINDING_MISMATCH because options.expected_tool='wrong_tool' does not match proposal.action.tool='payments_send'. Exercises the tool-binding enforcement rule in isolation: the proposal itself is verifier-clean; only the options field flips the outcome. Paired with core-allow-002-trusted-money, the only content-level difference across the two vectors is the presence of this options field.",
-  "source": "adapted from tests/conftest.py money_proposal fixture; proposal content identical to core-allow-002-trusted-money, only options.expected_tool differs; exercises the rule that under options.expected_tool, any mismatch between expected_tool and proposal.action.tool is rejected with PIC_TOOL_BINDING_MISMATCH",
+  "description": "Proposal that would otherwise pass the verifier (trusted-money shape, proposal content byte-identical to core-allow-002-trusted-money) is rejected with PIC_TOOL_BINDING_MISMATCH because options.expected_tool='wrong_tool' does not match proposal.action.tool='payments_send'. Exercises the tool-binding enforcement rule in isolation: the proposal itself is verifier-clean under legacy trust mode; only options.expected_tool flips the outcome. Under secure-default semantics, this vector intentionally exercises legacy trust mode via explicit `strict_trust=false` so trust sanitization does not fire before the tool-binding check; this preserves the isolate-the-rule intent. Paired with core-allow-002-trusted-money, both vectors share `strict_trust=false` and differ only in options.expected_tool.",
+  "source": "adapted from tests/conftest.py money_proposal fixture; proposal content identical to core-allow-002-trusted-money and both use explicit strict_trust=false; only options.expected_tool differs across the paired vectors; exercises the rule that under options.expected_tool, any mismatch between expected_tool and proposal.action.tool is rejected with PIC_TOOL_BINDING_MISMATCH",
   "expected": "block",
   "expected_error_code": "PIC_TOOL_BINDING_MISMATCH",
   "proposal": {
@@ -20,6 +20,7 @@
     }
   },
   "options": {
-    "expected_tool": "wrong_tool"
+    "expected_tool": "wrong_tool",
+    "strict_trust": false
   }
 }

@@ -70,7 +70,12 @@ def cmd_evidence_verify(proposal_path: Path) -> int:
     return 4
 
 
-def cmd_verify(proposal_path: Path, *, verify_evidence: bool = False) -> int:
+def cmd_verify(
+    proposal_path: Path,
+    *,
+    verify_evidence: bool = False,
+    legacy_trust: bool = False,
+) -> int:
     # Intentionally run schema command first for stable CLI UX / exit-code messaging.
     # verify_proposal() validates schema again internally (shared pipeline path).
     code = cmd_schema(proposal_path)
@@ -85,6 +90,7 @@ def cmd_verify(proposal_path: Path, *, verify_evidence: bool = False) -> int:
             verify_evidence=verify_evidence,
             proposal_base_dir=proposal_path.parent,
             evidence_root_dir=proposal_path.parent,
+            strict_trust=not legacy_trust,
         ),
     )
 
@@ -280,6 +286,15 @@ def build_parser() -> argparse.ArgumentParser:
             "See docs/spec-evidence.md section 8."
         ),
     )
+    s2.add_argument(
+        "--legacy-trust",
+        action="store_true",
+        help=(
+            "Use legacy trust mode. Self-asserted provenance trust is not "
+            "sanitized. This is a compatibility mode; the secure default "
+            "is strict trust."
+        ),
+    )
 
     s3 = sub.add_parser("evidence-verify", help="Verify evidence only (v0.3: sha256)")
     s3.add_argument("proposal", type=Path)
@@ -351,7 +366,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "evidence-verify":
         return cmd_evidence_verify(args.proposal)
     if args.command == "verify":
-        return cmd_verify(args.proposal, verify_evidence=getattr(args, "verify_evidence", False))
+        return cmd_verify(
+            args.proposal,
+            verify_evidence=getattr(args, "verify_evidence", False),
+            legacy_trust=getattr(args, "legacy_trust", False),
+        )
     if args.command == "policy":
         return cmd_policy(
             repo_root=args.repo_root,

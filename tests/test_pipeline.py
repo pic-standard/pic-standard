@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import pytest
 from conftest import make_proposal
 from pic_standard.errors import PICErrorCode
 from pic_standard.pipeline import (
     PICEvaluateLimits,
+    PICLegacyTrustModeWarning,
     PipelineOptions,
     PipelineResult,
     verify_proposal,
@@ -17,7 +19,14 @@ from pic_standard.policy import PICPolicy
 
 class TestPipelineSchemaValidation:
     def test_valid_proposal_passes(self, money_proposal: dict) -> None:
-        result = verify_proposal(money_proposal)
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(strict_trust=False),
+            )
         assert result.ok
         assert result.error is None
 
@@ -206,7 +215,14 @@ class TestPipelineDuplicateProvenanceId:
 
 class TestPipelineVerifierRules:
     def test_trusted_money_passes(self, money_proposal: dict) -> None:
-        result = verify_proposal(money_proposal)
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(strict_trust=False),
+            )
         assert result.ok
         assert result.action_proposal is not None
 
@@ -228,31 +244,46 @@ class TestPipelineVerifierRules:
 
 class TestPipelineToolBinding:
     def test_matching_tool_passes(self, money_proposal: dict) -> None:
-        result = verify_proposal(
-            money_proposal,
-            options=PipelineOptions(
-                expected_tool="payments_send",
-            ),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(
+                    expected_tool="payments_send",
+                    strict_trust=False,
+                ),
+            )
         assert result.ok
 
     def test_mismatched_tool_fails(self, money_proposal: dict) -> None:
-        result = verify_proposal(
-            money_proposal,
-            options=PipelineOptions(
-                expected_tool="wrong_tool",
-            ),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(
+                    expected_tool="wrong_tool",
+                    strict_trust=False,
+                ),
+            )
         assert not result.ok
         assert result.error.code == PICErrorCode.TOOL_BINDING_MISMATCH
 
     def test_no_expected_tool_skips_binding(self, money_proposal: dict) -> None:
-        result = verify_proposal(
-            money_proposal,
-            options=PipelineOptions(
-                expected_tool=None,
-            ),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(
+                    expected_tool=None,
+                    strict_trust=False,
+                ),
+            )
         assert result.ok
 
 
@@ -273,21 +304,31 @@ class TestPipelineLimits:
         assert result.error.code == PICErrorCode.LIMIT_EXCEEDED
 
     def test_normal_size_passes(self, money_proposal: dict) -> None:
-        result = verify_proposal(
-            money_proposal,
-            options=PipelineOptions(
-                limits=PICEvaluateLimits(),
-            ),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(
+                    limits=PICEvaluateLimits(),
+                    strict_trust=False,
+                ),
+            )
         assert result.ok
 
     def test_no_limits_skips_check(self, money_proposal: dict) -> None:
-        result = verify_proposal(
-            money_proposal,
-            options=PipelineOptions(
-                limits=None,
-            ),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(
+                    limits=None,
+                    strict_trust=False,
+                ),
+            )
         assert result.ok
 
     def test_too_many_provenance_blocked(self) -> None:
@@ -346,12 +387,17 @@ class TestPipelineImpactResolution:
 
 class TestPipelineEvidence:
     def test_evidence_skipped_when_false(self, money_proposal: dict) -> None:
-        result = verify_proposal(
-            money_proposal,
-            options=PipelineOptions(
-                verify_evidence=False,
-            ),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(
+                    verify_evidence=False,
+                    strict_trust=False,
+                ),
+            )
         assert result.ok
         assert result.evidence_report is None
 
@@ -380,22 +426,32 @@ class TestPipelineEvidence:
 
 class TestPipelineTimeBudget:
     def test_no_budget_skips_check(self, money_proposal: dict) -> None:
-        result = verify_proposal(
-            money_proposal,
-            options=PipelineOptions(
-                limits=None,
-                time_budget_ms=None,
-            ),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(
+                    limits=None,
+                    time_budget_ms=None,
+                    strict_trust=False,
+                ),
+            )
         assert result.ok
 
     def test_generous_budget_passes(self, money_proposal: dict) -> None:
-        result = verify_proposal(
-            money_proposal,
-            options=PipelineOptions(
-                time_budget_ms=10_000,
-            ),
-        )
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(
+                    time_budget_ms=10_000,
+                    strict_trust=False,
+                ),
+            )
         assert result.ok
 
 
@@ -406,7 +462,14 @@ class TestPipelineTimeBudget:
 
 class TestPipelineResult:
     def test_ok_result_shape(self, money_proposal: dict) -> None:
-        result = verify_proposal(money_proposal)
+        with pytest.warns(
+            PICLegacyTrustModeWarning,
+            match="strict_trust=False enables legacy trust behavior",
+        ):
+            result = verify_proposal(
+                money_proposal,
+                options=PipelineOptions(strict_trust=False),
+            )
         assert isinstance(result, PipelineResult)
         assert result.ok is True
         assert result.action_proposal is not None

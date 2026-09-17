@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
 from pic_standard.integrations.mcp_pic_guard import guard_mcp_tool_async
+from pic_standard.pipeline import PICLegacyTrustModeWarning
 from pic_standard.policy import PICPolicy
 
 
@@ -31,9 +33,14 @@ def test_async_guard_times_out_tool_execution():
         policy=policy,
         verify_evidence=False,
         max_tool_ms=10,  # 10ms timeout
+        strict_trust=False,
     )
 
-    out = asyncio.run(wrapped(amount=500, __pic=_proposal("trusted")))
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        out = asyncio.run(wrapped(amount=500, __pic=_proposal("trusted")))
 
     assert isinstance(out, dict)
     assert out.get("isError") is True

@@ -233,7 +233,7 @@ The injectable trust-resolution interface introduced in v0.7. Custom resolvers p
 
 ### `strict_trust` mode
 
-Trust-sanitization mode introduced in v0.7.5. When enabled, all inbound provenance trust is sanitized to `untrusted` and only evidence verification can upgrade it. Default `False` in v0.8.0; scheduled to become the default and only conformant mode in v1.0.
+Trust-sanitization mode introduced in v0.7.5. When enabled, all inbound provenance trust is sanitized to `untrusted` and only authority-bearing evidence verification (currently signature evidence) can upgrade it. Default `True` as of v0.9.0a2 (the secure default). Legacy compatibility mode (`strict_trust=False`) remains callable and emits `PICLegacyTrustModeWarning` at construction; its removal is not scheduled in the v0.9.x series.
 
 **Source:** [README.md §Keyring (Trusted Signers)](../README.md), [migration-trust-sanitization.md](migration-trust-sanitization.md)
 

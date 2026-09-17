@@ -114,6 +114,7 @@ from pic_standard.canonical import (  # noqa: E402 (sys.path setup above)
 )
 from pic_standard.keyring import StaticKeyRingResolver, TrustedKeyRing  # noqa: E402
 from pic_standard.pipeline import (  # noqa: E402
+    PICLegacyTrustModeWarning,
     PICTrustFutureWarning,
     PipelineOptions,
     verify_proposal,
@@ -1052,7 +1053,9 @@ def _run_core_vector(vec: Dict[str, Any], entry: Dict[str, Any]) -> VectorResult
         )
 
     try:
-        options = PipelineOptions(**options_dict)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=PICLegacyTrustModeWarning)
+            options = PipelineOptions(**options_dict)
     except Exception as e:
         return VectorResult(
             id=vid,
@@ -1402,7 +1405,9 @@ def _run_evidence_vector(vec: Dict[str, Any], entry: Dict[str, Any]) -> VectorRe
         options_dict = {**options_dict, "key_resolver": key_resolver}
 
     try:
-        options = PipelineOptions(**options_dict)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=PICLegacyTrustModeWarning)
+            options = PipelineOptions(**options_dict)
     except Exception as e:
         return VectorResult(
             id=vid,
@@ -1716,7 +1721,9 @@ def _run_trust_sanitization_vector(vec: Dict[str, Any], entry: Dict[str, Any]) -
         }
 
     try:
-        options = PipelineOptions(**options_dict)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=PICLegacyTrustModeWarning)
+            options = PipelineOptions(**options_dict)
     except Exception as e:
         return VectorResult(
             id=vid,

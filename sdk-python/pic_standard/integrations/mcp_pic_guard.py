@@ -94,7 +94,7 @@ def evaluate_pic_for_tool_call(
     proposal_base_dir: Optional[Path] = None,
     evidence_root_dir: Optional[Path] = None,
     request_id: Optional[str] = None,
-    strict_trust: bool = False,
+    strict_trust: bool = True,
     key_resolver: Any = None,
 ) -> Tuple[Optional[ActionProposal], Dict[str, Any]]:
     """
@@ -205,7 +205,7 @@ def guard_mcp_tool(
     verify_evidence: bool = False,
     proposal_base_dir: Optional[Path] = None,
     evidence_root_dir: Optional[Path] = None,
-    strict_trust: bool = False,
+    strict_trust: bool = True,
     key_resolver: Any = None,
 ) -> Callable[..., Any]:
     """
@@ -285,7 +285,7 @@ def guard_mcp_tool_async(
     proposal_base_dir: Optional[Path] = None,
     evidence_root_dir: Optional[Path] = None,
     max_tool_ms: Optional[int] = None,
-    strict_trust: bool = False,
+    strict_trust: bool = True,
     key_resolver: Any = None,
 ) -> Callable[..., Awaitable[Any]]:
     """
