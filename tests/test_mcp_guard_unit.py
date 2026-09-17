@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
 from pic_standard.integrations.mcp_pic_guard import guard_mcp_tool, guard_mcp_tool_async
+from pic_standard.pipeline import PICLegacyTrustModeWarning
 from pic_standard.policy import PICPolicy
 
 
@@ -46,9 +48,19 @@ def test_guard_blocks_untrusted_money():
 
 def test_guard_allows_trusted_money():
     policy = PICPolicy(impact_by_tool={"payments_send": "money"})
-    wrapped = guard_mcp_tool("payments_send", _tool, policy=policy, verify_evidence=False)
+    wrapped = guard_mcp_tool(
+        "payments_send",
+        _tool,
+        policy=policy,
+        verify_evidence=False,
+        strict_trust=False,
+    )
 
-    out = wrapped(amount=500, __pic=_proposal("trusted"))
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        out = wrapped(amount=500, __pic=_proposal("trusted"))
 
     # ✅ New deterministic success envelope contract (v0.3.2 hardening)
     assert out == {"isError": False, "result": "sent $500"}
@@ -56,12 +68,22 @@ def test_guard_allows_trusted_money():
 
 def test_guard_blocks_tool_binding_mismatch():
     policy = PICPolicy(impact_by_tool={"payments_send": "money"})
-    wrapped = guard_mcp_tool("payments_send", _tool, policy=policy, verify_evidence=False)
+    wrapped = guard_mcp_tool(
+        "payments_send",
+        _tool,
+        policy=policy,
+        verify_evidence=False,
+        strict_trust=False,
+    )
 
     bad = _proposal("trusted")
     bad["action"]["tool"] = "some_other_tool"  # mismatch on purpose
 
-    out = wrapped(amount=500, __pic=bad)
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        out = wrapped(amount=500, __pic=bad)
     assert isinstance(out, dict)
     assert out.get("isError") is True
 
@@ -81,9 +103,19 @@ def test_mcp_guard_does_not_leak_internal_exception_details_by_default(monkeypat
         raise RuntimeError("secret path C:\\users\\bob\\prod.key")
 
     policy = PICPolicy(impact_by_tool={"payments_send": "money"})
-    wrapped = guard_mcp_tool("payments_send", boom, policy=policy, verify_evidence=False)
+    wrapped = guard_mcp_tool(
+        "payments_send",
+        boom,
+        policy=policy,
+        verify_evidence=False,
+        strict_trust=False,
+    )
 
-    out = wrapped(amount=1, __pic=_proposal("trusted"))
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        out = wrapped(amount=1, __pic=_proposal("trusted"))
     assert isinstance(out, dict)
     assert out.get("isError") is True
     err = out.get("error") or {}
@@ -100,9 +132,19 @@ def test_mcp_guard_leaks_internal_exception_details_when_debug(monkeypatch):
         raise RuntimeError("leak-me")
 
     policy = PICPolicy(impact_by_tool={"payments_send": "money"})
-    wrapped = guard_mcp_tool("payments_send", boom, policy=policy, verify_evidence=False)
+    wrapped = guard_mcp_tool(
+        "payments_send",
+        boom,
+        policy=policy,
+        verify_evidence=False,
+        strict_trust=False,
+    )
 
-    out = wrapped(amount=1, __pic=_proposal("trusted"))
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        out = wrapped(amount=1, __pic=_proposal("trusted"))
     err = out.get("error") or {}
     details = err.get("details") or {}
     assert details.get("exception_type") == "RuntimeError"

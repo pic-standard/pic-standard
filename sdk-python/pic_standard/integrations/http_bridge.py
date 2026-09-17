@@ -280,11 +280,18 @@ def handle_verify(
     proposal_base_dir: Path,
     evidence_root_dir: Optional[Path],
     request_id: Optional[str] = None,
+    strict_trust: bool = True,
 ) -> Dict[str, Any]:
     """
     Run PIC verification and return a structured response dict.
 
     Always returns - never raises.
+
+    ``strict_trust=True`` is the secure default: self-asserted
+    provenance trust is sanitized to ``untrusted`` before the causal-
+    contract check runs. ``strict_trust=False`` is legacy compatibility
+    mode; the underlying ``PipelineOptions`` construction emits
+    ``PICLegacyTrustModeWarning`` when legacy mode is opted into.
     """
     if request_id is None:
         request_id = _generate_request_id()
@@ -341,6 +348,7 @@ def handle_verify(
             verify_evidence=verify_evidence,
             proposal_base_dir=proposal_base_dir,
             evidence_root_dir=evidence_root_dir,
+            strict_trust=strict_trust,
         )
         eval_ms = int((time.perf_counter() - t0) * 1000)
         log.info("ALLOW tool=%s eval_ms=%d", tool_name.strip(), eval_ms)

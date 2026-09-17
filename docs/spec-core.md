@@ -570,20 +570,26 @@ and [`migration-trust-sanitization.md`](migration-trust-sanitization.md):
 > establishes content-integrity but does not, by itself, upgrade
 > trust; see [`spec-evidence.md §8`](spec-evidence.md#8-trust-upgrade-rules).
 
-This axiom is enforced behaviorally via the `strict_trust` option:
+This axiom is enforced behaviorally via the `strict_trust` option.
+As of v0.9.0a2, `strict_trust=True` is the secure default; the
+options below describe the two callable modes:
 
-- when `strict_trust=False` (legacy, current default), the verifier
-  accepts inbound `provenance[].trust` values at face value. An
-  implementation SHOULD surface an operator-visible migration signal
-  when self-asserted `trust="trusted"` is present and authority-bearing
-  evidence verification will not derive effective trust for the
-  proposal. The Python reference implementation emits
-  `PICTrustFutureWarning`; warning class names are
+- when `strict_trust=True` (secure default), the verifier sanitizes
+  all inbound `provenance[].trust` values from `"trusted"` to
+  `"untrusted"` before authority-bearing evidence-driven trust
+  upgrade and before the causal-taint check.
+- when `strict_trust=False` (legacy compatibility opt-in), the
+  verifier accepts inbound `provenance[].trust` values at face
+  value. Constructing options with `strict_trust=False` emits an
+  implementation-visible legacy-mode warning; the Python reference
+  implementation raises `PICLegacyTrustModeWarning` at
+  `PipelineOptions` construction. Additionally, when self-asserted
+  `trust="trusted"` is present and authority-bearing evidence
+  verification will not derive effective trust for the proposal, an
+  implementation SHOULD surface an operator-visible migration
+  signal; the Python reference implementation emits
+  `PICTrustFutureWarning`. Warning class names are
   implementation-specific and Informative.
-- when `strict_trust=True`, the verifier sanitizes all inbound
-  `provenance[].trust` values from `"trusted"` to `"untrusted"`
-  before authority-bearing evidence-driven trust upgrade and before
-  the causal-taint check.
 
 ### 10.2 Sanitization mechanics
 
@@ -611,10 +617,15 @@ The trust-axiom rollout is documented normatively in
 | v0.8.0 | `PICTrustFutureWarning` emitted; `strict_trust` option added (default `False`). |
 | v0.8.1 | `PICSemiTrustedDeprecationWarning` for `trust="semi_trusted"`; value normalized to `"untrusted"` at model-validation boundary. |
 | v0.9.0a1 | `"semi_trusted"` removed from the schema enum. `PICSemiTrustedDeprecationWarning` and the v0.8.1 model-validation normalization are deleted. Proposals carrying it fail validation with `PIC_SCHEMA_INVALID`. |
-| v1.0 (planned) | `strict_trust=True` is the default and the only conformant mode. Non-sanitizing mode is explicitly legacy and non-conformant. |
+| v0.9.0a2 | Secure default flipped: `strict_trust=True` becomes the default in `PipelineOptions`. `strict_trust=False` remains callable as an explicit legacy compatibility opt-in and emits `PICLegacyTrustModeWarning` at `PipelineOptions` construction. |
+| v1.0 (planned) | A future major release may consider removing legacy trust mode (`strict_trust=False`), but removal is not scheduled in the v0.9.x series. |
 
-Implementations targeting PIC v1.0 SHOULD enable `strict_trust=True`
-in advance to surface migration issues before the default flip.
+As of v0.9.0a2 the secure default is `strict_trust=True`; conforming
+implementations MUST default to secure trust mode. Implementations
+that need legacy behavior for compatibility with pre-v0.9.0a2
+producers MAY expose `strict_trust=False` as an explicit opt-in and
+MUST surface an implementation-visible legacy-mode signal at that
+opt-in.
 
 ---
 

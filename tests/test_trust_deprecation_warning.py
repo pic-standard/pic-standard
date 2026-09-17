@@ -24,6 +24,7 @@ import pytest
 from conftest import make_proposal
 from pic_standard.errors import PICErrorCode
 from pic_standard.pipeline import (
+    PICLegacyTrustModeWarning,
     PICTrustFutureWarning,
     PipelineOptions,
     verify_proposal,
@@ -37,11 +38,11 @@ class TestTrustFutureWarning:
     def test_warning_fires_on_self_asserted_trust_without_evidence(self) -> None:
         """trust='trusted' + verify_evidence=False -> warning emitted, result still ok."""
         proposal = make_proposal(trust="trusted", impact="money")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=PICLegacyTrustModeWarning)
+            options = PipelineOptions(verify_evidence=False, strict_trust=False)
         with pytest.warns(PICTrustFutureWarning):
-            result = verify_proposal(
-                proposal,
-                options=PipelineOptions(verify_evidence=False, strict_trust=False),
-            )
+            result = verify_proposal(proposal, options=options)
         assert result.ok
 
     def test_no_warning_when_evidence_will_actually_run(self) -> None:
@@ -113,24 +114,24 @@ class TestTrustFutureWarning:
         because there are no evidence entries and no policy requiring evidence.
         """
         proposal = make_proposal(trust="trusted", impact="money")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=PICLegacyTrustModeWarning)
+            options = PipelineOptions(verify_evidence=True, strict_trust=False)
         with pytest.warns(PICTrustFutureWarning):
-            result = verify_proposal(
-                proposal,
-                options=PipelineOptions(verify_evidence=True, strict_trust=False),
-            )
+            result = verify_proposal(proposal, options=options)
         assert result.ok
 
     def test_warning_message_contains_migration_guidance(self) -> None:
         """Warning text must mention key migration concepts."""
         proposal = make_proposal(trust="trusted", impact="money")
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=PICLegacyTrustModeWarning)
+            options = PipelineOptions(verify_evidence=False, strict_trust=False)
         with pytest.warns(PICTrustFutureWarning) as record:
-            verify_proposal(
-                proposal,
-                options=PipelineOptions(verify_evidence=False, strict_trust=False),
-            )
+            verify_proposal(proposal, options=options)
         assert len(record) == 1
         msg = str(record[0].message)
-        assert "verifiable evidence" in msg
+        assert "authority-bearing signature evidence" in msg
         assert "strict_trust=True" in msg
         assert "migration-trust-sanitization.md" in msg
 
@@ -163,7 +164,10 @@ class TestSemiTrustedRemoved:
             intent="search",
         )
         proposal["provenance"][0]["trust"] = "semi_trusted"
-        result = verify_proposal(proposal, options=PipelineOptions(strict_trust=False))
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=PICLegacyTrustModeWarning)
+            options = PipelineOptions(strict_trust=False)
+        result = verify_proposal(proposal, options=options)
         assert not result.ok
         assert result.error is not None
         assert result.error.code == PICErrorCode.SCHEMA_INVALID

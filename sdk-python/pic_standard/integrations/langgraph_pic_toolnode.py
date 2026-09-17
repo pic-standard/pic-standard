@@ -31,7 +31,7 @@ class PICToolNode:
     tools: list[BaseTool]
     policy: Any = None
     verify_evidence: bool = False
-    strict_trust: bool = False
+    strict_trust: bool = True
     key_resolver: Any = None
     proposal_base_dir: Optional[Path] = None
     evidence_root_dir: Optional[Path] = None

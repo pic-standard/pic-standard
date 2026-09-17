@@ -15,6 +15,7 @@ from pic_standard.integrations.http_bridge import (
     PICEvaluateLimits,
     handle_verify,
 )
+from pic_standard.pipeline import PICLegacyTrustModeWarning
 from pic_standard.policy import PICPolicy
 
 # ------------------------------------------------------------------
@@ -35,7 +36,13 @@ def _proposal(trust: str) -> dict:
     }
 
 
-def _verify(tool_name: str, tool_args: dict, policy: PICPolicy = POLICY) -> dict:
+def _verify(
+    tool_name: str,
+    tool_args: dict,
+    policy: PICPolicy = POLICY,
+    *,
+    strict_trust: bool = True,
+) -> dict:
     """Shortcut: call handle_verify with sensible defaults."""
     return handle_verify(
         {"tool_name": tool_name, "tool_args": tool_args},
@@ -44,6 +51,7 @@ def _verify(tool_name: str, tool_args: dict, policy: PICPolicy = POLICY) -> dict
         verify_evidence=False,
         proposal_base_dir=Path(".").resolve(),
         evidence_root_dir=None,
+        strict_trust=strict_trust,
     )
 
 
@@ -65,7 +73,15 @@ def test_bridge_blocks_untrusted_money():
 
 
 def test_bridge_allows_trusted_money():
-    result = _verify("payments_send", {"amount": 500, "__pic": _proposal("trusted")})
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        result = _verify(
+            "payments_send",
+            {"amount": 500, "__pic": _proposal("trusted")},
+            strict_trust=False,
+        )
     assert result["allowed"] is True
     assert result["error"] is None
     assert isinstance(result["eval_ms"], int)
@@ -75,7 +91,15 @@ def test_bridge_blocks_tool_binding_mismatch():
     bad = _proposal("trusted")
     bad["action"]["tool"] = "some_other_tool"
 
-    result = _verify("payments_send", {"amount": 500, "__pic": bad})
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        result = _verify(
+            "payments_send",
+            {"amount": 500, "__pic": bad},
+            strict_trust=False,
+        )
     assert result["allowed"] is False
 
     code = result["error"]["code"].upper()
@@ -131,15 +155,23 @@ def test_bridge_leaks_details_when_debug(monkeypatch):
 def test_bridge_audit_shape_allow(caplog):
     caplog.set_level("INFO", logger="pic_standard.audit")
 
-    result = handle_verify(
-        {"tool_name": "payments_send", "tool_args": {"amount": 500, "__pic": _proposal("trusted")}},
-        policy=POLICY,
-        limits=PICEvaluateLimits(),
-        verify_evidence=False,
-        proposal_base_dir=Path(".").resolve(),
-        evidence_root_dir=None,
-        request_id="req-audit-allow",
-    )
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        result = handle_verify(
+            {
+                "tool_name": "payments_send",
+                "tool_args": {"amount": 500, "__pic": _proposal("trusted")},
+            },
+            policy=POLICY,
+            limits=PICEvaluateLimits(),
+            verify_evidence=False,
+            proposal_base_dir=Path(".").resolve(),
+            evidence_root_dir=None,
+            request_id="req-audit-allow",
+            strict_trust=False,
+        )
     assert result["allowed"] is True
 
     record = next(
@@ -383,13 +415,17 @@ def test_bridge_version_endpoint(bridge_url):
     assert modes == ["canonicalization", "core", "evidence", "trust_sanitization"]
 
 
-def test_bridge_http_allows_trusted(bridge_url):
+def test_bridge_http_blocks_trusted_under_secure_default(bridge_url):
+    """The HTTP server path uses the secure trust default and blocks self-asserted trusted money.
+
+    Legacy-trust HTTP server plumbing is deferred.
+    """
     result = _http_post(
         f"{bridge_url}/verify",
         {"tool_name": "payments_send", "tool_args": {"amount": 500, "__pic": _proposal("trusted")}},
     )
-    assert result["allowed"] is True
-    assert result["error"] is None
+    assert result["allowed"] is False
+    assert result["error"]["code"] == "PIC_VERIFIER_FAILED"
     assert isinstance(result["eval_ms"], int)
     # Phase 2.2: request_id should be present
     assert "request_id" in result

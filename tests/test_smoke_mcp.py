@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import pytest
 from conftest import make_proposal
+from pic_standard.pipeline import PICLegacyTrustModeWarning
 
 # ---------------------------------------------------------------------------
 # Upstream MCP SDK importability (exact symbols used by demos)
@@ -63,7 +64,7 @@ def test_evaluate_pic_allows_low_impact_without_proposal():
 
 
 def test_evaluate_pic_allows_trusted_money_proposal():
-    """evaluate_pic_for_tool_call(): valid trusted money proposal → allowed, __pic still in args."""
+    """evaluate_pic_for_tool_call(): valid trusted money proposal → allowed under legacy trust mode, __pic still in args."""
     from pic_standard.integrations.mcp_pic_guard import evaluate_pic_for_tool_call
     from pic_standard.policy import PICPolicy
 
@@ -79,11 +80,16 @@ def test_evaluate_pic_allows_trusted_money_proposal():
         args={"to": "vendor", "amount": 50},
     )
 
-    ap, returned_args = evaluate_pic_for_tool_call(
-        tool_name="payments_send",
-        tool_args={"to": "vendor", "amount": 50, "__pic": proposal},
-        policy=policy,
-    )
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        ap, returned_args = evaluate_pic_for_tool_call(
+            tool_name="payments_send",
+            tool_args={"to": "vendor", "amount": 50, "__pic": proposal},
+            policy=policy,
+            strict_trust=False,
+        )
 
     assert ap is not None
     assert "__pic" in returned_args  # stripping happens in guard_mcp_tool(), not here
