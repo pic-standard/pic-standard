@@ -16,10 +16,9 @@
 
 > **Contributors wanted.** PIC is recruiting its first external contributors and
 > co-maintainers. Start with the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117)
-> and the pinned good-first issues. Today, PIC has a Python reference implementation;
-> a second implementation in TypeScript, Go, or Rust is open to own ([#48](https://github.com/pic-standard/pic-standard/issues/48)).
+> and the pinned good-first issues. TypeScript now has a public implementation at [`pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts); Go and Rust are the next high-value implementation tracks.
 
-> **v0.9.0a2 (2026-09-17):** Secure trust default. `strict_trust=True` is now the default; legacy mode remains callable as explicit opt-in. See [CHANGELOG](CHANGELOG.md) for the full v0.9.0a2 alpha changes.
+> **v0.9.0 (2026-09-21):** Stable cross-implementation milestone. PIC is no longer only a Python reference implementation: the public TypeScript verifier at [`pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts) passes the shared conformance corpus for `canonicalization`, `core`, and `trust_sanitization`. The release also incorporates hardening from independent protocol stress-test work and internal cross-implementation checks, including stricter host-language canonicalization rules and a normative differential-conformance contract. Advisory differential CI now compares Python and TypeScript envelopes on PRs targeting `main`. Evidence-mode TypeScript parity remains a v0.9.x completion item. See [CHANGELOG](CHANGELOG.md) for the full v0.9.0 story.
 
 PIC is a lightweight, local-first protocol that forces AI agents to **prove** every important action before it happens. Agents must declare intent, impact, provenance, and evidence; PIC verifies everything and **fails closed** if anything is wrong.
 
@@ -39,6 +38,7 @@ PIC is not agent identity or delegation infrastructure; PIC is the action-bound 
 - [How It Works](#how-it-works)
 - [Evidence Verification](#evidence-verification)
 - [Keyring (Trusted Signers)](#keyring-trusted-signers)
+- [Implementations](#implementations)
 - [Integrations](#integrations)
 - [RFC & Prior Art](#rfc--prior-art)
 - [Roadmap](#roadmap)
@@ -123,13 +123,14 @@ PIC is enforced at the moment before tool execution. The agent must emit a struc
 ## How It Works
 ```mermaid
 graph TD
-    A[Untrusted Input] --> B{AI Agent / Planner}
-    C[Trusted Data/DB] --> B
-    B --> D[Action Proposal JSON]
+    A[User input / external context] --> B[AI Agent / Planner]
+    C[Internal data / system context] --> B
+    B --> D[PIC Action Proposal JSON]
     D --> E[PIC Verifier]
-    E --> F{Valid Contract?}
+    E --> F{Intent, provenance, impact, evidence valid?}
     F -- Yes --> G[Tool Executor]
-    F -- No --> H[Blocked / Alert Log]
+    F -- No --> H[Blocked / Audit Log]
+    G --> I[API / DB / File / Payment / External Action]
 ```
 
 ---
@@ -198,6 +199,27 @@ from pic_standard import KeyResolver, StaticKeyRingResolver
 **Trust controls (v0.9.0a2+):** `strict_trust=True` is the secure default: all inbound provenance trust is sanitized to `untrusted`, and only authority-bearing evidence verification, currently signature evidence, can upgrade matching provenance trust. Legacy compatibility mode (`strict_trust=False`) remains callable and emits `PICLegacyTrustModeWarning` at construction. See [docs/migration-trust-sanitization.md](docs/migration-trust-sanitization.md) for migration guide.
 
 Full guide: [docs/keyring.md](docs/keyring.md)
+
+---
+
+## Implementations
+
+- **Python reference implementation:** this repository, published as [`pic-standard`](https://pypi.org/project/pic-standard/) on PyPI.
+- **TypeScript implementation:** [`pic-standard/pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts), passing the shared conformance corpus for `canonicalization`, `core`, and `trust_sanitization` modes. Advisory differential CI in this repository compares Python and TypeScript envelopes on every PR targeting `main`.
+- **Next high-value tracks:** Go and Rust implementations. See the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117) if you want to own one.
+
+```mermaid
+graph TD
+    A[Shared conformance corpus] --> B[Python reference verifier]
+    A --> C[TypeScript verifier]
+    B --> D[Python envelope]
+    C --> E[TypeScript envelope]
+    D --> F[Differential CI]
+    E --> F
+    F --> G{Same semantic result?}
+    G -- Yes --> H[Cross-implementation parity signal]
+    G -- No --> I[Diff artifact: py.json / ts.json / diff.txt]
+```
 
 ---
 
@@ -275,10 +297,12 @@ Verify locally: `sha256sum -c docs/RFC-0001.SHA256`
 - [x] Trust hardening + attestation object draft (v0.7.5)
 - [x] Canonicalization spec (PIC Canonical JSON v1) + reference implementation (v0.8.0)
 - [x] Initial conformance suite (canonicalization + core modes) with CI runner (v0.8.0)
-- [ ] Cross-implementation conformance (TypeScript/Go verifier parity)
+- [x] TypeScript local verifier for `canonicalization`, `core`, and `trust_sanitization`
+- [x] Cross-implementation differential CI (Python vs TypeScript semantic envelopes)
+- [ ] Evidence-mode TypeScript parity
+- [ ] Go/Rust verifier parity
 - [ ] Normative semantics (MUST/SHOULD spec document)
 - [ ] OpenAPI spec + guard hardening (structured audit logs, request correlation)
-- [ ] TypeScript local verifier (second independent implementation)
 
 ---
 
