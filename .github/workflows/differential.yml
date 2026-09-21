@@ -1,0 +1,102 @@
+name: PIC Differential CI (advisory)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  differential:
+    name: Differential (Python vs TypeScript, advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout pic-standard (Repo A)
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: sdk-python/requirements.txt
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Python runtime + crypto dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r sdk-python/requirements.txt
+          pip install -e ".[crypto]"
+
+      - name: Self-test the diff script
+        run: python scripts/test_diff_conformance.py
+
+      - name: Emit Python envelope (py.json)
+        run: |
+          python -m conformance.run \
+            --manifest conformance/manifest.json \
+            --filter-mode canonicalization \
+            --filter-mode core \
+            --filter-mode trust_sanitization \
+            --json > py.json
+
+      - name: Checkout pic-standard-ts main (advisory)
+        uses: actions/checkout@v5
+        with:
+          repository: pic-standard/pic-standard-ts
+          ref: main
+          path: pic-standard-ts
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Install Node dependencies for pic-standard-ts
+        working-directory: pic-standard-ts
+        run: npm ci
+
+      - name: Build pic-standard-ts
+        working-directory: pic-standard-ts
+        run: npm run build
+
+      - name: Emit TypeScript envelope (ts.json)
+        working-directory: pic-standard-ts
+        run: |
+          node dist/run.js \
+            --manifest vendor/pic-standard/conformance/manifest.json \
+            --filter-mode canonicalization \
+            --filter-mode core \
+            --filter-mode trust_sanitization \
+            --json > "$GITHUB_WORKSPACE/ts.json"
+
+      - name: Diff Python vs TypeScript envelopes
+        run: |
+          python scripts/diff_conformance.py py.json ts.json 2> diff.txt || {
+            cat diff.txt >&2
+            exit 1
+          }
+
+      - name: Upload differential artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: differential-envelopes-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            py.json
+            ts.json
+            diff.txt
+          retention-days: 7
+          if-no-files-found: warn
