@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 This project follows Semantic Versioning:
 https://semver.org/
 
+## [0.9.0] - 2026-09-21
+
+Cross-implementation interop milestone. Concludes the v0.9.0a1 -> v0.9.0a2 -> v0.9.0 sequence: v0.9.0 rolls forward the hardening from independent protocol stress-test work and internal checks delivered in v0.9.0a2 (`PIC_DUPLICATE_ID` error code, SHA-256 lowercase-only wire representation, strict Base64 signature representation, exact tool-binding without whitespace normalization, and the `strict_trust=True` secure default with `PICLegacyTrustModeWarning` at explicit `False` opt-in) into a stable baseline, and adds the first TypeScript verifier pass at [`pic-standard/pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts), which passes the shared conformance corpus for the `canonicalization`, `core`, and `trust_sanitization` conformance modes on the shared `conformance/manifest.json` (84 vectors total; 42 in the claimed-mode subset). Advisory cross-implementation differential CI runs on pull requests targeting `main` via `scripts/diff_conformance.py` and `.github/workflows/differential.yml`. The proposal wire format is unchanged from v0.9.0a2. Evidence-mode TypeScript parity is deliberately a v0.9.x completion item. PRs in this release: #150, #151.
+
+### Added
+
+- **Advisory cross-implementation differential CI harness.** New `scripts/diff_conformance.py` (authoritative Python diff script for conformance envelopes) and its 15-test self-test `scripts/test_diff_conformance.py`. New `.github/workflows/differential.yml` workflow that emits the Python and TypeScript conformance envelopes for the three claimed modes and compares the semantic subset defined in [`docs/spec-core.md` §12.1](docs/spec-core.md#121-cross-implementation-semantic-subset-normative). The job is advisory: not part of branch-protection required-checks on `main`. On failure it uploads `py.json`, `ts.json`, and `diff.txt` as run-scoped artifacts (7-day retention).
+- **`docs/canonicalization.md` §7.14 "Host-language input validation" (Normative).** Requires implementations that expose host-language APIs to reject native values that cannot be represented as JSON `null`, boolean, finite number, string, array, or object without coercion, hidden traversal, invoking user code, or losing data. Rejections surface as `PIC_SCHEMA_INVALID` per [`docs/spec-core.md` §9.1](docs/spec-core.md#91-error-code-stability). Codifies the language-independent input contract surfaced during the TypeScript implementation work.
+- **`docs/spec-core.md` §12.1 "Cross-implementation semantic subset" (Normative).** Formalizes the differential-conformance contract that `scripts/diff_conformance.py` implements: the fielded subset used for cross-implementation comparison (`summary.total`, `summary.passed`, `summary.failed`, `summary.all_passed`, `summary.diagnostic`, `exit_code`, ordered `results[] | {id, passed, reason_code}`) and the fields explicitly excluded (freeform `message` fields, `selection`, `manifest_version`, timing fields, `results[].mode`). Result order is part of the comparison.
+
+### Changed
+
+- **`docs/spec-core.md` §7.1 tool-binding wording.** Replaces "when no `expected_tool` is configured" with "when `expected_tool` is absent or the empty string" for precision. Both the Python reference implementation and the TypeScript port treat these two cases identically; the spec now says so directly rather than leaning on "no value" ambiguity.
+
+### Notes
+
+- **Conformance modes claimed by the TypeScript verifier at this milestone:** `canonicalization`, `core`, and `trust_sanitization`. Evidence-mode TypeScript parity remains a v0.9.x completion item (see ROADMAP for the burn-down plan).
+- **Wire format:** unchanged from v0.9.0a2. Producers and verifiers conforming to v0.9.0a2 continue to interoperate; the additions in v0.9.0 are documentation, tooling, and cross-implementation harness only.
+- **Python reference implementation** stays as this repository (`pic-standard/pic-standard`); the TypeScript implementation lives at [`pic-standard/pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts). Both implementations run against the same `conformance/manifest.json` from this repository (Python side: direct source; TypeScript side: vendored submodule pin).
+- **Differential CI posture:** advisory during v0.9.0. Not in the `main` branch-protection required-checks list. A red diff surfaces real signal but does not block merges. Promotion to a required check for release-tag gating is deferred to a later block.
+- **`CITATION.cff`** is updated in a follow-up commit once the Zenodo per-version DOI for v0.9.0 is minted (same pattern as the v0.9.0a1 and v0.9.0a2 releases).
+
+---
+
 ## [0.9.0a2] - 2026-09-17
 
 Alpha 2 stop in the v0.9.0a1 → v0.9.0a2 → v0.9.0 sequence.
