@@ -308,9 +308,9 @@ binding).
   tool-name rewriting when enforcing tool binding.
 - on mismatch, the verifier MUST reject the proposal with
   `PIC_TOOL_BINDING_MISMATCH` (see §9);
-- when no `expected_tool` is configured, tool-binding integrity is
-  the caller's responsibility and the verifier does not enforce
-  this rule.
+- when `expected_tool` is absent or the empty string, tool-binding
+  integrity is the caller's responsibility and the verifier does not
+  enforce this rule.
 
 **Rationale (Informative).** Tool-binding integrity prevents the
 "agent proposed one action but attempted another" failure mode —
@@ -678,6 +678,35 @@ NOT be resolved by silent re-interpretation.
 
 See Appendix B for a per-vector cross-reference mapping conformance
 vector IDs to the section of this DRAFT each one exercises.
+
+### 12.1 Cross-implementation semantic subset (Normative)
+
+For automated cross-implementation differential checks, the semantic comparison MUST use the following subset of the conformance runner's JSON envelope. Runners MAY emit additional fields for human or machine convenience; those fields are ignored by the differential comparison and MAY differ freely across implementations.
+
+**Included in the comparison:**
+
+- `summary.total`
+- `summary.passed`
+- `summary.failed`
+- `summary.all_passed`
+- `summary.diagnostic`
+- `exit_code`
+- `results[]` entries, in emitted order, each projected to `{id, passed, reason_code}`
+
+Result order is part of the comparison: two runners MUST emit `results[]` in the same order for the same selected manifest entries (the manifest's declared order after filter application).
+
+**Excluded from the comparison:**
+
+- `summary.message` (freeform, expected to differ across languages)
+- `results[].message` (freeform)
+- `results[].mode` (not part of the semantic diff contract)
+- `selection` (input reflection, not a conformance signal)
+- `manifest_version` (not part of the semantic diff contract)
+- any timing or wall-clock field
+
+Object keys are sorted only during deterministic serialization inside the comparison; runners are not required to sort their output keys.
+
+The reference implementation of this comparison is [`scripts/diff_conformance.py`](../scripts/diff_conformance.py) in this repository. It reads two envelope JSON files, projects each to the subset above, canonicalizes with sorted keys, byte-compares, and exits `0` on match, `1` on differ (with a unified diff on `stderr`), or `2` on usage or malformed input.
 
 ---
 

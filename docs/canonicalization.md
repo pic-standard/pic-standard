@@ -158,6 +158,28 @@ When a PIC verifier encounters such input inside a proposal, it MUST surface the
 
 This is a classic cross-language trap, particularly for JavaScript and Python host strings that may carry lone surrogates through their string types without raising errors at the host layer.
 
+### 7.14 Host-language input validation (Normative)
+
+PIC-CJSON canonicalizes JSON data-model values only. Implementations that expose host-language APIs (for example, a canonicalization function that accepts a runtime object rather than raw JSON text) MUST reject native values that cannot be represented as JSON `null`, boolean, finite number, string, array, or object without coercion, hidden traversal, invoking user code, or losing data.
+
+Examples of non-representable host values include:
+
+- date/time objects (e.g., JavaScript `Date`, Python `datetime`),
+- `Map`/`Set` or dictionary-like containers that are not plain JSON objects,
+- class instances with custom prototypes,
+- accessor properties (getters/setters) or other properties that require invoking user code,
+- non-enumerable hidden properties,
+- symbol-keyed properties,
+- sparse arrays or arrays with holes,
+- cyclic or shared-reference graphs,
+- unsupported numeric values (see §7.9).
+
+Implementations MUST reject such input **before emitting any canonical bytes**. When a PIC verifier encounters such input inside a proposal, it MUST surface the rejection as `PIC_SCHEMA_INVALID` per [`spec-core.md` §9.1](spec-core.md#91-error-code-stability): the proposal contains a value outside PIC-CJSON's input domain.
+
+Implementations that accept already-serialized JSON text (rather than a host-language value) may not need explicit host-value guards, but MUST still fail on the parsed-value forms this document rejects elsewhere. See §7.3 (non-string keys), §7.4 (duplicate object member names), §7.9 (non-finite numbers), and §7.13 (lone surrogates).
+
+Rationale (Informative): JSON's data model does not include these host-language constructs. Tolerant coercion (for example, silently invoking a `Date`'s `toString()`, iterating a `Set`, or filling in a sparse array's holes) risks admitting inputs whose canonical bytes cannot be reproduced by another implementation, a portability failure by construction.
+
 ---
 
 ## 8. Digest Byte Rules
