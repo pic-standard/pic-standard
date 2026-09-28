@@ -115,6 +115,13 @@
       "expected_error_code": "PIC_TOOL_BINDING_MISMATCH"
     },
     {
+      "id": "core-block-006-missing-required-field",
+      "file": "core/block/006_missing_required_field.json",
+      "mode": "core",
+      "expected": "block",
+      "expected_error_code": "PIC_SCHEMA_INVALID"
+    },
+    {
       "id": "evidence-hash-block-027-no-trust-upgrade-falsifier",
       "file": "evidence/block/027_hash_no_trust_upgrade_falsifier.json",
       "mode": "evidence",
