@@ -1,7 +1,7 @@
 {
   "id": "core-block-006-missing-required-field",
   "description": "A proposal missing the required top-level impact field is rejected during schema validation with PIC_SCHEMA_INVALID.",
-  "source": "adapted from conformance/core/allow/001_read_only.json; exercises docs/spec-core.md §4 required Action Proposal shape and schema validation before other verifier rules",
+  "source": "adapted from examples/read_only_query.json via conformance/core/allow/001_read_only.json; exercises docs/spec-core.md §4 required Action Proposal shape and schema validation before other verifier rules",
   "expected": "block",
   "expected_error_code": "PIC_SCHEMA_INVALID",
   "proposal": {
