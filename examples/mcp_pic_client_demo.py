@@ -103,9 +103,9 @@ def _print_pic(resp: Any, *, expect_block: bool) -> None:
     elif (not is_err) and (not expect_block):
         print("PASS: allowed as expected")
     elif is_err and (not expect_block):
-        print("FAIL: unexpected: trusted money should have been allowed")
+        print("FAIL: unexpected: should have been ALLOWED but was BLOCKED")
     else:
-        print("FAIL: unexpected: untrusted money should have been blocked")
+        print("FAIL: unexpected: should have been BLOCKED but was ALLOWED")
 
     print(json.dumps(env, indent=2, ensure_ascii=False))
 
@@ -117,6 +117,12 @@ async def run() -> None:
         cwd=str(REPO_ROOT),
         env=os.environ.copy(),
     )
+
+    # Load the signature-backed positive-path proposal from disk so the
+    # signature and key_id stay in sync with pic_keys.demo.json without
+    # any inline regeneration inside this demo.
+    signed_proposal_path = REPO_ROOT / "examples" / "financial_sig_ok.json"
+    signed_proposal = json.loads(signed_proposal_path.read_text(encoding="utf-8"))
 
     async with stdio_client(server) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
@@ -131,12 +137,19 @@ async def run() -> None:
         )
         _print_pic(r1, expect_block=True)
 
-        print("\n2) trusted money -> should be ALLOWED")
+        print("\n2) self-declared trusted money with hash evidence -> should be BLOCKED")
         r2 = await session.call_tool(
             "payments_send_tool",
             {"amount": 500, "pic": _proposal("trusted"), "request_id": "demo-req-002"},
         )
-        _print_pic(r2, expect_block=False)
+        _print_pic(r2, expect_block=True)
+
+        print("\n3) signature-backed trusted money -> should be ALLOWED")
+        r3 = await session.call_tool(
+            "payments_send_tool",
+            {"amount": 500, "pic": signed_proposal, "request_id": "demo-req-003"},
+        )
+        _print_pic(r3, expect_block=False)
 
 
 def main() -> None:

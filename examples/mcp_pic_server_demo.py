@@ -43,6 +43,7 @@ except ModuleNotFoundError:
 from mcp.server.fastmcp import FastMCP
 from pic_standard.config import dump_policy, load_policy
 from pic_standard.integrations.mcp_pic_guard import guard_mcp_tool
+from pic_standard.keyring import StaticKeyRingResolver, TrustedKeyRing
 
 mcp = FastMCP("pic-mcp-demo")
 
@@ -54,11 +55,19 @@ def _payments_send(amount: int) -> str:
 POLICY = load_policy(repo_root=REPO_ROOT)
 log.info("Loaded policy: %s", dump_policy(POLICY))
 
+# Load the demo trusted keyring so signature evidence in Case 3
+# resolves against a real public key. Without this, the signature
+# path cannot produce a legitimate trusted-allow outcome.
+KEYRING = TrustedKeyRing.from_json_file(REPO_ROOT / "examples" / "pic_keys.demo.json")
+KEY_RESOLVER = StaticKeyRingResolver(KEYRING)
+log.info("Loaded demo keyring from examples/pic_keys.demo.json")
+
 payments_send = guard_mcp_tool(
     "payments_send",
     _payments_send,
     policy=POLICY,
     verify_evidence=True,
+    key_resolver=KEY_RESOLVER,
     proposal_base_dir=REPO_ROOT,
     evidence_root_dir=REPO_ROOT / "examples",
 )
