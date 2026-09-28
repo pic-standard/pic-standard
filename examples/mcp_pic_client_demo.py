@@ -68,23 +68,44 @@ def _proposal(trust: str) -> dict:
 
 
 def _extract_pic_envelope(resp: Any) -> Optional[dict]:
+    # Try structuredContent first (older MCP versions and some setups
+    # populate this), then fall back to parsing content[0].text as JSON
+    # (newer MCP versions on some platforms serialize dict tool returns
+    # into text content and leave structuredContent as None).
+    candidates: list[dict] = []
+
     sc = getattr(resp, "structuredContent", None)
-    if not isinstance(sc, dict):
-        return None
-    if "result" not in sc:
-        return None
+    if isinstance(sc, dict) and ("result" in sc or "isError" in sc):
+        candidates.append(sc)
 
-    r = sc.get("result")
+    content = getattr(resp, "content", None) or []
+    for item in content:
+        text = getattr(item, "text", None)
+        if not isinstance(text, str):
+            continue
+        try:
+            parsed = json.loads(text)
+        except (TypeError, ValueError):
+            continue
+        if isinstance(parsed, dict) and ("result" in parsed or "isError" in parsed):
+            candidates.append(parsed)
 
-    # A) direct envelope
-    if isinstance(r, dict) and "isError" in r:
-        return r
+    for wrapper in candidates:
+        # A) direct envelope (future MCP behavior)
+        if "isError" in wrapper:
+            return wrapper
 
-    # B) wrapped envelope: {"result": envelope}
-    if isinstance(r, dict) and "result" in r:
-        inner = r.get("result")
-        if isinstance(inner, dict) and "isError" in inner:
-            return inner
+        r = wrapper.get("result")
+
+        # B) wrapped envelope: {"result": envelope}
+        if isinstance(r, dict) and "isError" in r:
+            return r
+
+        # C) doubly-wrapped envelope: {"result": {"result": envelope}}
+        if isinstance(r, dict) and "result" in r:
+            inner = r.get("result")
+            if isinstance(inner, dict) and "isError" in inner:
+                return inner
 
     return None
 
