@@ -1,0 +1,10 @@
+{
+  "id": "canon-014-max-magnitude",
+  "description": "Maximum-magnitude finite binary64 value. Catches premature infinity overflow or rounding alteration.",
+  "source": "RFC 8785 Appendix B (1.7976931348623157e+308)",
+  "input": {
+    "max": 1.7976931348623157e+308
+  },
+  "expected_canonical_bytes_hex": "7b226d6178223a312e37393736393331333438363233313537652b3330387d",
+  "expected_sha256_hex": "3b385c7f9e9f39ed8160a95d3ce0b1052a43b3256ebbbfdeeedb6790ed9c194c"
+}
