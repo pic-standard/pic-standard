@@ -110,28 +110,35 @@ def _extract_pic_envelope(resp: Any) -> Optional[dict]:
     return None
 
 
-def _print_pic(resp: Any, *, expect_block: bool) -> None:
+def _print_pic(resp: Any, *, expect_block: bool) -> bool:
+    """Print PASS/FAIL for one case. Returns True on PASS, False on FAIL."""
     env = _extract_pic_envelope(resp)
     if env is None:
         print("FAIL: could not parse PIC envelope from MCP response")
         print(resp)
-        return
+        return False
 
     is_err = bool(env.get("isError"))
 
     if is_err and expect_block:
         print("PASS: blocked as expected")
+        result = True
     elif (not is_err) and (not expect_block):
         print("PASS: allowed as expected")
+        result = True
     elif is_err and (not expect_block):
         print("FAIL: unexpected: should have been ALLOWED but was BLOCKED")
+        result = False
     else:
         print("FAIL: unexpected: should have been BLOCKED but was ALLOWED")
+        result = False
 
     print(json.dumps(env, indent=2, ensure_ascii=False))
+    return result
 
 
-async def run() -> None:
+async def run() -> bool:
+    """Run the three demo cases. Returns True if all passed, else False."""
     server = ServerParameters(
         command=sys.executable,
         args=["-u", "examples/mcp_pic_server_demo.py"],
@@ -145,6 +152,7 @@ async def run() -> None:
     signed_proposal_path = REPO_ROOT / "examples" / "financial_sig_ok.json"
     signed_proposal = json.loads(signed_proposal_path.read_text(encoding="utf-8"))
 
+    all_pass = True
     async with stdio_client(server) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
 
@@ -156,25 +164,29 @@ async def run() -> None:
             "payments_send_tool",
             {"amount": 500, "pic": _proposal("untrusted"), "request_id": "demo-req-001"},
         )
-        _print_pic(r1, expect_block=True)
+        all_pass &= _print_pic(r1, expect_block=True)
 
         print("\n2) self-declared trusted money with hash evidence -> should be BLOCKED")
         r2 = await session.call_tool(
             "payments_send_tool",
             {"amount": 500, "pic": _proposal("trusted"), "request_id": "demo-req-002"},
         )
-        _print_pic(r2, expect_block=True)
+        all_pass &= _print_pic(r2, expect_block=True)
 
         print("\n3) signature-backed trusted money -> should be ALLOWED")
         r3 = await session.call_tool(
             "payments_send_tool",
             {"amount": 500, "pic": signed_proposal, "request_id": "demo-req-003"},
         )
-        _print_pic(r3, expect_block=False)
+        all_pass &= _print_pic(r3, expect_block=False)
+
+    return all_pass
 
 
 def main() -> None:
-    asyncio.run(run())
+    ok = asyncio.run(run())
+    if not ok:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
