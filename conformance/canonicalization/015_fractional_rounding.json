@@ -1,0 +1,10 @@
+{
+  "id": "canon-015-fractional-rounding",
+  "description": "Round-half-to-even at fractional precision limit. Catches implementations that round .25 up instead of to the nearest even value.",
+  "source": "RFC 8785 Appendix B (1424953923781206.25 -> 1424953923781206.2)",
+  "input": {
+    "edge": 1424953923781206.25
+  },
+  "expected_canonical_bytes_hex": "7b2265646765223a313432343935333932333738313230362e327d",
+  "expected_sha256_hex": "5c50bdd5922fbd4535f1630c739632ef0e0edbea93517b57b4e41e6dc17f3f71"
+}

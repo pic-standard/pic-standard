@@ -1,0 +1,13 @@
+{
+  "id": "canon-013-subnormals",
+  "description": "Positive and negative minimum subnormals. Catches formatters that flush subnormals to 0 or mishandle exponent formatting.",
+  "source": "RFC 8785 Appendix B (5e-324 and -5e-324)",
+  "input": {
+    "subnormals": [
+      5e-324,
+      -5e-324
+    ]
+  },
+  "expected_canonical_bytes_hex": "7b227375626e6f726d616c73223a5b35652d3332342c2d35652d3332345d7d",
+  "expected_sha256_hex": "a5920ee6dfddd69fdc609c81b0d3010581ec03d7b39447fb5e1bb71f246cb055"
+}

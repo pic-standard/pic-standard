@@ -68,6 +68,30 @@
       "expected": "canonical_match"
     },
     {
+      "id": "canon-012-shortest-round-trip",
+      "file": "canonicalization/012_shortest_round_trip.json",
+      "mode": "canonicalization",
+      "expected": "canonical_match"
+    },
+    {
+      "id": "canon-013-subnormals",
+      "file": "canonicalization/013_subnormals.json",
+      "mode": "canonicalization",
+      "expected": "canonical_match"
+    },
+    {
+      "id": "canon-014-max-magnitude",
+      "file": "canonicalization/014_max_magnitude.json",
+      "mode": "canonicalization",
+      "expected": "canonical_match"
+    },
+    {
+      "id": "canon-015-fractional-rounding",
+      "file": "canonicalization/015_fractional_rounding.json",
+      "mode": "canonicalization",
+      "expected": "canonical_match"
+    },
+    {
       "id": "core-allow-001-read-only",
       "file": "core/allow/001_read_only.json",
       "mode": "core",

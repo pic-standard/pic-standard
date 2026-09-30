@@ -1,0 +1,10 @@
+{
+  "id": "canon-012-shortest-round-trip",
+  "description": "Shortest-round-trip decimal precision for 0.1 + 0.2. Catches truncation to 0.3.",
+  "source": "Node.js v24.12.0 JSON.stringify()",
+  "input": {
+    "n": 0.30000000000000004
+  },
+  "expected_canonical_bytes_hex": "7b226e223a302e33303030303030303030303030303030347d",
+  "expected_sha256_hex": "1d8a8e16d9ee625f1fb5ef505413efa212cc020b272ed0f9b3d3d81acf593fde"
+}
