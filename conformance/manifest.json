@@ -104,6 +104,18 @@
       "expected": "allow"
     },
     {
+      "id": "core-allow-003-trusted-privacy",
+      "file": "core/allow/003_trusted_privacy.json",
+      "mode": "core",
+      "expected": "allow"
+    },
+    {
+      "id": "core-allow-004-trusted-irreversible",
+      "file": "core/allow/004_trusted_irreversible.json",
+      "mode": "core",
+      "expected": "allow"
+    },
+    {
       "id": "core-block-001-untrusted-money",
       "file": "core/block/001_untrusted_money.json",
       "mode": "core",

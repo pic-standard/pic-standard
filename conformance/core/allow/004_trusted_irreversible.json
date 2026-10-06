@@ -1,0 +1,34 @@
+{
+  "id": "core-allow-004-trusted-irreversible",
+  "description": "Irreversible-impact proposal with trusted provenance passes the verifier under legacy trust mode. This vector intentionally sets `strict_trust=false`; the secure default remains fail-closed for high-impact proposals.",
+  "source": "Adapted from the tests/conftest.py `make_proposal` fixture shape to exercise the core verifier's trusted-provenance allow rule for irreversible impact under legacy trust mode.",
+  "expected": "allow",
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Delete archived test record #1234 after approved retention review",
+    "impact": "irreversible",
+    "provenance": [
+      {
+        "id": "approved_retention_review",
+        "trust": "trusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Delete archived test record #1234 after approved retention review",
+        "evidence": [
+          "approved_retention_review"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "records_delete",
+      "args": {
+        "record_id": "test-record-1234"
+      }
+    }
+  },
+  "options": {
+    "strict_trust": false
+  }
+}

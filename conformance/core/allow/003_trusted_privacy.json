@@ -1,0 +1,34 @@
+{
+  "id": "core-allow-003-trusted-privacy",
+  "description": "Privacy-impact proposal with trusted provenance passes the verifier under legacy trust mode. This vector intentionally sets `strict_trust=false`; the secure default remains fail-closed for high-impact proposals.",
+  "source": "Adapted from the tests/conftest.py `make_proposal` fixture shape to exercise the core verifier's trusted-provenance allow rule for privacy impact under legacy trust mode.",
+  "expected": "allow",
+  "proposal": {
+    "protocol": "PIC/1.0",
+    "intent": "Retrieve customer contact details for an approved support request",
+    "impact": "privacy",
+    "provenance": [
+      {
+        "id": "approved_customer_record",
+        "trust": "trusted"
+      }
+    ],
+    "claims": [
+      {
+        "text": "Retrieve customer contact details for an approved support request",
+        "evidence": [
+          "approved_customer_record"
+        ]
+      }
+    ],
+    "action": {
+      "tool": "customer_lookup",
+      "args": {
+        "customer_id": "customer-1234"
+      }
+    }
+  },
+  "options": {
+    "strict_trust": false
+  }
+}
