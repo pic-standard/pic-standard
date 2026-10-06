@@ -75,12 +75,15 @@ def cmd_verify(
     *,
     verify_evidence: bool = False,
     legacy_trust: bool = False,
+    json_output: bool = False,
 ) -> int:
-    # Intentionally run schema command first for stable CLI UX / exit-code messaging.
-    # verify_proposal() validates schema again internally (shared pipeline path).
-    code = cmd_schema(proposal_path)
-    if code != 0:
-        return code
+    # Intentionally run schema command first for stable human-readable CLI UX /
+    # exit-code messaging. JSON mode delegates schema validation to the shared
+    # pipeline so stdout remains a single machine-readable object.
+    if not json_output:
+        code = cmd_schema(proposal_path)
+        if code != 0:
+            return code
 
     proposal = load_json(proposal_path)
 
@@ -94,21 +97,38 @@ def cmd_verify(
         ),
     )
 
+    if json_output:
+        print(
+            json.dumps(
+                {
+                    "ok": result.ok,
+                    "impact": result.impact,
+                    "eval_ms": result.eval_ms,
+                    "error": result.error.to_public_dict() if result.error else None,
+                },
+                ensure_ascii=True,
+            )
+        )
+
     if result.ok:
-        print("PASS: Verifier passed")
+        if not json_output:
+            print("PASS: Verifier passed")
         return 0
 
     err = result.error
     if err and err.code == PICErrorCode.SCHEMA_INVALID:
-        print("FAIL: Schema invalid")
-        print(err.message)
+        if not json_output:
+            print("FAIL: Schema invalid")
+            print(err.message)
         return 2
     if err and err.code in (PICErrorCode.EVIDENCE_REQUIRED, PICErrorCode.EVIDENCE_FAILED):
-        print("FAIL: Evidence verification failed")
-        print(err.message)
+        if not json_output:
+            print("FAIL: Evidence verification failed")
+            print(err.message)
         return 4
-    print("FAIL: Verifier failed")
-    print(err.message if err else "Unknown error")
+    if not json_output:
+        print("FAIL: Verifier failed")
+        print(err.message if err else "Unknown error")
     return 3
 
 
@@ -295,6 +315,11 @@ def build_parser() -> argparse.ArgumentParser:
             "is strict trust."
         ),
     )
+    s2.add_argument(
+        "--json",
+        action="store_true",
+        help="Output the verification result as structured JSON.",
+    )
 
     s3 = sub.add_parser("evidence-verify", help="Verify evidence only (v0.3: sha256)")
     s3.add_argument("proposal", type=Path)
@@ -370,6 +395,7 @@ def main(argv: list[str] | None = None) -> int:
             args.proposal,
             verify_evidence=getattr(args, "verify_evidence", False),
             legacy_trust=getattr(args, "legacy_trust", False),
+            json_output=getattr(args, "json", False),
         )
     if args.command == "policy":
         return cmd_policy(
