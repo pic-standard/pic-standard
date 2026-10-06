@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 This project follows Semantic Versioning:
 https://semver.org/
 
+## [Unreleased]
+
+### Added
+
+- `pic-cli verify --json` emits the verification outcome as one structured JSON object while preserving existing exit codes and the default human-readable output.
+
 ## [0.9.0] - 2026-09-21
 
 Cross-implementation interop milestone. Concludes the v0.9.0a1 -> v0.9.0a2 -> v0.9.0 sequence: v0.9.0 rolls forward the hardening from independent protocol stress-test work and internal checks delivered in v0.9.0a2 (`PIC_DUPLICATE_ID` error code, SHA-256 lowercase-only wire representation, strict Base64 signature representation, exact tool-binding without whitespace normalization, and the `strict_trust=True` secure default with `PICLegacyTrustModeWarning` at explicit `False` opt-in) into a stable baseline, and adds the first TypeScript verifier pass at [`pic-standard/pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts), which passes the shared conformance corpus for the `canonicalization`, `core`, and `trust_sanitization` conformance modes on the shared `conformance/manifest.json` (84 vectors total; 42 in the claimed-mode subset). Advisory cross-implementation differential CI runs on pull requests targeting `main` via `scripts/diff_conformance.py` and `.github/workflows/differential.yml`. The proposal wire format is unchanged from v0.9.0a2. Evidence-mode TypeScript parity is deliberately a v0.9.x completion item. PRs in this release: #150, #151.
