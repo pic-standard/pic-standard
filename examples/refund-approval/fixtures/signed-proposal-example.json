@@ -1,0 +1,40 @@
+{
+  "action": {
+    "args": {
+      "amount_minor": 4000,
+      "currency": "EUR",
+      "payment_id": "pay_A"
+    },
+    "tool": "refund"
+  },
+  "claims": [
+    {
+      "evidence": [
+        "merchant-approval"
+      ],
+      "text": "{\"approval_ref\":\"approval-001\",\"decision_id\":\"decision-001\"}"
+    }
+  ],
+  "evidence": [
+    {
+      "alg": "ed25519",
+      "id": "merchant-approval",
+      "key_id": "merchant-test-v1",
+      "payload": "{\"args_digest\":\"0807321ed7a9fd18ced8b410487ef10a43c8f539d1f36b2693619fce62b4e698\",\"attestation_version\":\"PIC-ATT/1.0\",\"claims_digest\":\"6839325fba8f811b60270aa5a7d9bdb8a7459d858cbd47aeb1d3aac6607452fd\",\"expires_at\":\"2099-01-01T00:00:00Z\",\"impact\":\"money\",\"intent_digest\":\"19ee57d309fd1491642bc291bb84cc9b8d417b0036d1db7045745ad999c464b2\",\"provenance_ids\":[\"merchant-approval\"],\"tool\":\"refund\"}",
+      "ref": "inline:merchant_approval_canonical_attestation",
+      "signature": "nkZ+hukVwWPfrHeLs60C98CrIXb2snby6XuQ4rPefLY/kdb1ze+LnVnhRUvx+dHxJ0YxcACfyKy/EhRz5GU9DA==",
+      "signer": "merchant-test-v1",
+      "type": "sig"
+    }
+  ],
+  "impact": "money",
+  "intent": "Refund 4000 minor units of EUR on pay_A per merchant decision decision-001.",
+  "protocol": "PIC/1.0",
+  "provenance": [
+    {
+      "id": "merchant-approval",
+      "source": "merchant-signer:merchant-test-v1",
+      "trust": "trusted"
+    }
+  ]
+}

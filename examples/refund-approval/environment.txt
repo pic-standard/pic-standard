@@ -1,0 +1,21 @@
+Python 3.11.9
+
+# pip freeze (venv)
+annotated-types==0.8.0
+attrs==26.1.0
+cffi==2.1.1
+cryptography==49.0.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+pic-standard @ git+https://github.com/pic-standard/pic-standard.git@330fdd817ef81d43461ea1787939e0d1cc87d589
+pycparser==3.0
+pydantic==2.13.5
+pydantic_core==2.46.5
+referencing==0.37.0
+rpds-py==2026.9.1
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+
+# Installed pic-standard revision (from direct_url.json)
+version: 0.9.0
+{"url": "https://github.com/pic-standard/pic-standard.git", "vcs_info": {"commit_id": "330fdd817ef81d43461ea1787939e0d1cc87d589", "requested_revision": "330fdd817ef81d43461ea1787939e0d1cc87d589", "vcs": "git"}}
