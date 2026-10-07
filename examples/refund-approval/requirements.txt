@@ -1,0 +1,5 @@
+# PIC Standard pinned to the exact commit this pack was authored and verified against.
+# A bare "pic-standard==0.9.0" is NOT equivalent: current main carries
+# dependency bumps and new conformance vectors beyond the v0.9.0 tag
+# but still declares package version 0.9.0 in pyproject.toml.
+pic-standard[crypto] @ git+https://github.com/pic-standard/pic-standard.git@330fdd817ef81d43461ea1787939e0d1cc87d589

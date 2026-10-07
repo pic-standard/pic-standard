@@ -1,0 +1,27 @@
+# Transitive dependency lock for the signed refund approval example.
+# Pinned to the versions this pack was authored and verified against.
+#
+# requirements.txt declares the pic-standard source pin; this file
+# constrains everything that pic-standard pulls in so a reviewer's
+# install resolves to the same transitive versions.
+#
+# Install:
+#   pip install -r requirements.txt -c constraints.txt
+#
+# pip-tools can regenerate this file; the current contents were
+# captured from `pip freeze` in the author's venv (see environment.txt
+# for the matching Python version and the installed pic-standard
+# revision).
+annotated-types==0.8.0
+attrs==26.1.0
+cffi==2.1.1
+cryptography==49.0.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+pycparser==3.0
+pydantic==2.13.5
+pydantic_core==2.46.5
+referencing==0.37.0
+rpds-py==2026.9.1
+typing-inspection==0.4.4
+typing_extensions==4.16.0

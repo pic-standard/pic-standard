@@ -1,0 +1,15 @@
+{
+  "decision_id": "decision-001",
+  "approval_ref": "approval-001",
+  "action": {
+    "tool": "refund",
+    "args": {
+      "amount_minor": 4000,
+      "currency": "EUR",
+      "payment_id": "pay_A"
+    }
+  },
+  "impact": "money",
+  "signer_key_id": "merchant-test-v1",
+  "expires_at": "2099-01-01T00:00:00Z"
+}

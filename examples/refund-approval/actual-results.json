@@ -1,0 +1,500 @@
+{
+  "cases": [
+    {
+      "actual": {
+        "merchant_claim": {
+          "approval_ref": "approval-001",
+          "decision_id": "decision-001"
+        },
+        "outcome": "allowed",
+        "spy_calls": [
+          {
+            "amount_minor": 4000,
+            "currency": "EUR",
+            "payment_id": "pay_A"
+          }
+        ],
+        "spy_received_verified_args": true,
+        "tool_calls": 1,
+        "verified_action_args": {
+          "amount_minor": 4000,
+          "currency": "EUR",
+          "payment_id": "pay_A"
+        }
+      },
+      "description": "Exact approved refund for pay_A, EUR 4000 minor units.",
+      "discrepancies": [],
+      "expected": {
+        "outcome": "allowed",
+        "spy_received_verified_args": true,
+        "tool_calls": 1
+      },
+      "group": "1 valid approval",
+      "id": "1_valid",
+      "match": true
+    },
+    {
+      "actual": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message": "Evidence verification failed | args_digest mismatch (key_id='merchant-test-v1')",
+        "outcome": "pic_rejected",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "action.args.payment_id mutated after signing; args_digest remains over original.",
+      "discrepancies": [],
+      "expected": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message_substr": "args_digest mismatch",
+        "outcome": "pic_rejected",
+        "tool_calls": 0
+      },
+      "group": "2 payment, amount, currency or tool changed without new evidence",
+      "id": "2a_args_payment_mutated",
+      "match": true
+    },
+    {
+      "actual": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message": "Evidence verification failed | args_digest mismatch (key_id='merchant-test-v1')",
+        "outcome": "pic_rejected",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "action.args.amount_minor mutated after signing.",
+      "discrepancies": [],
+      "expected": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message_substr": "args_digest mismatch",
+        "outcome": "pic_rejected",
+        "tool_calls": 0
+      },
+      "group": "2 payment, amount, currency or tool changed without new evidence",
+      "id": "2b_args_amount_mutated",
+      "match": true
+    },
+    {
+      "actual": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message": "Evidence verification failed | args_digest mismatch (key_id='merchant-test-v1')",
+        "outcome": "pic_rejected",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "action.args.currency mutated after signing.",
+      "discrepancies": [],
+      "expected": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message_substr": "args_digest mismatch",
+        "outcome": "pic_rejected",
+        "tool_calls": 0
+      },
+      "group": "2 payment, amount, currency or tool changed without new evidence",
+      "id": "2c_args_currency_mutated",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "action.tool must be 'refund', got 'other_tool'",
+        "outcome": "integration_rejected",
+        "reason": "workflow_profile_violation",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signed canonical attestation for action.tool='other_tool'; signature verifies, workflow profile check rejects before dispatch.",
+      "discrepancies": [],
+      "expected": {
+        "message_substr": "action.tool must be 'refund'",
+        "outcome": "integration_rejected",
+        "reason": "workflow_profile_violation",
+        "tool_calls": 0
+      },
+      "group": "2 payment, amount, currency or tool changed without new evidence",
+      "id": "2d_other_tool_signed",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "impact must be 'money', got 'privacy'",
+        "outcome": "integration_rejected",
+        "reason": "workflow_profile_violation",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signed canonical attestation for impact='privacy'; signature verifies, workflow profile check rejects before dispatch.",
+      "discrepancies": [],
+      "expected": {
+        "message_substr": "impact must be 'money'",
+        "outcome": "integration_rejected",
+        "reason": "workflow_profile_violation",
+        "tool_calls": 0
+      },
+      "group": "2 payment, amount, currency or tool changed without new evidence",
+      "id": "2e_other_impact_signed",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "action.args.amount_minor must be an integer (not bool), got bool: True",
+        "outcome": "integration_rejected",
+        "reason": "action_args_schema_violation",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signed canonical attestation whose amount_minor is boolean True (int-subclass); workflow schema rejects before dispatch.",
+      "discrepancies": [],
+      "expected": {
+        "message_substr": "amount_minor must be an integer (not bool)",
+        "outcome": "integration_rejected",
+        "reason": "action_args_schema_violation",
+        "tool_calls": 0
+      },
+      "group": "2 payment, amount, currency or tool changed without new evidence",
+      "id": "2f_args_amount_boolean",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "action.args.amount_minor must be a positive integer, got 0",
+        "outcome": "integration_rejected",
+        "reason": "action_args_schema_violation",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signed canonical attestation whose amount_minor is 0; workflow schema rejects before dispatch.",
+      "discrepancies": [],
+      "expected": {
+        "message_substr": "amount_minor must be a positive integer",
+        "outcome": "integration_rejected",
+        "reason": "action_args_schema_violation",
+        "tool_calls": 0
+      },
+      "group": "2 payment, amount, currency or tool changed without new evidence",
+      "id": "2g_args_amount_nonpositive",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "action.args.currency must be a string, got int",
+        "outcome": "integration_rejected",
+        "reason": "action_args_schema_violation",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signed canonical attestation whose currency is a number; workflow schema rejects before dispatch.",
+      "discrepancies": [],
+      "expected": {
+        "message_substr": "currency must be a string",
+        "outcome": "integration_rejected",
+        "reason": "action_args_schema_violation",
+        "tool_calls": 0
+      },
+      "group": "2 payment, amount, currency or tool changed without new evidence",
+      "id": "2h_args_currency_wrong_type",
+      "match": true
+    },
+    {
+      "actual": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message": "Evidence verification failed | claims_digest mismatch (key_id='merchant-test-v1')",
+        "outcome": "pic_rejected",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "claims[0].text decision_id mutated after signing; claims_digest remains over original.",
+      "discrepancies": [],
+      "expected": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message_substr": "claims_digest mismatch",
+        "outcome": "pic_rejected",
+        "tool_calls": 0
+      },
+      "group": "3 decision_id or approval_ref changed, missing or malformed",
+      "id": "3a_claims_decision_id_mutated",
+      "match": true
+    },
+    {
+      "actual": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message": "Evidence verification failed | claims_digest mismatch (key_id='merchant-test-v1')",
+        "outcome": "pic_rejected",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "claims[0].text approval_ref mutated after signing.",
+      "discrepancies": [],
+      "expected": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message_substr": "claims_digest mismatch",
+        "outcome": "pic_rejected",
+        "tool_calls": 0
+      },
+      "group": "3 decision_id or approval_ref changed, missing or malformed",
+      "id": "3b_claims_approval_ref_mutated",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "claims[0].text is not valid JSON: JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+        "outcome": "integration_rejected",
+        "reason": "merchant_claim_schema_violation",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signed canonical attestation whose claims[0].text is a non-JSON string; signature verifies, claim schema check rejects.",
+      "discrepancies": [],
+      "expected": {
+        "message_substr": "not valid JSON",
+        "outcome": "integration_rejected",
+        "reason": "merchant_claim_schema_violation",
+        "tool_calls": 0
+      },
+      "group": "3 decision_id or approval_ref changed, missing or malformed",
+      "id": "3c_claims_text_invalid_json",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "merchant claim 'decision_id' must be a non-empty string, got ''",
+        "outcome": "integration_rejected",
+        "reason": "merchant_claim_schema_violation",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signed canonical attestation whose decision_id is an empty string; claim schema check rejects.",
+      "discrepancies": [],
+      "expected": {
+        "message_substr": "'decision_id' must be a non-empty string",
+        "outcome": "integration_rejected",
+        "reason": "merchant_claim_schema_violation",
+        "tool_calls": 0
+      },
+      "group": "3 decision_id or approval_ref changed, missing or malformed",
+      "id": "3d_claims_decision_id_empty",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "merchant claim 'approval_ref' must be a non-empty string, got 42",
+        "outcome": "integration_rejected",
+        "reason": "merchant_claim_schema_violation",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signed canonical attestation whose approval_ref is a number; claim schema check rejects.",
+      "discrepancies": [],
+      "expected": {
+        "message_substr": "'approval_ref' must be a non-empty string",
+        "outcome": "integration_rejected",
+        "reason": "merchant_claim_schema_violation",
+        "tool_calls": 0
+      },
+      "group": "3 decision_id or approval_ref changed, missing or malformed",
+      "id": "3e_claims_approval_ref_numeric",
+      "match": true
+    },
+    {
+      "actual": {
+        "error_code": "PIC_EVIDENCE_REQUIRED",
+        "message": "Evidence required for this impact but no evidence entries were provided",
+        "outcome": "pic_rejected",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Evidence array stripped; impact=money requires evidence by policy.",
+      "discrepancies": [],
+      "expected": {
+        "error_code": "PIC_EVIDENCE_REQUIRED",
+        "outcome": "pic_rejected",
+        "tool_calls": 0
+      },
+      "group": "4 missing, forged, expired, untrusted or expiry-absent evidence",
+      "id": "4a_missing_evidence",
+      "match": true
+    },
+    {
+      "actual": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message": "Evidence verification failed | signature invalid (key_id='merchant-test-v1')",
+        "outcome": "pic_rejected",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signature replaced with a deterministic 64-byte sequence (bytes(range(64))).",
+      "discrepancies": [],
+      "expected": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message_substr": "signature invalid",
+        "outcome": "pic_rejected",
+        "tool_calls": 0
+      },
+      "group": "4 missing, forged, expired, untrusted or expiry-absent evidence",
+      "id": "4b_forged_signature",
+      "match": true
+    },
+    {
+      "actual": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message": "Evidence verification failed | attestation expired at 2000-01-01T00:00:00+00:00",
+        "outcome": "pic_rejected",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "attestation.expires_at in the past; signature still verifies, PIC's freshness check rejects.",
+      "discrepancies": [],
+      "expected": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message_substr": "attestation expired",
+        "outcome": "pic_rejected",
+        "tool_calls": 0
+      },
+      "group": "4 missing, forged, expired, untrusted or expiry-absent evidence",
+      "id": "4c_expired_attestation",
+      "match": true
+    },
+    {
+      "actual": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message": "Evidence verification failed | Unknown key_id 'unknown-signer-v1' (not present in trusted keyring)",
+        "outcome": "pic_rejected",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "evidence.key_id set to an id absent from the fixture keyring.",
+      "discrepancies": [],
+      "expected": {
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "message_substr": "not present in trusted keyring",
+        "outcome": "pic_rejected",
+        "tool_calls": 0
+      },
+      "group": "4 missing, forged, expired, untrusted or expiry-absent evidence",
+      "id": "4d_untrusted_signer_key_id",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "canonical attestation must carry an expires_at field",
+        "outcome": "integration_rejected",
+        "reason": "workflow_profile_violation",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Canonical attestation signed WITHOUT expires_at; PIC accepts (freshness only enforced when present), workflow check requires it.",
+      "discrepancies": [],
+      "expected": {
+        "message_substr": "must carry an expires_at field",
+        "outcome": "integration_rejected",
+        "reason": "workflow_profile_violation",
+        "tool_calls": 0
+      },
+      "group": "4 missing, forged, expired, untrusted or expiry-absent evidence",
+      "id": "4e_attestation_missing_expiry",
+      "match": true
+    },
+    {
+      "actual": {
+        "message": "No PIC-ATT/1.0 canonical attestation present on verified proposal; this workflow requires canonical-mode signing.",
+        "outcome": "integration_rejected",
+        "reason": "canonical_attestation_required",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Signed with a non-attestation payload (legacy mode); PIC verifier accepts the signature; integration check rejects.",
+      "discrepancies": [],
+      "expected": {
+        "outcome": "integration_rejected",
+        "reason": "canonical_attestation_required",
+        "tool_calls": 0
+      },
+      "group": "5 legacy evidence substituted for the required canonical attestation",
+      "id": "5_legacy_evidence_substituted",
+      "match": true
+    },
+    {
+      "actual": {
+        "dispatch_args_equal_verified": true,
+        "dispatch_args_recorded": true,
+        "merchant_claim": {
+          "approval_ref": "approval-001",
+          "decision_id": "decision-001"
+        },
+        "outcome": "allowed",
+        "spy_calls": [
+          {
+            "amount_minor": 4000,
+            "currency": "EUR",
+            "payment_id": "pay_A"
+          }
+        ],
+        "spy_received_verified_args": true,
+        "tool_calls": 1,
+        "verified_action_args": {
+          "amount_minor": 4000,
+          "currency": "EUR",
+          "payment_id": "pay_A"
+        }
+      },
+      "description": "Control: dispatch args equal verified action.args. Integration allows and records the dispatch.",
+      "discrepancies": [],
+      "expected": {
+        "dispatch_args_equal_verified": true,
+        "dispatch_args_recorded": true,
+        "outcome": "allowed",
+        "spy_received_verified_args": true,
+        "tool_calls": 1
+      },
+      "group": "6 separate call arguments vs the verified proposal",
+      "id": "6a_dispatch_args_match",
+      "match": true
+    },
+    {
+      "actual": {
+        "dispatch_args_equal_verified": false,
+        "dispatch_args_recorded": true,
+        "message": "Dispatch args {'amount_minor': 4000, 'currency': 'EUR', 'payment_id': 'pay_Z'} differ from verified proposal action.args {'amount_minor': 4000, 'currency': 'EUR', 'payment_id': 'pay_A'}.",
+        "outcome": "integration_rejected",
+        "reason": "dispatch_args_mismatch",
+        "spy_calls": [],
+        "tool_calls": 0
+      },
+      "description": "Mutation: dispatch args differ from verified action.args. Integration records the dispatch intent and rejects.",
+      "discrepancies": [],
+      "expected": {
+        "dispatch_args_equal_verified": false,
+        "dispatch_args_recorded": true,
+        "outcome": "integration_rejected",
+        "reason": "dispatch_args_mismatch",
+        "tool_calls": 0
+      },
+      "group": "6 separate call arguments vs the verified proposal",
+      "id": "6b_dispatch_args_mismatch",
+      "match": true
+    }
+  ],
+  "declared_pic_commit": "330fdd817ef81d43461ea1787939e0d1cc87d589",
+  "environment_message": "installed commit '330fdd817ef81d43461ea1787939e0d1cc87d589' matches declared pin",
+  "environment_status": "verified",
+  "installed_pic_revision": {
+    "commit_id": "330fdd817ef81d43461ea1787939e0d1cc87d589",
+    "requested_revision": "330fdd817ef81d43461ea1787939e0d1cc87d589",
+    "source": "https://github.com/pic-standard/pic-standard.git",
+    "vcs": "git",
+    "version": "0.9.0"
+  },
+  "suite_integrity": {
+    "ok": true,
+    "probes": [
+      {
+        "message": "premature-call probe: counter detected 2 tool call(s), strictly greater than the 1 a correct wrapper would make",
+        "name": "premature_tool_call",
+        "ok": true
+      },
+      {
+        "message": "wrong-args probe: spy received {'amount_minor': 4000, 'currency': 'EUR', 'payment_id': 'pay_SMUGGLED'}, which differs from verified_args {'amount_minor': 4000, 'currency': 'EUR', 'payment_id': 'pay_A'}; assertion catches this",
+        "name": "wrong_args_dispatch",
+        "ok": true
+      }
+    ]
+  }
+}
