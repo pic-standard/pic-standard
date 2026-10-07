@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from cryptography.hazmat.primitives.asymmetric import ed25519
-
 from pic_standard.canonical import canonicalize
 from pic_standard.keyring import StaticKeyRingResolver, TrustedKeyRing
 from pic_standard.pipeline import PipelineOptions, verify_proposal
@@ -46,9 +45,7 @@ def canonical_claim_text(payload: Dict[str, Any]) -> str:
     return canonicalize(payload).decode("utf-8")
 
 
-def build_merchant_approval_claim(
-    *, decision_id: str, approval_ref: str
-) -> Dict[str, Any]:
+def build_merchant_approval_claim(*, decision_id: str, approval_ref: str) -> Dict[str, Any]:
     """Build the single claim object carrying the merchant decision + approval refs.
 
     PIC does NOT interpret decision_id or approval_ref. It binds the exact
@@ -98,9 +95,9 @@ def build_proposal(
                 "source": f"merchant-signer:{signer_key_id}",
             }
         ],
-        "claims": [build_merchant_approval_claim(
-            decision_id=decision_id, approval_ref=approval_ref
-        )],
+        "claims": [
+            build_merchant_approval_claim(decision_id=decision_id, approval_ref=approval_ref)
+        ],
         "action": {"tool": action_tool, "args": action_args},
     }
 
@@ -290,9 +287,7 @@ def build_signed_proposal(
     )
 
 
-def make_pipeline_options(
-    *, keyring_path: Optional[Path] = None
-) -> PipelineOptions:
+def make_pipeline_options(*, keyring_path: Optional[Path] = None) -> PipelineOptions:
     """Build PipelineOptions with evidence verification + fixture-local keyring.
 
     An explicit PICPolicy() is required: without one, `_required_evidence_impacts`
@@ -324,5 +319,7 @@ if __name__ == "__main__":
     signed = build_signed_proposal(merchant_decision=md)
     print(json.dumps(signed, indent=2, sort_keys=True))
     result = pic_verify(signed)
-    print(f"\nverify_proposal: ok={result.ok} "
-          f"error={result.error.code.value if result.error else None}")
+    print(
+        f"\nverify_proposal: ok={result.ok} "
+        f"error={result.error.code.value if result.error else None}"
+    )

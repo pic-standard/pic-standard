@@ -26,7 +26,6 @@ import json
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from pic_standard.pipeline import PipelineResult
-
 from sign_and_verify import ATTESTATION_VERSION, pic_verify
 
 EXPECTED_TOOL = "refund"
@@ -52,10 +51,7 @@ def _parse_canonical_sig_evidence(
             parsed = json.loads(payload)
         except Exception:
             continue
-        if (
-            isinstance(parsed, dict)
-            and parsed.get("attestation_version") == ATTESTATION_VERSION
-        ):
+        if isinstance(parsed, dict) and parsed.get("attestation_version") == ATTESTATION_VERSION:
             return ev, parsed
     return None, None
 
@@ -99,18 +95,13 @@ def _validate_refund_args(args: Any) -> Optional[str]:
             f"got {type(amount_minor).__name__}: {amount_minor!r}"
         )
     if amount_minor <= 0:
-        return (
-            f"action.args.amount_minor must be a positive integer, got {amount_minor}"
-        )
+        return f"action.args.amount_minor must be a positive integer, got {amount_minor}"
 
     currency = args["currency"]
     if not isinstance(currency, str):
         return f"action.args.currency must be a string, got {type(currency).__name__}"
     if currency not in ALLOWED_CURRENCIES:
-        return (
-            f"action.args.currency {currency!r} not in allowed set "
-            f"{sorted(ALLOWED_CURRENCIES)}"
-        )
+        return f"action.args.currency {currency!r} not in allowed set {sorted(ALLOWED_CURRENCIES)}"
 
     return None
 
@@ -120,9 +111,10 @@ def _validate_attestation_expiry(
 ) -> Optional[str]:
     if "expires_at" not in parsed_attestation:
         return "canonical attestation must carry an expires_at field"
-    if not isinstance(parsed_attestation["expires_at"], str) or not parsed_attestation[
-        "expires_at"
-    ].strip():
+    if (
+        not isinstance(parsed_attestation["expires_at"], str)
+        or not parsed_attestation["expires_at"].strip()
+    ):
         return (
             f"canonical attestation expires_at must be a non-empty string, got "
             f"{parsed_attestation['expires_at']!r}"
@@ -143,22 +135,14 @@ def _parse_and_validate_merchant_claim(
     except Exception as e:
         return None, f"claims[0].text is not valid JSON: {type(e).__name__}: {e}"
     if not isinstance(parsed, dict):
-        return None, (
-            f"claims[0].text must decode to an object, got "
-            f"{type(parsed).__name__}"
-        )
+        return None, (f"claims[0].text must decode to an object, got {type(parsed).__name__}")
     extra = set(parsed.keys()) - {"decision_id", "approval_ref"}
     if extra:
-        return None, (
-            f"merchant claim has unexpected fields: {sorted(extra)}"
-        )
+        return None, (f"merchant claim has unexpected fields: {sorted(extra)}")
     for key in ("decision_id", "approval_ref"):
         value = parsed.get(key)
         if not isinstance(value, str) or not value.strip():
-            return None, (
-                f"merchant claim {key!r} must be a non-empty string, got "
-                f"{value!r}"
-            )
+            return None, (f"merchant claim {key!r} must be a non-empty string, got {value!r}")
     return parsed, None
 
 

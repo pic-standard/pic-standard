@@ -22,7 +22,6 @@ import sys
 from importlib.metadata import distribution
 from pathlib import Path
 
-
 PACK_ROOT = Path(__file__).resolve().parent
 EXPECTED = PACK_ROOT / "fixtures" / "expected-outcomes.json"
 RUNNER = PACK_ROOT / "test_cases.py"
@@ -56,9 +55,7 @@ def _run_runner() -> int:
 def _run_with_substitute_expectations(substitute: dict) -> int:
     original = EXPECTED.read_text(encoding="utf-8")
     try:
-        EXPECTED.write_text(
-            json.dumps(substitute, indent=2) + "\n", encoding="utf-8"
-        )
+        EXPECTED.write_text(json.dumps(substitute, indent=2) + "\n", encoding="utf-8")
         return _run_runner()
     finally:
         EXPECTED.write_text(original, encoding="utf-8")
@@ -74,9 +71,7 @@ def _run_with_substitute_direct_url(substitute: object) -> int:
             if du_path.exists():
                 du_path.unlink()
         else:
-            du_path.write_text(
-                json.dumps(substitute) + "\n", encoding="utf-8"
-            )
+            du_path.write_text(json.dumps(substitute) + "\n", encoding="utf-8")
         return _run_runner()
     finally:
         if original is None:

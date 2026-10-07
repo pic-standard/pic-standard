@@ -43,11 +43,10 @@ from __future__ import annotations
 import copy
 import json
 import sys
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from cryptography.hazmat.primitives.asymmetric import ed25519
-
+from integration import verify_and_dispatch
 from sign_and_verify import (
     FIXTURES_DIR,
     KEYS_DIR,
@@ -59,7 +58,6 @@ from sign_and_verify import (
     load_private_key_from_hex,
     sign_proposal,
 )
-from integration import verify_and_dispatch
 
 ACTUAL_RESULTS_PATH = PACK_ROOT / "actual-results.json"
 SIGNED_PROPOSAL_FIXTURE_PATH = FIXTURES_DIR / "signed-proposal-example.json"
@@ -364,13 +362,9 @@ def _check_coverage(expected_fixture: Dict[str, Any]) -> List[str]:
     missing_builders = sorted(expected_ids - builder_ids)
     missing_expectations = sorted(builder_ids - expected_ids)
     if missing_builders:
-        errors.append(
-            f"expectations present but no builder: {missing_builders}"
-        )
+        errors.append(f"expectations present but no builder: {missing_builders}")
     if missing_expectations:
-        errors.append(
-            f"builders present but no expectation: {missing_expectations}"
-        )
+        errors.append(f"builders present but no expectation: {missing_expectations}")
     if not BUILDERS:
         errors.append("BUILDERS is empty")
 
@@ -523,14 +517,12 @@ def _integrity_check_wrong_args_dispatch() -> Tuple[bool, str]:
             f"(got {outcome.get('outcome')!r})"
         )
     if spy.count != 1:
-        return False, (
-            f"wrong-args probe: expected 1 tool call, got {spy.count}"
-        )
+        return False, (f"wrong-args probe: expected 1 tool call, got {spy.count}")
     verified_args = proposal["action"]["args"]
     if spy.calls[0] == verified_args:
         return False, (
-            f"wrong-args probe: spy received verified args — the smuggled "
-            f"dispatch did not actually differ. Probe is miswritten."
+            "wrong-args probe: spy received verified args — the smuggled "
+            "dispatch did not actually differ. Probe is miswritten."
         )
     return True, (
         f"wrong-args probe: spy received {spy.calls[0]!r}, which differs "
@@ -585,14 +577,11 @@ def main() -> int:
     elif installed_commit != declared_pin:
         environment_status = "mismatch"
         environment_message = (
-            f"installed commit {installed_commit!r} does not match "
-            f"declared pin {declared_pin!r}"
+            f"installed commit {installed_commit!r} does not match declared pin {declared_pin!r}"
         )
     else:
         environment_status = "verified"
-        environment_message = (
-            f"installed commit {installed_commit!r} matches declared pin"
-        )
+        environment_message = f"installed commit {installed_commit!r} matches declared pin"
 
     if environment_status != "verified":
         print(f"[ENV {environment_status.upper()}] {environment_message}", file=sys.stderr)
@@ -650,9 +639,7 @@ def main() -> int:
             if case_id.startswith("6"):
                 actual["dispatch_args_recorded"] = bool(recorder)
                 if recorder:
-                    actual["dispatch_args_equal_verified"] = (
-                        recorder[-1] == verified_args_for_case
-                    )
+                    actual["dispatch_args_equal_verified"] = recorder[-1] == verified_args_for_case
                 else:
                     actual["dispatch_args_equal_verified"] = False
 
@@ -661,9 +648,7 @@ def main() -> int:
         # Independent invariant on tool_calls regardless of per-case expectation.
         want_calls = exp.get("tool_calls")
         if want_calls is None:
-            diffs.append(
-                "expectation is missing required field 'tool_calls'"
-            )
+            diffs.append("expectation is missing required field 'tool_calls'")
 
         case_match = not diffs
         if not case_match:
