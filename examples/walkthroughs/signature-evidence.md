@@ -72,7 +72,7 @@ amount=600;currency=USD;invoice=123
 
 It leaves both the Ed25519 `signature` and `key_id` unchanged. The retained signature was made for different payload bytes, so it cannot verify the modified payload. Consequently, `approval_123` receives no trust upgrade and the pipeline fails closed.
 
-Exit code `4` means evidence verification failed; it does not identify the precise underlying cause. An invalid signature, an unknown or expired key, a revoked key, and other evidence failures can share this exit code. By contrast, exit code 3 means the verifier rejected the proposal. It does not establish whether evidence verification ran; that depends on the command options. That CLI distinction is tracked by [issue #174](https://github.com/pic-standard/pic-standard/issues/174).
+Exit code `4` means evidence verification failed; it does not identify the precise underlying cause. An invalid signature, an unknown or expired key, a revoked key, and other evidence failures can share this exit code. By contrast, exit code 3 means the verifier rejected the proposal. It does not establish whether evidence verification ran; that depends on the command options. For an exit code 3 example, see the blocked payment walkthrough ([issue #174](https://github.com/pic-standard/pic-standard/issues/174)).
 
 ## What the signature does, and does not, cover
 
