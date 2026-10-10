@@ -22,8 +22,10 @@ There are four **modes**, each with its own directory and README:
 | `evidence` | `conformance/evidence/` | hash/signature evidence verification |
 | `trust_sanitization` | `conformance/trust_sanitization/` | `strict_trust` behaviour |
 
-**Best first target:** a `core` allow or block vector (issues #44, #45). This guide
+**Best first target:** a `core` allow or block vector. This guide
 uses `core` as the example; the per-mode READMEs cover the specifics for the others.
+
+> **Note:** new conformance vectors are paused while v1.0 stabilizes, because they extend the shared contract every implementation must pass. If you have a vector in mind, describe it in the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117) first. Before contributing a vector, confirm the current baseline and requirements with the maintainer.
 
 ## Prerequisites (one-time)
 
