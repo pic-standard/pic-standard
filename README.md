@@ -14,9 +14,8 @@
 [![DOI](http://img.shields.io/badge/DOI-10.5281%20%2F%20zenodo.18725562-blue.svg)](https://doi.org/10.5281/zenodo.18725562)
 [![License](https://img.shields.io/github/license/pic-standard/pic-standard)](https://github.com/pic-standard/pic-standard/blob/main/LICENSE)
 
-> **Contributors wanted.** PIC is recruiting its first external contributors and
-> co-maintainers. Start with the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117)
-> and the pinned good-first issues. TypeScript now has a public implementation at [`pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts); Go and Rust are the next high-value implementation tracks.
+> **Contributors wanted.** External contributors have already landed conformance vectors, CLI JSON output and Windows CI, and we are looking for more contributors and co-maintainers. Start with the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117)
+> and the pinned good-first issues: small documentation tasks, each with the exact commands to check your work. TypeScript has a public implementation at [`pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts); Go and Rust implementations and TypeScript evidence mode are planning tracks open to expressions of interest.
 
 > **v0.9.0 (2026-09-21):** Stable cross-implementation milestone. PIC is no longer only a Python reference implementation: the public TypeScript verifier at [`pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts) passes the shared conformance corpus for `canonicalization`, `core`, and `trust_sanitization`. The release also incorporates hardening from independent protocol stress-test work and internal cross-implementation checks, including stricter host-language canonicalization rules and a normative differential-conformance contract. Advisory differential CI now compares Python and TypeScript envelopes on PRs targeting `main`. Evidence-mode TypeScript parity remains a v0.9.x completion item. See [CHANGELOG](CHANGELOG.md) for the full v0.9.0 story.
 
@@ -326,7 +325,7 @@ We're actively seeking:
 - Framework authors to build native integrations
 - Enterprise architects to define domain Impact Classes
 
-Good first contribution areas right now: conformance vectors, OpenAPI spec, TS verifier groundwork, and security review of trust sanitization behavior.
+Good first contribution areas right now: documentation walkthroughs of the examples and newcomer setup guides (see the [good first issues](https://github.com/pic-standard/pic-standard/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)). Larger tracks (Go and Rust verifiers, TypeScript evidence mode, security review of trust sanitization behavior) start with an expression of interest in the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117).
 
 If you find PIC useful, please consider giving us a star on GitHub: it helps attract more security experts and framework authors into the community.
 
