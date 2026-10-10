@@ -2,7 +2,7 @@
 
 This walkthrough is pinned to PIC Standard v0.9.0 at commit `f745b1cd`, Python 3.11.9, and the `crypto` extra. The demo keys `demo_signer_v1` and `demo_hash_signer_v1` expire at `2027-01-01T00:00:00Z`. After that instant, verification fails because the key is expired; that is different from a bad signature. Never disable lifecycle checks, change the system clock, or use legacy-trust mode to make an example pass.
 
-Run every command from the repository root. Use the root `pic_keys.example.json` keyring—**not** `examples/pic_keys.demo.json`.
+Run every command from the repository root. Use the root `pic_keys.example.json` keyring, **not** `examples/pic_keys.demo.json`.
 
 ## Set up an isolated environment
 
@@ -72,9 +72,9 @@ amount=600;currency=USD;invoice=123
 
 It leaves both the Ed25519 `signature` and `key_id` unchanged. The retained signature was made for different payload bytes, so it cannot verify the modified payload. Consequently, `approval_123` receives no trust upgrade and the pipeline fails closed.
 
-Exit code `4` means evidence verification failed; it does not identify the precise underlying cause. An invalid signature, an unknown or expired key, a revoked key, and other evidence failures can share this exit code. By contrast, exit code `3` means the evidence stage completed but the verifier rejected the proposal; that CLI distinction is tracked by issue #174.
+Exit code `4` means evidence verification failed; it does not identify the precise underlying cause. An invalid signature, an unknown or expired key, a revoked key, and other evidence failures can share this exit code. By contrast, exit code 3 means the verifier rejected the proposal. It does not establish whether evidence verification ran; that depends on the command options. That CLI distinction is tracked by [issue #174](https://github.com/pic-standard/pic-standard/issues/174).
 
-## What the signature does—and does not—cover
+## What the signature does, and does not, cover
 
 **Strong warning:** this fixture uses legacy Ed25519 signing. Its signature covers **only** the exact inline `evidence.payload` bytes. It does **not** cover the entire action, `action.args`, the human-readable claim, or the proposal. Keeping the payload consistent with those fields is therefore an application responsibility in legacy mode. See [legacy and canonical signing modes](https://github.com/pic-standard/pic-standard/blob/v0.9.0/docs/spec-evidence.md#62-signing-modes--legacy-and-canonical).
 
