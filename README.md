@@ -19,6 +19,8 @@
 
 > **v0.9.0 (2026-09-21):** Stable cross-implementation milestone. PIC is no longer only a Python reference implementation: the public TypeScript verifier at [`pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts) passes the shared conformance corpus for `canonicalization`, `core`, and `trust_sanitization`. The release also incorporates hardening from independent protocol stress-test work and internal cross-implementation checks, including stricter host-language canonicalization rules and a normative differential-conformance contract. Advisory differential CI now compares Python and TypeScript envelopes on PRs targeting `main`. Evidence-mode TypeScript parity remains a v0.9.x completion item. See [CHANGELOG](CHANGELOG.md) for the full v0.9.0 story.
 
+> **Evaluating PIC for an agent workflow?** Start with the [agent integration guide](docs/for-agents.md): choose an implementation, check signed evidence locally, see a complete signed-approval example, and understand what the execution boundary must enforce.
+
 PIC is a lightweight, local-first protocol that forces AI agents to **prove** every important action before it happens. Agents must declare intent, impact, provenance, and evidence; PIC verifies everything and **fails closed** if anything is wrong.
 
 PIC is not agent identity or delegation infrastructure; PIC is the action-bound verification contract that decides whether a high-impact tool call is justified to execute now.
