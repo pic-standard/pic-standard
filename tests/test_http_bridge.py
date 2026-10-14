@@ -739,3 +739,46 @@ def test_openapi_contract_version_response_has_all_required_fields(bridge_url):
     manifest = result["conformance_manifest_ref"]
     assert isinstance(manifest, dict)
     _assert_response_shape(manifest, manifest_schema, label="conformance_manifest_ref")
+
+
+# ------------------------------------------------------------------
+# Argument binding (live tool_args must match the verified action.args)
+# ------------------------------------------------------------------
+
+
+def test_bridge_allows_matching_live_args():
+    # Documented request shape: live tool_args equal the proposal's action.args.
+    # Binding must not reject it.
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        result = _verify(
+            "payments_send",
+            {"amount": 500, "__pic": _proposal("trusted")},
+            strict_trust=False,
+        )
+    assert result["allowed"] is True
+    assert result["error"] is None
+
+
+def test_bridge_blocks_arg_binding_mismatch(monkeypatch):
+    # Live amount (501) diverges from the verified action.args (500): fail closed
+    # at the bridge with PIC_ARG_BINDING_MISMATCH after successful verification.
+    # Under PIC_DEBUG=1 the error object stays minimal and leaks no value.
+    monkeypatch.setenv("PIC_DEBUG", "1")
+    with pytest.warns(
+        PICLegacyTrustModeWarning,
+        match="strict_trust=False enables legacy trust behavior",
+    ):
+        result = _verify(
+            "payments_send",
+            {"amount": 501, "__pic": _proposal("trusted")},
+            strict_trust=False,
+        )
+    assert result["allowed"] is False
+    assert result["error"] == {
+        "code": "PIC_ARG_BINDING_MISMATCH",
+        "message": "Tool argument binding mismatch",
+    }
+    assert "501" not in json.dumps(result)

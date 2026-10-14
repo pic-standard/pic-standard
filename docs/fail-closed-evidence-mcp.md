@@ -69,7 +69,7 @@ The goal isn’t “perfect truth.” It’s enforceable consistency:
 
 - you can’t claim “pay $500” while binding to a different tool
 - you can’t claim “trusted invoice” without evidence that verifies
-- you can’t sneak in extra tool args that aren’t covered by the proposal
+- you can’t sneak in extra, omitted, or altered tool args: the MCP guard and HTTP bridge bind the sanitized live arguments to the verified `action.args` and fail closed (`PIC_ARG_BINDING_MISMATCH`) on any divergence
 
 ---
 

@@ -141,8 +141,11 @@ The wrapper:
 1. Extracts `__pic` from `tool_args`
 2. Checks if PIC is required by policy
 3. Runs the full verification pipeline
-4. Strips `__pic` and `__pic_request_id` before calling the real tool
-5. Returns `{"isError": false, "result": ...}` or `{"isError": true, "error": ...}`
+4. For a proposal-backed call, binds the sanitized live arguments to the verified `action.args`; any mismatch or live-argument canonicalization failure returns `PIC_ARG_BINDING_MISMATCH`
+5. Uses the bound sanitized snapshot, excluding only `__pic` and `__pic_request_id`, for the hook and business tool
+6. Returns `{"isError": false, "result": ...}` or `{"isError": true, "error": ...}`
+
+A plain `request_id` is a business argument and participates in argument binding. Use the reserved `__pic_request_id` key when the value is for correlation only.
 
 ### `guard_mcp_tool_async()` (Async Tools)
 
@@ -279,7 +282,7 @@ The sanitized live tool call the guard is about to dispatch. `arguments` are the
 
 > `MCPToolCall` carries the actual sanitized business arguments, which may be sensitive. Do not log or export them indiscriminately; prefer the digests for audit and correlation.
 
-> Digests are lowercase, unprefixed, 64-character SHA-256 hex (`pic_standard.canonical`). A consumer that needs an algorithm-prefixed form (for example `sha256:...`) adds that prefix at its own boundary. For a proposal-backed allow, `decision.args_digest` and `tool_call.arguments_digest` are directly comparable, so a downstream integration can detect when the live call diverges from the declared `action.args`.
+> Digests are lowercase, unprefixed, 64-character SHA-256 hex (`pic_standard.canonical`). A consumer that needs an algorithm-prefixed form (for example `sha256:...`) adds that prefix at its own boundary. For a proposal-backed allow the guard enforces argument binding before the hook fires, so `decision.args_digest` and `tool_call.arguments_digest` are equal whenever the hook runs; a divergent live call is blocked with `PIC_ARG_BINDING_MISMATCH` and never reaches the hook.
 
 ---
 

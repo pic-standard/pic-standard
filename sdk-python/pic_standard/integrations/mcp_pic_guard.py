@@ -9,7 +9,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, Optional, Tuple
 
-from pic_standard.canonical import intent_digest_hex, sha256_hex
+from pic_standard.canonical import CanonicalizationError, intent_digest_hex, sha256_hex
 from pic_standard.errors import PICError, PICErrorCode, _debug_enabled
 from pic_standard.integrations.mcp_hooks import (
     MCPAllowDecision,
@@ -180,6 +180,61 @@ def _run_pre_execute_hook(
         raise _MCPPreExecuteHookError(type(e).__name__) from e
 
 
+_RESERVED_PIC_KEYS = ("__pic", "__pic_request_id")
+
+
+def _sanitized_tool_args(tool_args: Dict[str, Any]) -> Dict[str, Any]:
+    """Live tool arguments with only the reserved PIC keys removed.
+
+    A plain ``request_id`` is intentionally retained: it is an ordinary business
+    argument and participates in binding.
+    """
+    return {k: v for k, v in tool_args.items() if k not in _RESERVED_PIC_KEYS}
+
+
+def _enforce_arg_binding(action_proposal: ActionProposal, sanitized_args: Dict[str, Any]) -> None:
+    """Fail closed unless the sanitized live call matches verified ``action.args``.
+
+    Exact RFC 8785/JCS canonical digest equality via ``sha256_hex``, completing
+    tool binding (tool name and arguments) at the MCP evaluator / HTTP bridge
+    boundary. A mismatch, or live arguments that cannot be canonicalized, raise
+    ``PIC_ARG_BINDING_MISMATCH``. A verified proposal whose ``action.args`` is
+    missing or itself non-canonicalizable is an internal invariant failure
+    (``PIC_INTERNAL_ERROR``), not a caller binding mismatch. No raised error
+    carries argument values or digests.
+
+    ``sanitized_args`` is the same top-level snapshot the evaluator returns for
+    hook-context construction and dispatch. Guard code does not reconstruct or
+    independently re-sanitize the call after binding.
+    """
+    try:
+        declared_args = action_proposal.action["args"]
+    except (KeyError, TypeError) as e:
+        raise PICError(
+            code=PICErrorCode.INTERNAL_ERROR,
+            message="Verified action proposal is missing canonical arguments",
+        ) from e
+    try:
+        declared_digest = sha256_hex(declared_args)
+    except CanonicalizationError as e:
+        raise PICError(
+            code=PICErrorCode.INTERNAL_ERROR,
+            message="Verified action arguments could not be canonicalized",
+        ) from e
+    try:
+        live_digest = sha256_hex(sanitized_args)
+    except CanonicalizationError as e:
+        raise PICError(
+            code=PICErrorCode.ARG_BINDING_MISMATCH,
+            message="Live tool arguments could not be canonicalized for binding",
+        ) from e
+    if live_digest != declared_digest:
+        raise PICError(
+            code=PICErrorCode.ARG_BINDING_MISMATCH,
+            message="Tool argument binding mismatch",
+        )
+
+
 def _evaluate_pic_for_tool_call_with_decision(
     *,
     tool_name: str,
@@ -192,12 +247,18 @@ def _evaluate_pic_for_tool_call_with_decision(
     request_id: Optional[str] = None,
     strict_trust: bool = True,
     key_resolver: Any = None,
-) -> Tuple[Optional[ActionProposal], Dict[str, Any], MCPAllowDecision]:
+) -> Tuple[Optional[ActionProposal], Dict[str, Any], MCPAllowDecision, Dict[str, Any]]:
     """Evaluate PIC for a tool call and return the structured allow decision.
 
     Same contract as ``evaluate_pic_for_tool_call`` (fail-closed via
-    ``PICError``) plus the ``MCPAllowDecision`` it audited, so a guard can hand
-    it to a pre-execution hook. The allow audit is emitted here via
+    ``PICError``) plus the ``MCPAllowDecision`` it audited and the sanitized live
+    arguments (the live ``tool_args`` with only ``__pic`` and ``__pic_request_id``
+    removed). The same sanitized snapshot used for argument binding is
+    subsequently used to construct the hook context and expand the business
+    tool's keyword arguments. For a proposal-backed allow it must match the
+    verified ``action.args``; the ``no_pic_required`` path returns the snapshot
+    without canonicalizing or binding it, preserving non-JSON business arguments
+    when no proposal is present. The allow audit is emitted here via
     ``MCPAllowDecision.to_audit_bytes()``, byte-identical to the pre-hook line.
     """
     limits = limits or PICEvaluateLimits()
@@ -225,7 +286,7 @@ def _evaluate_pic_for_tool_call_with_decision(
             reason="no_pic_required",
         )
         _emit_allow_audit(decision)
-        return None, tool_args, decision
+        return None, tool_args, decision, _sanitized_tool_args(tool_args)
 
     # MCP-specific: type check before handing to pipeline
     if not isinstance(proposal, dict):
@@ -257,6 +318,23 @@ def _evaluate_pic_for_tool_call_with_decision(
             message="Pipeline verification failed",
         )
 
+    action_proposal = result.action_proposal
+    if action_proposal is None:
+        # Successful verification must yield an ActionProposal. Treat its
+        # absence as an internal invariant failure, not a caller binding
+        # mismatch.
+        raise PICError(
+            code=PICErrorCode.INTERNAL_ERROR,
+            message="Verification succeeded without an action proposal",
+        )
+
+    # Argument binding: the sanitized live call must equal the verified
+    # proposal's action.args, enforced before the allow decision is built or
+    # audited (so a mismatch is a single block, no preceding allow, no hook,
+    # no dispatch). The same snapshot is returned for dispatch and the hook.
+    sanitized_args = _sanitized_tool_args(tool_args)
+    _enforce_arg_binding(action_proposal, sanitized_args)
+
     verified_evidence_count = (
         len(result.evidence_report.verified_ids)
         if result.evidence_report and hasattr(result.evidence_report, "verified_ids")
@@ -272,7 +350,7 @@ def _evaluate_pic_for_tool_call_with_decision(
         eval_ms=result.eval_ms,
     )
     _emit_allow_audit(decision)
-    return result.action_proposal, tool_args, decision
+    return action_proposal, tool_args, decision, sanitized_args
 
 
 def evaluate_pic_for_tool_call(
@@ -304,7 +382,7 @@ def evaluate_pic_for_tool_call(
     via the internal ``_evaluate_pic_for_tool_call_with_decision`` helper; this
     public function's two-item return is unchanged.
     """
-    action_proposal, tool_args, _ = _evaluate_pic_for_tool_call_with_decision(
+    action_proposal, tool_args, _, _ = _evaluate_pic_for_tool_call_with_decision(
         tool_name=tool_name,
         tool_args=tool_args,
         policy=policy,
@@ -373,7 +451,12 @@ def guard_mcp_tool(
         request_id = _extract_request_id(kwargs)
 
         try:
-            action_proposal, tool_args, decision = _evaluate_pic_for_tool_call_with_decision(
+            (
+                action_proposal,
+                _,
+                decision,
+                sanitized_args,
+            ) = _evaluate_pic_for_tool_call_with_decision(
                 tool_name=tool_name,
                 tool_args=kwargs,
                 policy=policy,
@@ -385,14 +468,11 @@ def guard_mcp_tool(
                 strict_trust=strict_trust,
                 key_resolver=key_resolver,
             )
-            # Remove PIC meta before calling business tool
-            tool_args.pop("__pic", None)
-            tool_args.pop("__pic_request_id", None)
 
             if on_allow is not None:
-                _run_pre_execute_hook(on_allow, decision, action_proposal, tool_args)
+                _run_pre_execute_hook(on_allow, decision, action_proposal, sanitized_args)
 
-            result = tool_fn(**tool_args)
+            result = tool_fn(**sanitized_args)
             return _wrap_success(result)
 
         except _MCPPreExecuteHookError as he:
@@ -467,7 +547,12 @@ def guard_mcp_tool_async(
         request_id = _extract_request_id(kwargs)
 
         try:
-            action_proposal, tool_args, decision = _evaluate_pic_for_tool_call_with_decision(
+            (
+                action_proposal,
+                _,
+                decision,
+                sanitized_args,
+            ) = _evaluate_pic_for_tool_call_with_decision(
                 tool_name=tool_name,
                 tool_args=kwargs,
                 policy=policy,
@@ -479,16 +564,14 @@ def guard_mcp_tool_async(
                 strict_trust=strict_trust,
                 key_resolver=key_resolver,
             )
-            tool_args.pop("__pic", None)
-            tool_args.pop("__pic_request_id", None)
 
             if on_allow is not None:
-                _run_pre_execute_hook(on_allow, decision, action_proposal, tool_args)
+                _run_pre_execute_hook(on_allow, decision, action_proposal, sanitized_args)
 
             if max_tool_ms is not None:
                 try:
                     result = await asyncio.wait_for(
-                        tool_fn(**tool_args), timeout=float(max_tool_ms) / 1000.0
+                        tool_fn(**sanitized_args), timeout=float(max_tool_ms) / 1000.0
                     )
                 except asyncio.TimeoutError as e:
                     details = {"max_tool_ms": int(max_tool_ms)} if _debug_enabled() else None
@@ -498,7 +581,7 @@ def guard_mcp_tool_async(
                         details=details,
                     ) from e
             else:
-                result = await tool_fn(**tool_args)
+                result = await tool_fn(**sanitized_args)
 
             return _wrap_success(result)
 

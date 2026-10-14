@@ -391,6 +391,7 @@ components:
         - PIC_DUPLICATE_ID
         - PIC_VERIFIER_FAILED
         - PIC_TOOL_BINDING_MISMATCH
+        - PIC_ARG_BINDING_MISMATCH
         - PIC_EVIDENCE_REQUIRED
         - PIC_EVIDENCE_FAILED
         - PIC_POLICY_VIOLATION
@@ -419,6 +420,16 @@ components:
             `sdk-python/pic_standard/schemas/proposal_schema.json`.
             The full proposal schema is intentionally not inlined
             here to keep this document bounded.
+
+            After successful proposal verification, the live arguments
+            with only the reserved `__pic` and `__pic_request_id` keys
+            removed must match the proposal's `action.args` under
+            RFC 8785 / JCS canonical digest equality using
+            `canonical.sha256_hex`. A plain `request_id` is a business
+            argument and participates in binding; correlation-only
+            callers should use `__pic_request_id`. Divergence, or
+            failure to canonicalize the live arguments, returns
+            `PIC_ARG_BINDING_MISMATCH`.
 
     VerifyResponse:
       type: object

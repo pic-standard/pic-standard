@@ -43,6 +43,13 @@ class PICErrorCode(str, Enum):
     #: Proposal ``action.tool`` did not match the guard's ``expected_tool``.
     TOOL_BINDING_MISMATCH = "PIC_TOOL_BINDING_MISMATCH"
 
+    #: Sanitized live tool arguments did not match the verified proposal's
+    #: ``action.args`` under digest equality using
+    #: ``canonical.sha256_hex``, or the live arguments could not be
+    #: canonicalized. Raised by the shared MCP evaluator used by the MCP
+    #: guards and HTTP bridge.
+    ARG_BINDING_MISMATCH = "PIC_ARG_BINDING_MISMATCH"
+
     #: Policy required evidence for the resolved impact but the proposal
     #: carried no evidence entries.
     EVIDENCE_REQUIRED = "PIC_EVIDENCE_REQUIRED"

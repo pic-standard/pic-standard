@@ -140,4 +140,24 @@ describe("verifyToolCall", () => {
         expect(result.error?.code).toBe("PIC_BRIDGE_UNREACHABLE");
         expect(result.error?.message).toContain("unknown error code");
     });
+
+    it.each(["PIC_ARG_BINDING_MISMATCH", "PIC_DUPLICATE_ID"])(
+        "accepts mirrored denial error code %s (not remapped to bridge-unreachable)",
+        async (code) => {
+            const mockResponse = {
+                ok: true,
+                json: async () => ({
+                    allowed: false,
+                    error: { code, message: "Denied" },
+                    eval_ms: 4,
+                }),
+            };
+            vi.mocked(fetch).mockResolvedValue(mockResponse as Response);
+
+            const result = await verifyToolCall("test_tool", { arg: "value" }, DEFAULT_CONFIG);
+
+            expect(result.allowed).toBe(false);
+            expect(result.error?.code).toBe(code);
+        }
+    );
 });

@@ -11,6 +11,19 @@ https://semver.org/
 
 - `pic-cli verify --json` emits the verification outcome as one structured JSON object while preserving existing exit codes and the default human-readable output.
 - Optional, additive pre-execution hook for the MCP guard. `guard_mcp_tool` and `guard_mcp_tool_async` accept an `on_allow` integration gate that, when configured, constructs a structured `MCPAllowDecision` and sanitized `MCPToolCall` for each allow, after PIC allows and audits and before tool dispatch, as an alternative to parsing the `pic_standard.mcp` JSON audit log. The synchronous callback is invoked once if context construction succeeds. New public types `MCPAllowDecision`, `MCPPreExecuteHook`, and `MCPToolCall` are exported from `pic_standard.integrations`. A failure while constructing the hook context or running the callback fails closed as a distinct integration error (`PIC_INTERNAL_ERROR` envelope plus a `pic_mcp_hook_error` audit event), never a PIC `block`. No change to the PIC/1.0 wire format, PIC-CJSON/1.0, JSON schemas, evidence semantics, or conformance vectors; the allow event's `LogRecord.getMessage()` text remains byte-identical to prior releases.
+- `PIC_ARG_BINDING_MISMATCH` error code, mirrored across `errors.py`, `docs/ERRORS.md`, the OpenClaw TypeScript union and runtime validation list, and the OpenAPI error enum. It is returned when a tool call's sanitized live arguments diverge from the verified `action.args`, or when those live arguments cannot be canonicalized.
+
+### Changed
+
+- The MCP guard (`guard_mcp_tool`, `guard_mcp_tool_async`) and the HTTP bridge now bind the sanitized live tool arguments to the verified `proposal.action.args` using exact RFC 8785/JCS canonical digest equality (`canonical.sha256_hex`). Binding is on by default and fails closed with `PIC_ARG_BINDING_MISMATCH` before the allow decision is built or audited, so a mismatch produces a single block with no preceding allow or pre-execution hook; guarded calls are not dispatched. This completes tool binding (tool name and arguments) at the MCP evaluator and HTTP bridge boundary; the shared conformance format and `spec-core.md` are unchanged. Only the reserved `__pic` and `__pic_request_id` keys are excluded from the comparison; a plain `request_id` is an ordinary business argument and participates in binding, so correlation-only callers should use `__pic_request_id`. Compatibility: a proposal-backed call whose live arguments diverge from `action.args` now blocks where it previously ran.
+
+### Fixed
+
+- The OpenClaw client's runtime error-code validation list (`integrations/openclaw/lib/pic-client.ts`) restores the previously omitted `PIC_DUPLICATE_ID`, so a genuine duplicate-provenance-id decision from the bridge is no longer rejected as an unknown code. Found incidentally while synchronizing the new error code.
+
+### Security
+
+- Closes a fail-open binding gap at the MCP guard and HTTP bridge boundary: a proposal-backed call could previously pass verification while its live arguments differed from the verified `action.args`. Those divergent calls now fail closed. Binding-failure messages, envelopes, and audit events disclose neither argument values nor digests.
 
 ## [0.9.0] - 2026-09-21
 

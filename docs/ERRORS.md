@@ -95,6 +95,7 @@ application-level decision.
 | `PIC_DUPLICATE_ID` | No. Make each `provenance[].id` distinct. |
 | `PIC_VERIFIER_FAILED` | No. Fix the causal contract, provenance, or claims. |
 | `PIC_TOOL_BINDING_MISMATCH` | No. Fix the `action.tool` value or the guard's expected tool. |
+| `PIC_ARG_BINDING_MISMATCH` | No. Make the live arguments match `action.args` (or move a correlation id to `__pic_request_id`). |
 | `PIC_EVIDENCE_REQUIRED` | No. Attach evidence appropriate to the impact. |
 | `PIC_EVIDENCE_FAILED` | No. Fix the failing evidence artifact. |
 | `PIC_POLICY_VIOLATION` | No. Fix the policy or the action scope. |
@@ -277,6 +278,50 @@ the guard with the correct expected tool.
 {
   "code": "PIC_TOOL_BINDING_MISMATCH",
   "message": "Tool binding mismatch"
+}
+```
+
+### `PIC_ARG_BINDING_MISMATCH`
+
+**Value:** `"PIC_ARG_BINDING_MISMATCH"`.
+
+**Meaning:** the sanitized live tool arguments did not match the verified
+proposal's `action.args`, or those live arguments could not be
+canonicalized. Equality is digest equality of the RFC 8785 / JCS canonical
+form via `canonical.sha256_hex`, so it is independent of JSON member order
+and source serialization. At this MCP evaluator and HTTP bridge boundary,
+binding covers both the tool name and its arguments. A mismatch signals that
+the live call presented for dispatch diverges from the proposal-declared call
+that was successfully verified, indicating a misdirected or tampered call, or
+an adapter bug. When the live arguments cannot be canonicalized, the same code
+is returned with a distinct message that still contains no argument values.
+
+Only the reserved keys `__pic` and `__pic_request_id` are excluded from the
+comparison. A plain `request_id` is an ordinary business argument: if supplied
+it must appear in `action.args`. Callers that need correlation only should
+pass `__pic_request_id`, which never participates in binding.
+
+**Where raised:** the shared MCP evaluator
+(`_evaluate_pic_for_tool_call_with_decision`), used by `guard_mcp_tool`,
+`guard_mcp_tool_async`, and the HTTP bridge. The check runs after the proposal
+verifies successfully and before the allow decision is constructed or audited,
+so the guard and bridge wrappers represent it as a single block with no
+preceding allow, no pre-execution hook invocation, and no tool dispatch.
+
+**HTTP status:** HTTP 200 with pipeline decision envelope.
+
+**Retryable:** no, unless the caller corrects the live arguments so they match
+`action.args` (or moves a correlation id to `__pic_request_id`).
+
+**Privacy:** the message, `details`, response envelope, and audit event never
+contain argument values or digests.
+
+**Example:**
+
+```json
+{
+  "code": "PIC_ARG_BINDING_MISMATCH",
+  "message": "Tool argument binding mismatch"
 }
 ```
 

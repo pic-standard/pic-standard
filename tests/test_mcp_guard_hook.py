@@ -259,20 +259,20 @@ def test_hook_real_pipeline_proposal_backed():
     assert tool_call.arguments_digest == decision.args_digest
 
 
-def test_live_arg_mismatch_is_detectable(monkeypatch):
-    # The proposal declares {"amount": 500}, but the sanitized live call has {"amount": 501}.
-    # This PR surfaces the divergence to the hook as two comparable digests; it does NOT
-    # yet enforce it in the guard. Live-arg binding is the separate A1b guard fix; when
-    # that lands, the guard will fail closed here and this test can assert a block.
+def test_live_arg_mismatch_blocks(monkeypatch, caplog):
+    # The proposal declares {"amount": 500}, but the sanitized live call has
+    # {"amount": 501}. Binding fails closed in the evaluator before the allow
+    # decision: one block, no allow, no hook, no dispatch.
     rec = _Recorder()
     _patch_verify_ok(monkeypatch, action_proposal=_declared_ap(500))
     wrapped = guard_mcp_tool("payments_send", _tool, policy=_money_policy(), on_allow=rec)
-    out = wrapped(amount=501, __pic={"id": "p1"})
-    assert out["isError"] is False  # proceeds for now (detectability, not enforcement)
-    decision, tool_call = rec.calls[0]
-    assert decision.args_digest == sha256_hex({"amount": 500})  # proposal-declared
-    assert tool_call.arguments_digest == sha256_hex({"amount": 501})  # sanitized live call
-    assert decision.args_digest != tool_call.arguments_digest
+    with caplog.at_level(logging.INFO, logger=MCP_LOGGER):
+        out = wrapped(amount=501, __pic={"id": "p1"})
+    assert out["isError"] is True and out["error"]["code"] == "PIC_ARG_BINDING_MISMATCH"
+    assert rec.calls == []  # hook never invoked
+    blocks = [e for e in _events(caplog, "pic_mcp_decision") if e["decision"] == "block"]
+    assert len(blocks) == 1 and blocks[0]["reason_code"] == "PIC_ARG_BINDING_MISMATCH"
+    assert not [e for e in _events(caplog, "pic_mcp_decision") if e["decision"] == "allow"]
 
 
 def test_detached_copy_mutation_does_not_reach_tool():
@@ -418,14 +418,20 @@ def test_hook_context_canonicalization_failure_fails_closed(caplog):
 
 
 def test_proposal_backed_missing_action_proposal_fails_closed(monkeypatch, caplog):
+    # ok=True but no ActionProposal is an internal invariant failure, caught in
+    # the evaluator before the allow decision: PIC_INTERNAL_ERROR block, hook
+    # never invoked, and a decision block (not a pic_mcp_hook_error event).
     rec = _Recorder()
     _patch_verify_ok(monkeypatch, action_proposal=None)  # present, but no ActionProposal
     wrapped = guard_mcp_tool("payments_send", _tool, policy=_money_policy(), on_allow=rec)
     with caplog.at_level(logging.INFO, logger=MCP_LOGGER):
         out = wrapped(amount=500, __pic={"id": "p1"})
     assert out["isError"] is True and out["error"]["code"] == "PIC_INTERNAL_ERROR"
-    assert rec.calls == []
-    assert len(_events(caplog, "pic_mcp_hook_error")) == 1
+    assert rec.calls == []  # hook never invoked
+    assert _events(caplog, "pic_mcp_hook_error") == []
+    blocks = [e for e in _events(caplog, "pic_mcp_decision") if e["decision"] == "block"]
+    assert len(blocks) == 1 and blocks[0]["reason_code"] == "PIC_INTERNAL_ERROR"
+    assert not [e for e in _events(caplog, "pic_mcp_decision") if e["decision"] == "allow"]
 
 
 # --------------------------------------------------------------------------- #
