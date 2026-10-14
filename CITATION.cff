@@ -13,8 +13,8 @@ url: "https://github.com/pic-standard/pic-standard"
 repository-artifact: "https://pypi.org/project/pic-standard/"
 license: "Apache-2.0"
 
-version: "0.9.0"
-date-released: "2026-09-21"
+version: "0.9.1"
+date-released: "2026-10-14"
 
 identifiers:
   - type: doi
@@ -41,6 +41,9 @@ identifiers:
   - type: doi
     value: "10.5281/zenodo.22882263"
     description: "Version DOI for v0.9.0 (archived 2026-09-21)"
+  - type: doi
+    value: "10.5281/zenodo.23377536"
+    description: "Version DOI for v0.9.1 (archived 2026-10-14)"
 
 keywords:
   - ai-safety
