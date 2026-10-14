@@ -7,23 +7,43 @@ https://semver.org/
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-14
+
+Additive integration surface plus a security-hardening fix, consolidating the work merged since v0.9.0. Headline changes: structured JSON output for `pic-cli verify` (#170), an optional, additive MCP guard pre-execution hook (`on_allow`, #189), and live-argument binding that completes tool binding at the MCP guard and HTTP bridge boundary (#190). Live-argument binding is on by default and fails closed with the new `PIC_ARG_BINDING_MISMATCH` error code when a proposal-backed call's sanitized live arguments diverge from the verified `action.args`; a call that previously ran with divergent arguments now blocks. The PIC/1.0 wire format, PIC-CJSON/1.0, JSON schemas, and evidence semantics are unchanged from v0.9.0. The shared conformance corpus expands additively from 84 to 91 vectors; no existing vector is modified. The remainder is conformance expansion, MCP demo corrections and smoke coverage, new examples and integration guidance, Windows CI, and dependency refreshes. PRs in this release: #123, #132, #153, #154, #156, #157, #158, #159, #160, #161, #162, #163, #170, #171, #172, #181, #182, #183, #189, #190.
+
 ### Added
 
 - `pic-cli verify --json` emits the verification outcome as one structured JSON object while preserving existing exit codes and the default human-readable output.
-- Optional, additive pre-execution hook for the MCP guard. `guard_mcp_tool` and `guard_mcp_tool_async` accept an `on_allow` integration gate that, when configured, constructs a structured `MCPAllowDecision` and sanitized `MCPToolCall` for each allow, after PIC allows and audits and before tool dispatch, as an alternative to parsing the `pic_standard.mcp` JSON audit log. The synchronous callback is invoked once if context construction succeeds. New public types `MCPAllowDecision`, `MCPPreExecuteHook`, and `MCPToolCall` are exported from `pic_standard.integrations`. A failure while constructing the hook context or running the callback fails closed as a distinct integration error (`PIC_INTERNAL_ERROR` envelope plus a `pic_mcp_hook_error` audit event), never a PIC `block`. No change to the PIC/1.0 wire format, PIC-CJSON/1.0, JSON schemas, evidence semantics, or conformance vectors; the allow event's `LogRecord.getMessage()` text remains byte-identical to prior releases.
+- Optional, additive pre-execution hook for the MCP guard. `guard_mcp_tool` and `guard_mcp_tool_async` accept an `on_allow` integration gate that, when configured, constructs a structured `MCPAllowDecision` and sanitized `MCPToolCall` for each allow, after PIC allows and audits and before tool dispatch, as an alternative to parsing the `pic_standard.mcp` JSON audit log. The synchronous callback is invoked once if context construction succeeds. New public types `MCPAllowDecision`, `MCPPreExecuteHook`, and `MCPToolCall` are exported from `pic_standard.integrations`. A failure while constructing the hook context or running the callback fails closed as a distinct integration error (`PIC_INTERNAL_ERROR` envelope plus a `pic_mcp_hook_error` audit event), never a PIC `block`. The hook itself changes no PIC/1.0 wire format, PIC-CJSON/1.0, JSON schemas, evidence semantics, or conformance vectors; the allow event's `LogRecord.getMessage()` text remains byte-identical to prior releases.
 - `PIC_ARG_BINDING_MISMATCH` error code, mirrored across `errors.py`, `docs/ERRORS.md`, the OpenClaw TypeScript union and runtime validation list, and the OpenAPI error enum. It is returned when a tool call's sanitized live arguments diverge from the verified `action.args`, or when those live arguments cannot be canonicalized.
+- Conformance corpus expansion from 84 to 91 vectors (additive; no existing vector modified): a missing-required-field block vector (#156), four IEEE-754 canonicalization vectors `012`-`015` (#163), and privacy and irreversible allow vectors (#171).
+- Signed refund-approval example with dispatch checks (#172).
+- Walkthrough for valid and tampered Ed25519 evidence (#182).
+- Agent-facing PIC evaluation and integration guide (#183).
+- `windows-latest` added to the Python CI test matrix (#154).
 
 ### Changed
 
 - The MCP guard (`guard_mcp_tool`, `guard_mcp_tool_async`) and the HTTP bridge now bind the sanitized live tool arguments to the verified `proposal.action.args` using exact RFC 8785/JCS canonical digest equality (`canonical.sha256_hex`). Binding is on by default and fails closed with `PIC_ARG_BINDING_MISMATCH` before the allow decision is built or audited, so a mismatch produces a single block with no preceding allow or pre-execution hook; guarded calls are not dispatched. This completes tool binding (tool name and arguments) at the MCP evaluator and HTTP bridge boundary; the shared conformance format and `spec-core.md` are unchanged. Only the reserved `__pic` and `__pic_request_id` keys are excluded from the comparison; a plain `request_id` is an ordinary business argument and participates in binding, so correlation-only callers should use `__pic_request_id`. Compatibility: a proposal-backed call whose live arguments diverge from `action.args` now blocks where it previously ran.
+- Refreshed contributor entry points for v1.0 stabilization (#181).
+- Dependency refreshes: the `pydantic` runtime requirement floor was raised to `>=2.13.5` (#123); the LangGraph integration requirements were refreshed (#158); development-only `coverage` (#159) and `PyYAML` (#157) pins were updated; and the OpenClaw plugin's npm dependency group was bumped (#132).
 
 ### Fixed
 
 - The OpenClaw client's runtime error-code validation list (`integrations/openclaw/lib/pic-client.ts`) restores the previously omitted `PIC_DUPLICATE_ID`, so a genuine duplicate-provenance-id decision from the bridge is no longer rejected as an unknown code. Found incidentally while synchronizing the new error code.
+- MCP demo corrections and smoke coverage: the demo was aligned with strict-trust semantics (#160), gained required smoke coverage and support for JSON text-content response envelopes (#161), and now exits non-zero when any case fails (#162).
 
 ### Security
 
 - Closes a fail-open binding gap at the MCP guard and HTTP bridge boundary: a proposal-backed call could previously pass verification while its live arguments differed from the verified `action.args`. Those divergent calls now fail closed. Binding-failure messages, envelopes, and audit events disclose neither argument values nor digests.
+
+### Notes
+
+- **Wire format:** unchanged from v0.9.0. The v0.9.1 changes are an additive CLI flag, an additive opt-in MCP guard hook, boundary-level live-argument binding in the MCP guard and HTTP bridge, additive conformance vectors, examples, documentation, CI, and dependency refreshes; there are no proposal or evidence schema changes.
+- **`#153` is not a v0.9.1 feature.** It was the post-Zenodo citation completion for v0.9.0 (updating `CITATION.cff` with the v0.9.0 DOI) and appears in this commit range only because it merged after the v0.9.0 tag.
+- **`CITATION.cff`** for v0.9.1 is updated in a follow-up commit once the Zenodo per-version DOI is minted (same pattern as the v0.9.0a1, v0.9.0a2, and v0.9.0 releases).
+
+---
 
 ## [0.9.0] - 2026-09-21
 
