@@ -79,7 +79,8 @@ Specifications in this project are treated as evolving drafts until cross-implem
 | **v0.9.0a1** | **Alpha 1 — schema/spec/conformance, bridge, and Docker cleanup** | **Removes conformant `"semi_trusted"` and its v0.8.1 warning/normalization compatibility path. Removes the deprecated `apply_verified_ids_to_provenance` wrapper. Adds `docs/ERRORS.md` with heading-to-enum parity test. Resolves `OQ-CORE-001` with explicit error-code precedence, clarifies the `PIC_SCHEMA_INVALID` / `PIC_VERIFIER_FAILED` boundary, and pins lone-surrogate rejection through `canonical_reject`, `canon-010-lone-surrogate-rejection`, and a pipeline-level guard. Publishes an OpenAPI 3.0.3 bridge contract with Spectral CI, `/v1/version` machine-readable metadata, centralized invalid `X-Request-ID` rejection, and a hardened reference Docker Compose profile with deployment docs. First stop in the v0.9.0a1 → v0.9.0a2 → v0.9.0 sequence.** | ✅ Done |
 | **v0.9.0a2** | **Alpha 2 — Independent Review Hardening** | **Adds `PIC_DUPLICATE_ID` error code and pipeline step 2c uniqueness check. Tightens SHA-256 wire representation to lowercase hex and Base64 signature representation (URL-safe, unpadded, overpadded, whitespace-containing, and wrong-decoded-length rejected). Removes whitespace normalization from exact tool binding. Flips `PipelineOptions.strict_trust` default to `True` (secure default) with `PICLegacyTrustModeWarning` at explicit `False` opt-in; adapters and `pic-cli verify --legacy-trust` mirror the new default. Adds 11 new conformance vectors (73 → 84). Adds PIC-authored independent-review provenance docs under `docs/independent-reviews/`. Legacy trust mode remains callable as compatibility opt-in.** | ✅ Done |
 | **v0.9.0** | **Stable interop milestone** | **Independent protocol stress-test hardening, first TypeScript verifier pass ([pic-standard-ts](https://github.com/pic-standard/pic-standard-ts)), cross-implementation differential CI, `semi_trusted` removal, OpenAPI bridge, Docker hardening, and spec drafts updated with cross-implementation findings.** | ✅ Done |
-| v0.9.1–v0.9.2 | Ambiguity burn-down | Differential Python ↔ TS testing, fuzzing canonicalization and malformed proposals/evidence, more number/Unicode edge vectors, additional malformed-evidence cases, TS evidence-mode parity completed if not landed at v0.9.0, wording tightening from cross-impl disagreements | Planned |
+| **v0.9.1** | **Integration surface and live-argument binding** | **Structured JSON output for `pic-cli verify` (`--json`). Optional, additive MCP guard pre-execution hook (`on_allow`) exported from `pic_standard.integrations`. Live-argument binding in the MCP guard and HTTP bridge: sanitized live tool arguments must equal the verified `action.args` under RFC 8785/JCS `sha256_hex` digest equality, on by default and fail-closed with the new `PIC_ARG_BINDING_MISMATCH` error code, completing tool binding (tool name and arguments) at that boundary. Conformance corpus expands additively from 84 to 91. Incidental repair of the OpenClaw runtime error-code list (restores `PIC_DUPLICATE_ID`).** | ✅ Done |
+| v0.9.2 | Ambiguity burn-down | Differential Python ↔ TS testing, fuzzing canonicalization and malformed proposals/evidence, more number/Unicode edge vectors, additional malformed-evidence cases, wording tightening from cross-impl disagreements | Planned |
 | **v1.0.0** | **Production-grade protocol freeze** | **Canonical attestation-object signing becomes default; legacy payload-string mode is non-conformant. `spec-core.md`, `spec-evidence.md`, and Attestation Object v1 all promoted to normative. PIC-CJSON/1.0 unchanged. Python + TS pass full conformance suite. Internet-Draft submission. Legacy trust mode (`strict_trust=False`) may be removed at this milestone; removal is not scheduled in the v0.9.x series.** | Planned |
 
 **Deferred beyond v1.0:** broader TS hardening / ecosystem tooling, trust bundle profile, discovery profile, optional CBOR profile, registry/governance machinery beyond the v1.0 minimum, additional transport bindings.
@@ -418,7 +419,7 @@ For whichever modes are covered: same vectors, same allow/block results, same ca
 ## Phase 4 — Ambiguity Burn-Down
 
 **Goal:** eliminate the ambiguity that only appears once two implementations exist.
-**Target:** v0.9.1 – v0.9.2
+**Target:** v0.9.2
 
 ### Work items
 - Differential Python ↔ TS testing
@@ -427,7 +428,7 @@ For whichever modes are covered: same vectors, same allow/block results, same ca
 - More Unicode edge vectors
 - Malformed JSON / parser-boundary negative cases (raw-text vector format if added)
 - More evidence corruption / key-state vectors
-- TS evidence-mode parity completed if not landed at v0.9.0
+- Complete TS evidence-mode parity (hash and signature vector execution)
 - Tighter wording wherever two implementations expose ambiguity
 - Spec drafts (`spec-core.md`, `spec-evidence.md`, attestation-object) updated based on findings
 
@@ -494,7 +495,7 @@ These are important but stay downstream of a stable core:
 | 10 | OpenAPI + Docker hardening + structured audit logs | 2 | v0.9.0 |
 | 11 | First `pic-standard-ts` verifier pass (canon + core + trust-sanitization minimum) | 3 | v0.9.0 |
 | 12 | TS evidence-mode parity (if not landed at v0.9.0) | 3 | v0.9.x |
-| 13 | Differential testing + fuzzing | 4 | v0.9.1–v0.9.2 |
+| 13 | Differential testing + fuzzing | 4 | v0.9.2 |
 | 14 | Promote `spec-core.md`, `spec-evidence.md`, `attestation-object-draft.md` (filename preserved) to normative; flip canonical signing default; flip strict_trust default; ship v1.0 | 5 | v1.0.0 |
 
 ---

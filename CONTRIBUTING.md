@@ -7,10 +7,10 @@ Thank you for helping us build a more accountable future for AI. 🛡️
 The fastest ways in:
 
 - Read the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117).
-- Pick a [good first issue](https://github.com/pic-standard/pic-standard/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or one of the pinned issues, then comment to claim it.
-- Adding a conformance vector is a great first PR: follow [`conformance/adding-a-vector.md`](conformance/adding-a-vector.md).
+- Pick an open [good first issue](https://github.com/pic-standard/pic-standard/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22). These are documentation tasks (walkthroughs of real examples, setup and troubleshooting guides), each scoped to a single file with the exact commands to check your work. Comment on the issue to claim it.
+- The project is stabilizing v1.0. Contributions that change the protocol contract (runtime code, schemas, specs, conformance vectors) need coordination first: describe what you would like to work on in the call for contributors, and we will agree a bounded task and timing.
 
-A maintainer will help if you get stuck. The path to Reviewer and Maintainer is documented in [`GOVERNANCE.md`](GOVERNANCE.md).
+The maintainer will help if you get stuck. The path to Reviewer and Maintainer is documented in [`GOVERNANCE.md`](GOVERNANCE.md).
 
 ## ✍️ Developer Certificate of Origin (DCO)
 

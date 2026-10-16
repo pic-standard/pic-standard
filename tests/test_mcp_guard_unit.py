@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 
 import pytest
 from pic_standard.integrations.mcp_pic_guard import guard_mcp_tool, guard_mcp_tool_async
@@ -144,7 +145,7 @@ def test_mcp_guard_leaks_internal_exception_details_when_debug(monkeypatch):
         PICLegacyTrustModeWarning,
         match="strict_trust=False enables legacy trust behavior",
     ):
-        out = wrapped(amount=1, __pic=_proposal("trusted"))
+        out = wrapped(amount=500, __pic=_proposal("trusted"))
     err = out.get("error") or {}
     details = err.get("details") or {}
     assert details.get("exception_type") == "RuntimeError"
@@ -201,7 +202,10 @@ def test_guard_sync_passes_key_resolver(monkeypatch):
 
         class Result:
             ok = True
-            action_proposal = None
+            action_proposal = SimpleNamespace(
+                intent="Send payment",
+                action={"tool": "payments_send", "args": {"amount": 500}},
+            )
             evidence_report = None
             impact = "money"
             eval_ms = 0
@@ -237,7 +241,10 @@ def test_guard_async_passes_key_resolver(monkeypatch):
 
         class Result:
             ok = True
-            action_proposal = None
+            action_proposal = SimpleNamespace(
+                intent="Send payment",
+                action={"tool": "payments_send", "args": {"amount": 500}},
+            )
             evidence_report = None
             impact = "money"
             eval_ms = 0

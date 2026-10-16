@@ -19,13 +19,14 @@ Vectors in this directory cover the **core verifier** — the layer exercised by
 - The causal verifier rules (e.g., money impact with untrusted provenance and no evidence is rejected).
 - Tool-binding enforcement when `expected_tool` is provided.
 
-The following are explicitly **out of scope** for this directory in v0.8.0 and are deferred to v0.8.1+:
+The following are **not covered by this directory**:
 
-- **Evidence-mode conformance** — hash-evidence verification, file-URI resolution, signature-evidence verification. These require ambient state (`evidence_root_dir`, keyring configuration) that portable vectors cannot carry cleanly yet. The evidence-mode tests live in `tests/test_evidence_*.py` for now.
-- **Trust-sanitization mode** — the `strict_trust=True` path that sanitizes `trust: "trusted"` to `"untrusted"` when evidence will not actually run. Also v0.8.1+.
-- **Policy-mode conformance** — proposal outcomes under non-default `PICPolicy`. Also v0.8.1+.
-- **Cross-implementation runner** — executing these vectors against a TypeScript or Go implementation of `verify_proposal()`. Arrives alongside the TypeScript reference implementation (Phase 3).
-- **Deprecation-warning assertions** — `warnings.warn` behaviour is Python-specific and not portable; it is exercised by `tests/test_trust_deprecation_warning.py`, not by shared vectors.
+- **Evidence-mode conformance** (hash-evidence verification, file-URI resolution, signature-evidence verification): covered by [`conformance/evidence/`](../evidence/README.md).
+- **Trust-sanitization mode** (the `strict_trust` matrix): covered by [`conformance/trust_sanitization/`](../trust_sanitization/README.md).
+- **Policy-mode conformance** (proposal outcomes under non-default `PICPolicy`): not yet covered by portable vectors.
+- **Deprecation-warning assertions**: `warnings.warn` behaviour is Python-specific and not portable; it is exercised by `tests/test_trust_deprecation_warning.py`, not by shared vectors.
+
+These vectors are also run by the TypeScript implementation ([`pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts)), and advisory differential CI compares Python and TypeScript results on PRs targeting `main`.
 
 ---
 

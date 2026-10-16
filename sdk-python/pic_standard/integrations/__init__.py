@@ -1,4 +1,4 @@
-"""PIC Standard integrations — lazy-loaded to avoid pulling optional dependencies."""
+"""PIC Standard integrations. Optional-dependency integrations are lazy-loaded."""
 
 from typing import TYPE_CHECKING
 
@@ -9,8 +9,16 @@ from ..pipeline import (
     PipelineResult,
     verify_proposal,
 )
+from .mcp_hooks import (
+    MCPAllowDecision,
+    MCPPreExecuteHook,
+    MCPToolCall,
+)
 
 __all__ = [
+    "MCPAllowDecision",
+    "MCPPreExecuteHook",
+    "MCPToolCall",
     "PICEvaluateLimits",
     "PICToolNode",
     "PipelineOptions",

@@ -1,6 +1,8 @@
 # <p><img src="https://raw.githubusercontent.com/pic-standard/pic-standard/main/picico.png" height="60" align="absmiddle"> PIC Standard: Provenance & Intent Contracts</p>
 
-**Local-first action gating for AI agents. Verify intent, provenance, and evidence before any high-impact tool call executes.**
+### Require verifiable evidence before your AI agent acts.
+
+**Local-first. Open source. Your policy and trusted keys.**
 
 [![PyPI version](https://img.shields.io/pypi/v/pic-standard.svg?logo=pypi&logoColor=white)](https://pypi.org/project/pic-standard/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/pic-standard.svg?logo=pypi&logoColor=white)](https://pypi.org/project/pic-standard/)
@@ -14,324 +16,251 @@
 [![DOI](http://img.shields.io/badge/DOI-10.5281%20%2F%20zenodo.18725562-blue.svg)](https://doi.org/10.5281/zenodo.18725562)
 [![License](https://img.shields.io/github/license/pic-standard/pic-standard)](https://github.com/pic-standard/pic-standard/blob/main/LICENSE)
 
-> **Contributors wanted.** PIC is recruiting its first external contributors and
-> co-maintainers. Start with the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117)
-> and the pinned good-first issues. TypeScript now has a public implementation at [`pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts); Go and Rust are the next high-value implementation tracks.
+Before an agent makes a payment, exports sensitive data, or deletes a resource, it must declare what it intends to do, which sources informed the decision, and what evidence supports its claims.
 
-> **v0.9.0 (2026-09-21):** Stable cross-implementation milestone. PIC is no longer only a Python reference implementation: the public TypeScript verifier at [`pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts) passes the shared conformance corpus for `canonicalization`, `core`, and `trust_sanitization`. The release also incorporates hardening from independent protocol stress-test work and internal cross-implementation checks, including stricter host-language canonicalization rules and a normative differential-conformance contract. Advisory differential CI now compares Python and TypeScript envelopes on PRs targeting `main`. Evidence-mode TypeScript parity remains a v0.9.x completion item. See [CHANGELOG](CHANGELOG.md) for the full v0.9.0 story.
+PIC adds a verification gate before tool execution. It checks the action proposal, verifies supporting evidence against your trusted keys, and enforces the required connection between claims and trusted provenance. Your integration blocks execution when verification fails.
 
-PIC is a lightweight, local-first protocol that forces AI agents to **prove** every important action before it happens. Agents must declare intent, impact, provenance, and evidence; PIC verifies everything and **fails closed** if anything is wrong.
+The intent, provenance, claims, and proposed action travel together in a structured contract. Canonical signed attestations bind supporting evidence to the specific action being proposed.
 
-PIC is not agent identity or delegation infrastructure; PIC is the action-bound verification contract that decides whether a high-impact tool call is justified to execute now.
+[Try PIC](#quickstart) · [See a signed approval in action](#see-the-contract-in-action) · [Integrations](#integrations) · [Specifications](#specifications-and-conformance) · [Contribute](#contributing)
 
-*No more hallucinations turning into wire transfers. No more prompt injections triggering data exports.*
+```mermaid
+flowchart TD
+    agent["AI Agent proposes an action"]
+    proposal["Action Proposal: intent, impact, provenance, claims, evidence, action"]
+    pic{"PIC verification"}
+    integration["Integration enforces the decision before tool execution"]
+    blocked(("Execution blocked"))
 
-**Example — when PIC blocks:** A Slack message asks an LLM agent to send a $500 payment. PIC requires the agent to prove: *where did this instruction come from? Is the source trusted? Is there evidence the invoice is real?* The Slack message carries no trusted provenance, the claim has no backing evidence — PIC returns `block`. The payment tool never executes.
+    agent --> proposal --> pic
+    pic -->|"Checks pass"| integration
+    pic -->|"Checks fail"| blocked
+```
 
----
-
-## Table of Contents
-
-- [Why PIC?](#why-pic)
-- [Quickstart](#quickstart)
-- [The PIC Contract](#the-pic-contract)
-- [How It Works](#how-it-works)
-- [Evidence Verification](#evidence-verification)
-- [Keyring (Trusted Signers)](#keyring-trusted-signers)
-- [Implementations](#implementations)
-- [Integrations](#integrations)
-- [RFC & Prior Art](#rfc--prior-art)
-- [Roadmap](#roadmap)
-- [Project info](#project-info)
-- [Contributing](#contributing)
-
----
+PIC checks the proposal and supporting evidence. The execution integration must enforce the decision and ensure the tool receives the verified arguments.
 
 ## Why PIC?
 
-> Guardrails constrain **what the model says**. PIC constrains **what the agent is allowed to do** based on **verifiable provenance + evidence**.
+An agent may have permission to use a payment tool and still act on a forged invoice, an injected instruction, or an unsupported claim that someone approved the transaction.
 
-PIC is built for agent frameworks, internal tool gateways, and production systems where high-impact actions must be justified before execution.
+PIC gives your application a contract for checking the proposed action and its supporting evidence before execution. You decide which tools require PIC and which signing keys to trust. Verification runs in code, without asking a model whether its own decision was justified.
 
-- **Stops prompt injections & blind tool calls** at the action boundary
-- **Works 100% locally**: zero cloud, zero data leaves your machine
-- **Plugs into your stack in minutes**: LangGraph, MCP, OpenClaw, Cordum
-- **Open-source (Apache 2.0)**: audit it, fork it, own it
+- **Require evidence for high-impact actions.** Money, privacy, and irreversible actions require a claim linked to trusted provenance under PIC's core rule.
+- **Reject self-asserted trust.** Incoming provenance labels are sanitized to `untrusted` by default. Accepted signature evidence can establish trust through your configured keyring.
+- **Bind evidence to the proposed action.** Canonical attestations bind the tool, arguments, impact, claims, and provenance IDs. They also support intent binding and expiry checks.
+- **Check the arguments at the tool boundary.** The Python MCP guard and HTTP bridge compare the submitted live arguments with the verified proposal and reject mismatches.
+- **Keep verification under your control.** Run locally, use your own trusted keys, and integrate through Python or the HTTP API. No hosted PIC account or model API key is required for verification.
 
----
+## The PIC contract
+
+Every Action Proposal brings the decision and the intended tool call into one verifiable structure.
+
+| Field | What it declares |
+|---|---|
+| `intent` | What the agent intends to do |
+| `impact` | The action's risk class |
+| `provenance` | The sources declared to have informed the decision |
+| `claims` | The assertions supporting the action, with evidence references |
+| `evidence` | Artifacts or signatures the verifier can check |
+| `action` | The proposed tool and its arguments |
+
+PIC defines seven impact classes: `read`, `write`, `external`, `compute`, `money`, `privacy`, and `irreversible`.
+
+For `money`, `privacy`, and `irreversible`, at least one claim must reference trusted provenance. With strict trust enabled, an agent cannot satisfy that requirement simply by writing `"trust": "trusted"`.
+
+Operator policy maps tools to impact classes and determines where proposals and evidence verification are required. Applications can impose additional requirements, such as a particular approver or a refund-specific argument schema.
+
+## See the contract in action
+
+A merchant approves a **€40 EUR refund on payment `pay_A`**. The agent submits a proposal containing the refund intent, merchant provenance, approval references, signed evidence, and the exact refund action.
+
+PIC verifies the signature and its binding to the proposal. The example's execution wrapper checks the refund workflow's requirements and calls the tool only after those checks pass.
+
+| Case | Result |
+|---|---|
+| Valid approval for the proposed refund | Allowed; tool called with the verified arguments |
+| Required evidence removed | Blocked |
+| Forged signature or unknown signing key | Blocked |
+| Approval has expired | Blocked |
+| Payment, amount, or currency changed after signing | Blocked |
+| Approval references changed after signing | Blocked |
+| Signature is valid, but the proposal fails the refund workflow's requirements | Blocked by the workflow checks |
+| Separate execution arguments differ from the verified proposal | Blocked by the execution wrapper |
+
+The example includes **22 verification and dispatch cases**, with tool-call counts and checks on the actual arguments received. Two deliberately broken wrappers verify that the suite detects premature execution and substituted arguments.
+
+It uses a harmless recording tool; no money moves. The example documents which checks belong to PIC and which belong to the refund workflow.
+
+**[Run the signed-refund example →](examples/refund-approval/README.md)**
 
 ## Quickstart
 
-Try the verifier locally against a sample high-impact proposal in under a minute.
+### Install the Python verifier
+
+Python 3.10 or later:
 
 ```bash
-pip install pic-standard
-
-# Verify an example proposal
-pic-cli verify examples/financial_irreversible.json
-
-# Evidence-aware verification (hash + signature; hash proves integrity,
-# signature provides authority for trust upgrade under v0.8.3)
-# macOS / Linux
-PIC_KEYS_PATH=pic_keys.example.json pic-cli verify examples/financial_hash_ok.json --verify-evidence
-# PowerShell
-# $env:PIC_KEYS_PATH="pic_keys.example.json"
-# pic-cli verify examples/financial_hash_ok.json --verify-evidence
-
-# Evidence-aware verification (signature — requires example keyring)
-# macOS / Linux
-PIC_KEYS_PATH=pic_keys.example.json pic-cli verify examples/financial_sig_ok.json --verify-evidence
-# PowerShell
-# $env:PIC_KEYS_PATH="pic_keys.example.json"
-# pic-cli verify examples/financial_sig_ok.json --verify-evidence
+python -m pip install "pic-standard[crypto]"
 ```
 
-> **Why the keyring on the hash example?** Under v0.8.3 evidence semantics, a matching hash proves content-integrity of the referenced file bytes but does not, by itself, upgrade provenance trust. The signature evidence, verified against `PIC_KEYS_PATH`, supplies the authority-bearing trust upgrade for the money-impact action. See [`docs/spec-evidence.md`](docs/spec-evidence.md) §8 and [issue #133](https://github.com/pic-standard/pic-standard/issues/133).
+The `crypto` extra enables Ed25519 signature verification. Install `pic-standard` without extras when you do not need signature verification.
 
-**Optional extras:**
-```bash
-pip install "pic-standard[langgraph]"  # LangGraph PICToolNode
-pip install "pic-standard[mcp]"        # MCP tool guarding
-pip install "pic-standard[crypto]"     # Ed25519 signature evidence
-```
+### Verify valid and tampered evidence
 
-**From source (contributors):**
+The sample files live in the repository. From a checkout, install the source and run the fixtures:
+
 ```bash
 git clone https://github.com/pic-standard/pic-standard.git
-cd pic-standard && pip install -e ".[langgraph,mcp,crypto]"
-pytest -q
+cd pic-standard
+python -m pip install -e ".[crypto]"
 ```
 
----
-
-## The PIC Contract
-
-PIC is enforced at the moment before tool execution. The agent must emit a structured Action Proposal that can be validated, verified, and bound to the intended tool.
-
-| Field | Purpose |
-|-------|---------|
-| `intent` | What the agent is trying to do |
-| `impact` | Risk class: `money`, `privacy`, `irreversible`, `compute`, ... |
-| `provenance` | Which inputs influenced the decision (with trust levels) |
-| `claims` + `evidence` | What the agent asserts and the evidence backing it |
-| `action` | The actual tool call (tool binding) |
-
-**Rule:** For high-impact proposals, at least one claim must reference evidence from **trusted** provenance. Fail-closed.
-
----
-
-## How It Works
-```mermaid
-graph TD
-    A[User input / external context] --> B[AI Agent / Planner]
-    C[Internal data / system context] --> B
-    B --> D[PIC Action Proposal JSON]
-    D --> E[PIC Verifier]
-    E --> F{Intent, provenance, impact, evidence valid?}
-    F -- Yes --> G[Tool Executor]
-    F -- No --> H[Blocked / Audit Log]
-    G --> I[API / DB / File / Payment / External Action]
-```
-
----
-
-## How PIC Differs from Receipt / Audit / Reputation Systems
-
-PIC is a **pre-execution action-verification contract** - a parallel surface in the agent-safety stack, not a primitive in a shared substrate. PIC decides at the action boundary whether a high-impact tool call is justified to execute *now*. Post-execution systems - bilateral receipts, signed audit logs, trust/reputation scores - record what already happened and are architecturally distinct.
-
-| Concern | PIC (pre-execution) | Receipt / audit / reputation systems (post-execution) |
-|---|---|---|
-| When it acts | Before the action executes — fail-closed gate | After the action executes - signed record |
-| Decision output | `allow` / `block` / `require-more-evidence` | Signed receipt, log entry, reputation delta |
-| Stops the wire transfer? | Yes | No — records that it happened |
-| Trust model | Local keyring, operator-owned roots, injectable resolver | Often relies on shared trust networks or cross-org federation |
-| Threat focus | Prompt injection, hallucination, blind tool calls | Auditability, accountability, ex-post compliance |
-| Dependency surface | Zero outbound — runs fully local | Often depends on shared canonicalization substrates, reputation aggregators, or external verifier networks |
-
-PIC's pre-execution surface can contribute to Article 12-style traceability on the decision side: a verified Action Proposal is a structured decision artifact that may be incorporated into a high-risk AI system's record-keeping and logging architecture. PIC alone is not Article 12 compliance; it complements the broader system-level logging and retention duties in Articles 12 and 19. A post-execution attestation surface bound to the same primitives is drafted in [`docs/attestation-object-draft.md`](docs/attestation-object-draft.md), kept local-first and operator-controlled by design.
-
-**Rule of thumb:** if a system asks "should this action be allowed to run?", that's PIC's surface. If it asks "did this action run, and what's the agent's reputation?", that's a complementary post-execution surface — not a layer PIC sits inside.
-
----
-
-## Evidence Verification
-
-PIC supports deterministic evidence verification. Authority-bearing signature evidence, verified against the configured keyring, can upgrade matching `provenance[].trust` in-memory. Hash evidence establishes content integrity for referenced bytes only and does not, by itself, upgrade trust. See `docs/spec-evidence.md` section 8.
-
-| Type | Description |
-|------|-------------|
-| `hash` | SHA-256 verification of file artifacts (`file://...`) |
-| `sig` | Ed25519 signature verification via trusted keyring |
-
-Ed25519 signature verification requires `pip install "pic-standard[crypto]"`.
+On macOS or Linux:
 
 ```bash
-# Verify hash evidence
-pic-cli verify examples/financial_hash_ok.json --verify-evidence
-
-# Verify signature evidence (requires keyring)
-# macOS / Linux
-PIC_KEYS_PATH=pic_keys.example.json pic-cli verify examples/financial_sig_ok.json --verify-evidence
-# PowerShell
-# $env:PIC_KEYS_PATH="pic_keys.example.json"
-# pic-cli verify examples/financial_sig_ok.json --verify-evidence
+export PIC_KEYS_PATH="$PWD/pic_keys.example.json"
+pic-cli verify examples/financial_sig_ok.json --verify-evidence --json
+pic-cli verify examples/failing/financial_sig_bad.json --verify-evidence --json
 ```
 
-Full guide: [docs/evidence.md](docs/evidence.md)
+On PowerShell:
 
-**Canonicalization (v0.8.0+):** PIC Canonical JSON v1 (PIC-CJSON/1.0) defines the byte-exact serialization rules used when PIC hashes or signs JSON values. The normative spec is [`docs/canonicalization.md`](docs/canonicalization.md); a pure-stdlib reference implementation lives at `pic_standard.canonical` (`canonicalize()`, `sha256_hex()`, `intent_digest_hex()`). In v0.8.0 this is an additive capability — existing signature verification paths continue to work as in v0.7.x; wiring canonicalization into attestation-object-backed signatures is scheduled for a later release. Conformance vectors live under [`conformance/canonicalization/`](conformance/canonicalization/) and execute on every PR via the `PIC Conformance` CI job.
-
----
-
-## Keyring (Trusted Signers)
-
-Signature evidence requires a keyring of trusted public keys with expiry and revocation support.
-```bash
-pic-cli keys                        # Inspect current keyring
-pic-cli keys --write-example        # Generate starter keyring
+```powershell
+$env:PIC_KEYS_PATH = "$PWD/pic_keys.example.json"
+pic-cli verify examples/financial_sig_ok.json --verify-evidence --json
+pic-cli verify examples/failing/financial_sig_bad.json --verify-evidence --json
 ```
 
-**Custom resolvers (v0.7+):** As of v0.7, trust resolution is injectable and local-first. PIC no longer reloads the default keyring per signature, and custom resolvers can plug into the verifier and pipeline directly. Implement the `KeyResolver` protocol to use your own trust backend or preloaded trust source (HSM-backed service, Vault-managed keys, cached remote keyring, etc.):
-```python
-from pic_standard import KeyResolver, StaticKeyRingResolver
-```
+The valid fixture returns `"ok": true`; the tampered fixture returns `"ok": false` with `PIC_EVIDENCE_FAILED`. These commands verify evidence without executing a tool. The bundled demo keys expire on 1 January 2027.
 
-**Trust controls (v0.9.0a2+):** `strict_trust=True` is the secure default: all inbound provenance trust is sanitized to `untrusted`, and only authority-bearing evidence verification, currently signature evidence, can upgrade matching provenance trust. Legacy compatibility mode (`strict_trust=False`) remains callable and emits `PICLegacyTrustModeWarning` at construction. See [docs/migration-trust-sanitization.md](docs/migration-trust-sanitization.md) for migration guide.
+These small fixtures demonstrate legacy signature verification. For a complete approval bound to an action, follow the [signed-refund example](examples/refund-approval/README.md), which has its own pinned installation and execution instructions.
 
-Full guide: [docs/keyring.md](docs/keyring.md)
-
----
-
-## Implementations
-
-- **Python reference implementation:** this repository, published as [`pic-standard`](https://pypi.org/project/pic-standard/) on PyPI.
-- **TypeScript implementation:** [`pic-standard/pic-standard-ts`](https://github.com/pic-standard/pic-standard-ts), passing the shared conformance corpus for `canonicalization`, `core`, and `trust_sanitization` modes. Advisory differential CI in this repository compares Python and TypeScript envelopes on every PR targeting `main`.
-- **Next high-value tracks:** Go and Rust implementations. See the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117) if you want to own one.
-
-```mermaid
-graph TD
-    A[Shared conformance corpus] --> B[Python reference verifier]
-    A --> C[TypeScript verifier]
-    B --> D[Python envelope]
-    C --> E[TypeScript envelope]
-    D --> F[Differential CI]
-    E --> F
-    F --> G{Same semantic result?}
-    G -- Yes --> H[Cross-implementation parity signal]
-    G -- No --> I[Diff artifact: py.json / ts.json / diff.txt]
-```
-
----
+Next: [integration guide](docs/for-agents.md) · [signature walkthrough](examples/walkthroughs/signature-evidence.md) · [examples index](examples/README.md)
 
 ## Integrations
 
-### LangGraph
+| Environment | Integration | Start here |
+|---|---|---|
+| Python MCP server | Synchronous and asynchronous tool guards, evidence verification, live-argument binding, decision logging, and an optional pre-execution hook | [MCP guide](docs/mcp-integration.md) |
+| LangGraph | `PICToolNode` verifies proposals and tool names before invoking tools | [Integration guide](docs/for-agents.md) |
+| OpenClaw | Pre-tool-call plugin using the Python HTTP bridge; blocks when verification fails or the bridge is unavailable | [OpenClaw guide](docs/openclaw-integration.md) |
+| Cordum | External Pack composing PIC verification as a workflow gate | [Cordum guide](docs/cordum-integration.md) |
+| Other languages and services | HTTP verification API with an OpenAPI contract | [OpenAPI](openapi/pic-bridge.v1.yaml) · [Deployment](docs/deploy-docker.md) |
 
-Guard any tool node with `PICToolNode`:
+Optional Python extras:
+
 ```bash
-pip install "pic-standard[langgraph]"
-```
-`PICToolNode` now accepts `verify_evidence`, `strict_trust`, `policy`, and `key_resolver` for full pipeline configuration (v0.7.5+).
-
----
-
-### MCP (Model Context Protocol)
-
-Enterprise tool guarding with fail-closed defaults, request correlation, DoS limits, and evidence sandboxing:
-```bash
-pip install "pic-standard[mcp]"
-```
-Full guide: [docs/mcp-integration.md](docs/mcp-integration.md)
-
----
-
-### OpenClaw
-
-TypeScript plugin for OpenClaw AI agents (`pic-gate`, `pic-init`, `pic-audit` hooks):
-```bash
-pic-cli serve --port 7580
-cd integrations/openclaw && npm install && npm run build
-```
-Full guide: [docs/openclaw-integration.md](docs/openclaw-integration.md)
-
----
-
-### Cordum
-
-Go Pack providing PIC verification as a Cordum workflow gate step with fail-closed three-way routing.
-
-Full guide: [docs/cordum-integration.md](docs/cordum-integration.md)
-
----
-
-### HTTP Bridge (any language)
-
-For non-Python integrations, PIC exposes an HTTP bridge:
-```bash
-pic-cli serve --port 3100
-# POST /verify   — verify an action proposal
-# GET  /health   — liveness check
-# GET  /v1/version — package + protocol version
+python -m pip install "pic-standard[mcp,crypto]"
+python -m pip install "pic-standard[langgraph,crypto]"
 ```
 
----
+Configure the tools that require PIC, enable evidence verification, and supply trusted keys. The [integration guide](docs/for-agents.md) covers the complete execution-boundary setup.
 
-## RFC & Prior Art
+**Argument binding in v0.9.1:** the MCP guard and HTTP bridge check live arguments against the verified proposal. The LangGraph node does not yet perform that comparison; applications using it must enforce it before dispatch.
 
-[**RFC-0001: PIC/1.0 — Provenance & Intent Contracts for AI Agent Action Safety**](docs/RFC-0001-pic-standard.md)
+The HTTP bridge verifies a submitted call; its caller controls execution. A successful HTTP response is not necessarily an allow decision: inspect `allowed`.
 
-Formal specification covering scope, threat model, security properties, conformance levels, and prior art differentiation. Published as a defensive publication with a SHA-256 fingerprint manifest: [`docs/RFC-0001.SHA256`](docs/RFC-0001.SHA256).
+## Evidence and trusted keys
 
-Verify locally: `sha256sum -c docs/RFC-0001.SHA256`
+PIC supports two evidence types:
 
-[**Canonical Vocabulary**](docs/vocabulary.md) — authoritative glossary of PIC terminology cited by external crosswalks and registries.
+| Evidence | What verification establishes |
+|---|---|
+| SHA-256 hash | The referenced file's bytes match the expected digest. Hash evidence alone does not establish authority or upgrade trust. |
+| Ed25519 signature | The signature verifies under an accepted key. Canonical signing additionally checks the attestation's binding to the proposal. |
 
----
+Canonical `PIC-ATT/1.0` attestations bind the tool, impact, ordered provenance IDs, arguments digest, and claims digest. An intent digest and expiry are checked when present. A workflow can require those fields, as the refund example does.
 
-## Roadmap
+Trusted keys are configured outside agent-controlled proposals. PIC supports key expiry, revoked-key lists, and a `KeyResolver` interface for operator-managed trust sources.
 
-- [x] Core verifier, CLI, schema, policy system
-- [x] Evidence verification (SHA-256 hash + Ed25519 signatures)
-- [x] Anchor integrations (LangGraph, MCP, OpenClaw, Cordum)
-- [x] Injectable key resolution + hot path fix (v0.7)
-- [x] Trust hardening + attestation object draft (v0.7.5)
-- [x] Canonicalization spec (PIC Canonical JSON v1) + reference implementation (v0.8.0)
-- [x] Initial conformance suite (canonicalization + core modes) with CI runner (v0.8.0)
-- [x] TypeScript local verifier for `canonicalization`, `core`, and `trust_sanitization`
-- [x] Cross-implementation differential CI (Python vs TypeScript semantic envelopes)
-- [ ] Evidence-mode TypeScript parity
-- [ ] Go/Rust verifier parity
-- [ ] Normative semantics (MUST/SHOULD spec document)
-- [ ] OpenAPI spec + guard hardening (structured audit logs, request correlation)
+```bash
+pic-cli keys
+pic-cli keys --write-example
+```
 
----
+File evidence is restricted to a configured evidence directory and bounded by size limits. Proposal and evidence limits, canonicalization checks, and structured error codes support predictable rejection of malformed input.
 
-## Project info
+[Evidence guide](docs/evidence.md) · [Keyring guide](docs/keyring.md) · [Error reference](docs/ERRORS.md)
 
-- **Security policy** — see [`SECURITY.md`](SECURITY.md). Report vulnerabilities privately via [GitHub Security Advisories](https://github.com/pic-standard/pic-standard/security/advisories/new); do not file public issues for security reports.
-- **Code of conduct** — see [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). PIC follows the [Contributor Covenant 2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). Reports go to `team@madeinpluto.com`.
-- **Citation** — see [`CITATION.cff`](CITATION.cff) for full citation metadata. The Zenodo concept DOI [10.5281/zenodo.18725562](https://doi.org/10.5281/zenodo.18725562) (badged at the top of this page) resolves to the latest archived release on Zenodo; per-version DOIs are listed on the Zenodo record.
-- **Foundation-track feedback** — PIC Standard has undergone [AAIF project-proposal review](https://github.com/aaif/project-proposals/issues/16#issuecomment-4455960990). The technical positioning was recognized; the current focus is expanding multi-organization maintainership, production adoption, and standards-track readiness.
-- **Independent reviews** — PIC-authored provenance notes for independent evaluations of PIC releases live under [`docs/independent-reviews/`](docs/independent-reviews/). These pages do not redistribute reviewer-authored sealed reports, PDFs, or methodology documents, and are not certifications, endorsements, audits, or general security guarantees.
-- **License** — Apache-2.0; see [`LICENSE`](LICENSE) (also badged at the top of this page).
+## Security model
 
----
+PIC operates between an agent's proposal and tool execution. Identity systems, task-scoped permissions, and execution logs can work alongside PIC.
+
+Its verification checks structured declarations and evidence. It does not infer the model's private reasoning, prove that every influencing source was disclosed, or decide whether a signer made a sound business decision.
+
+Your application owns the trusted keys, tool policy, and execution path. It must prevent bypass, enforce any workflow-specific approval requirements, and execute the checked arguments. Approval consumption, replay prevention, provider idempotency, and execution reconciliation belong to the surrounding workflow.
+
+An allow decision records successful verification; it does not establish that the tool executed or that the intended effect occurred.
+
+For new signed-approval workflows, use canonical attestations with the required binding and validity fields. Legacy payload signatures remain supported in v0.9.1 for compatibility and do not provide the same action binding.
+
+Report vulnerabilities privately through [GitHub Security Advisories](https://github.com/pic-standard/pic-standard/security/advisories/new). See [SECURITY.md](SECURITY.md).
+
+## Specifications and conformance
+
+PIC is an open protocol with a Python reference implementation and a separate [TypeScript implementation](https://github.com/pic-standard/pic-standard-ts).
+
+The shared corpus contains **91 conformance vectors** in v0.9.1:
+
+| Mode | Vectors |
+|---|---:|
+| Canonicalization | 15 |
+| Core | 10 |
+| Trust sanitization | 24 |
+| Evidence | 42 |
+
+The Python verifier covers all four modes. TypeScript implements canonicalization, core, and trust sanitization; evidence-mode parity remains a completion item. Advisory differential CI compares the implementations' results for their shared modes.
+
+From an installed repository checkout:
+
+```bash
+python -m conformance.run
+python -m conformance.run --json
+```
+
+Specification entry points:
+
+- [Specification status](docs/spec-status.md): implemented versions, draft status, and conformance profiles.
+- [Core verifier semantics](docs/spec-core.md): proposals, trust, impacts, and verifier outcomes.
+- [Evidence semantics](docs/spec-evidence.md): hashes, signatures, trust upgrades, and canonical attestation verification.
+- [Canonical JSON](docs/canonicalization.md): the byte-level serialization contract.
+- [Attestation object](docs/attestation-object-draft.md): the signed action representation.
+- [RFC-0001](docs/RFC-0001-pic-standard.md): the original defensive publication and protocol baseline.
+- [Vocabulary](docs/vocabulary.md): shared terminology.
+
+Core, Evidence, and Attestation specifications remain drafts ahead of the v1.0 freeze. `PIC/1.0` is the protocol identifier; the current Python package is v0.9.1.
+
+## Releases and roadmap
+
+**v0.9.1** adds MCP/HTTP live-argument binding, an optional MCP pre-execution hook, and structured CLI verification output. See the [changelog](CHANGELOG.md).
+
+The v1.0 work focuses on:
+
+- Completing Python/TypeScript conformance across all modes, including evidence.
+- Finalizing Core, Evidence, and Attestation specifications.
+- Making strict trust and canonical signing the conformant modes, with legacy behavior clearly separated.
+- Resolving remaining semantic ambiguities before freezing the contract.
+
+See the [full roadmap](ROADMAP.md) and [release process](RELEASING.md).
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose changes or report issues.
+External contributors have already landed conformance vectors, CLI JSON output, Windows CI, and documentation. Contributions from security researchers, framework authors, and protocol implementers are welcome.
 
-We're actively seeking:
-- Security researchers to stress-test causal logic
-- Framework authors to build native integrations
-- Enterprise architects to define domain Impact Classes
+- **New to PIC?** Start with the [good-first issues](https://github.com/pic-standard/pic-standard/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and [contribution guide](CONTRIBUTING.md).
+- **Building an implementation or integration?** Join the [call for contributors](https://github.com/pic-standard/pic-standard/discussions/117). TypeScript evidence mode and Go/Rust implementations are useful tracks.
+- **Testing the security model?** Try the signed-refund cases, add a [conformance vector](conformance/adding-a-vector.md), or report a vulnerability privately.
 
-Good first contribution areas right now: conformance vectors, OpenAPI spec, TS verifier groundwork, and security review of trust sanitization behavior.
+Please include the version, configuration, expected outcome, and a minimal reproduction with technical reports.
 
-If you find PIC useful, please consider giving us a star on GitHub: it helps attract more security experts and framework authors into the community.
+## Project information
 
-Issues & ideas: [GitHub Issues](https://github.com/pic-standard/pic-standard/issues)
+- **License:** [Apache-2.0](LICENSE). The external Cordum Pack has its own license.
+- **Governance:** [GOVERNANCE.md](GOVERNANCE.md) · [Maintainers](MAINTAINERS.md) · [Code of conduct](CODE_OF_CONDUCT.md).
+- **Independent review:** [Provenance notes](docs/independent-reviews/README.md) describe PIC-maintained regressions arising from independent evaluation of earlier releases.
+- **Foundation-track discussion:** [AAIF project-proposal review](https://github.com/aaif/project-proposals/issues/16#issuecomment-4455960990).
+- **Citation:** [CITATION.cff](CITATION.cff) · [Zenodo DOI](https://doi.org/10.5281/zenodo.18725562).
 
-Maintained by [![Linkedin](https://i.sstatic.net/gVE0j.png) @fmsalvadori](https://www.linkedin.com/in/fmsalvadori/)
-&nbsp;
-[![GitHub](https://i.sstatic.net/tskMh.png) MadeInPluto](https://github.com/madeinplutofabio)
+Created and maintained by [Fabio Marcello Salvadori](https://www.linkedin.com/in/fmsalvadori/), with the [PIC Standard community](https://github.com/pic-standard).
+
+If PIC is useful to your work, a GitHub star helps others find it. Questions and ideas are welcome in [Issues](https://github.com/pic-standard/pic-standard/issues) and [Discussions](https://github.com/pic-standard/pic-standard/discussions).
