@@ -1,0 +1,26 @@
+# Transitive dependency lock for the refund-sandbox PIC verifier adapter.
+# Same versions as examples/refund-approval/constraints.txt: both examples
+# use the same pic-standard commit, so the dependency set is identical.
+#
+# requirements.txt declares the pic-standard source pin; this file
+# constrains everything that pic-standard pulls in so a reviewer's
+# install resolves to the same transitive versions.
+#
+# Install:
+#   pip install -r requirements.txt -c constraints.txt
+#
+# environment.txt records the Python version, pip freeze and installed
+# pic-standard revision captured from a fresh virtual environment.
+annotated-types==0.8.0
+attrs==26.1.0
+cffi==2.1.1
+cryptography==49.0.0
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+pycparser==3.0
+pydantic==2.13.5
+pydantic_core==2.46.5
+referencing==0.37.0
+rpds-py==2026.9.1
+typing-inspection==0.4.4
+typing_extensions==4.16.0

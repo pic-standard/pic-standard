@@ -1,0 +1,14 @@
+# PIC Standard pinned to the exact commit this producer is verified against.
+# This is the issue 193 refund-sandbox experiment pin
+# (refund-sandbox-contract/review-2026-10-23, section 2). It is the same
+# commit used by examples/refund-approval and does not change the
+# supported PIC releases.
+#
+# A bare "pic-standard==0.9.0" is NOT equivalent: this commit declares
+# package version 0.9.0 but carries changes beyond the v0.9.0 tag.
+# pic_result.py refuses to produce an allow unless the installed
+# distribution records exactly this commit in direct_url.json.
+#
+# Install into a dedicated virtual environment:
+#   pip install -r requirements.txt -c constraints.txt
+pic-standard[crypto] @ git+https://github.com/pic-standard/pic-standard.git@330fdd817ef81d43461ea1787939e0d1cc87d589
