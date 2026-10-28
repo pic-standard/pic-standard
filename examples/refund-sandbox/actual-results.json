@@ -1,0 +1,1232 @@
+{
+  "report_format": "refund-sandbox-pic-case-report/1",
+  "status": "passed",
+  "scope": "component checks of this example only; no connected workflow",
+  "exit_code": 0,
+  "contract_revision": "review-2026-10-23",
+  "pic_commit": "330fdd817ef81d43461ea1787939e0d1cc87d589",
+  "python": "3.11.9",
+  "subset": false,
+  "summary": {
+    "total": 79,
+    "passed": 79,
+    "failed": 0
+  },
+  "results": [
+    {
+      "id": "a01_valid_allow",
+      "passed": true,
+      "actual": {
+        "exit_code": 0,
+        "output": "written",
+        "result": "allow",
+        "error_code": null,
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "a02_valid_cli_subprocess",
+      "passed": true,
+      "actual": {
+        "exit_code": 0,
+        "output": "written",
+        "result": "allow",
+        "error_code": null,
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "a03_valid_structured_key_unexpired",
+      "passed": true,
+      "actual": {
+        "exit_code": 0,
+        "output": "written",
+        "result": "allow",
+        "error_code": null,
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "b01_args_payment_changed",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "b02_args_amount_changed",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "b03_args_currency_changed",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "b04_signed_for_other_tool",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_TOOL_BINDING_MISMATCH",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "b05_signed_for_other_impact",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_PROFILE_VIOLATION",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c01_claim_changed_after_signing",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c02_intent_changed_after_signing",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c03_provenance_changed_after_signing",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c04_claim_text_not_canonical",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_CLAIM_INVALID",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c05_claim_extra_member",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_CLAIM_INVALID",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c06_approval_ref_not_hex",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_CLAIM_INVALID",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c07_approval_ref_trailing_newline",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_CLAIM_INVALID",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c08_approval_ref_uppercase",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_CLAIM_INVALID",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c09_decision_id_untrimmed",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_CLAIM_INVALID",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c10_two_claims",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_CLAIM_INVALID",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c11_claim_text_duplicate_member",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_CLAIM_INVALID",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "c12_claim_text_float",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_CLAIM_INVALID",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "d01_missing_evidence",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_EVIDENCE_UNSUPPORTED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "d02_forged_signature",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "d03_expired_attestation",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "d04_unknown_key_id",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "d05_revoked_key",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "d06_expired_key",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "d07_other_example_keyring",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "e01_hash_evidence_only",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_EVIDENCE_UNSUPPORTED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "e02_second_evidence_entry",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_EVIDENCE_UNSUPPORTED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "e03_legacy_payload",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ATTESTATION_REQUIRED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "e04_attestation_missing_expiry",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_EXPIRY_REQUIRED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "e05_attestation_missing_intent_digest",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INTENT_REQUIRED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "e06_attestation_extra_member",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_PROFILE_VIOLATION",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "e07_payload_duplicate_member",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ATTESTATION_REQUIRED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "e08_payload_nan",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ATTESTATION_REQUIRED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "e09_payload_float",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ATTESTATION_REQUIRED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "f01_amount_boolean",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_PROFILE_VIOLATION",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "f02_amount_zero",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_PROFILE_VIOLATION",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "f03_amount_unsafe_integer",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "f04_currency_usd",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_PROFILE_VIOLATION",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "f05_extra_argument",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_PROFILE_VIOLATION",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "f06_payment_id_invalid",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_PROFILE_VIOLATION",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "g01_duplicate_member",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "g02_nan",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "g03_float",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "g04_not_json",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "g05_not_object",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "g06_invalid_utf8",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "h01_legacy_flat_shape",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "h02_extra_member",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "h03_uppercase_hex",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "h04_key_id_whitespace",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "h05_revoked_duplicate",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "h06_naive_key_expiry",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "h07_not_json",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "i01_proposal_bytes_change_ref",
+      "passed": true,
+      "actual": {
+        "exit_code": 0,
+        "output": "written",
+        "result": "allow",
+        "error_code": null,
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "refs_differ": true,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "i02_keyring_bytes_change_ref",
+      "passed": true,
+      "actual": {
+        "exit_code": 0,
+        "output": "written",
+        "result": "allow",
+        "error_code": null,
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "refs_differ": true,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "j01_no_direct_url",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ENVIRONMENT_UNVERIFIED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "j02_local_directory_install",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ENVIRONMENT_UNVERIFIED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "j03_other_commit",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ENVIRONMENT_UNVERIFIED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "j04_malformed_direct_url",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ENVIRONMENT_UNVERIFIED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "j05_not_installed",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ENVIRONMENT_UNVERIFIED",
+        "refs": "bound",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "k01_sdk_exception",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_VERIFIER_ERROR",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "k02_native_internal_error",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_INTERNAL_ERROR",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "k03_adapter_exception",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_ADAPTER_ERROR",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "k04_unknown_revision",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "null",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "k05_invalid_run_id",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "null",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "k06_stale_output_refused",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "unchanged",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "k07_unwritable_output",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "absent",
+        "native_calls": 1,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "k08_missing_proposal_file",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "null",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "k09_oversize_proposal",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "written",
+        "result": "block",
+        "error_code": "SANDBOX_INPUT_MALFORMED",
+        "refs": "null",
+        "sdk_pin": "null",
+        "native_calls": 0,
+        "file_reads": 0,
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "m01_bad_calendar_day",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "absent",
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "m02_bad_calendar_month",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "absent",
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "m03_ttl_overflow",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "absent",
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "m04_missing_seed",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "absent",
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "m05_malformed_seed",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "absent",
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "m06_existing_output_refused",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "unchanged",
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "m07_invalid_approval_ref",
+      "passed": true,
+      "actual": {
+        "exit_code": 2,
+        "output": "absent",
+        "problems": []
+      },
+      "diffs": []
+    },
+    {
+      "id": "m08_past_expiry_then_block",
+      "passed": true,
+      "actual": {
+        "exit_code": 1,
+        "output": "written",
+        "result": "block",
+        "error_code": "PIC_EVIDENCE_FAILED",
+        "refs": "bound",
+        "sdk_pin": "pin",
+        "native_calls": 1,
+        "file_reads": 0,
+        "fixture_exit_code": 0,
+        "problems": []
+      },
+      "diffs": []
+    }
+  ]
+}
