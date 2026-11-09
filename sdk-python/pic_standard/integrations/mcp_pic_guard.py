@@ -27,6 +27,63 @@ from pic_standard.policy import PICPolicy
 
 log = logging.getLogger("pic_standard.mcp")
 
+# MCP integration-only codes (not members of the core PICErrorCode enum).
+_MCP_TOOL_ERROR = "PIC_MCP_TOOL_ERROR"
+_MCP_TOOL_TIMEOUT = "PIC_MCP_TOOL_TIMEOUT"
+_MCP_TOOL_ERROR_MESSAGE = "Tool execution failed"
+_MCP_TOOL_TIMEOUT_MESSAGE = "Tool execution timed out"
+
+
+class _ToolRaisedTimeoutError(Exception):
+    """Separates a tool's own TimeoutError from the guard's asyncio deadline."""
+
+
+def _audit_tool_execution_error(
+    *,
+    decision: MCPAllowDecision,
+    reason_code: str,
+    exception_type: Optional[str] = None,
+) -> None:
+    """Record post-allow execution failure without rewriting PIC's allow decision.
+
+    Identifiers are optional correlation hints, not uniqueness or replay controls.
+    In debug mode only the *type* of the exception may appear, never its text.
+    """
+    payload: Dict[str, Any] = {
+        "event": "pic_mcp_tool_execution_error",
+        "tool": decision.tool,
+        "impact": decision.impact,
+    }
+    if decision.request_id:
+        payload["request_id"] = decision.request_id
+    if decision.proposal_id:
+        payload["proposal_id"] = decision.proposal_id
+    payload["reason_code"] = reason_code
+    if _debug_enabled() and exception_type:
+        payload["detail"] = exception_type
+    try:
+        log.info(json.dumps(payload, ensure_ascii=False))
+    except Exception:
+        log.info("pic_mcp_tool_execution_error=%r", payload)
+
+
+def _tool_failure_response(
+    *,
+    decision: MCPAllowDecision,
+    reason_code: str,
+    message: str,
+    exception_type: Optional[str] = None,
+    max_tool_ms: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Emit the execution event and a fixed, non-disclosing MCP error envelope."""
+    _audit_tool_execution_error(
+        decision=decision, reason_code=reason_code, exception_type=exception_type
+    )
+    error: Dict[str, Any] = {"code": reason_code, "message": message}
+    if _debug_enabled() and reason_code == _MCP_TOOL_TIMEOUT and max_tool_ms is not None:
+        error["details"] = {"max_tool_ms": int(max_tool_ms)}
+    return {"isError": True, "error": error}
+
 
 def _mcp_error_payload(err: PICError) -> Dict[str, Any]:
     """
@@ -450,34 +507,22 @@ def guard_mcp_tool(
     def wrapped(**kwargs: Any) -> Any:
         request_id = _extract_request_id(kwargs)
 
+        # Only failures before dispatch can be PIC enforcement blocks.
         try:
-            (
-                action_proposal,
-                _,
-                decision,
-                sanitized_args,
-            ) = _evaluate_pic_for_tool_call_with_decision(
-                tool_name=tool_name,
-                tool_args=kwargs,
-                policy=policy,
-                limits=limits,
-                verify_evidence=verify_evidence,
-                proposal_base_dir=proposal_base_dir,
-                evidence_root_dir=evidence_root_dir,
-                request_id=request_id,
-                strict_trust=strict_trust,
-                key_resolver=key_resolver,
+            action_proposal, _, decision, sanitized_args = (
+                _evaluate_pic_for_tool_call_with_decision(
+                    tool_name=tool_name,
+                    tool_args=kwargs,
+                    policy=policy,
+                    limits=limits,
+                    verify_evidence=verify_evidence,
+                    proposal_base_dir=proposal_base_dir,
+                    evidence_root_dir=evidence_root_dir,
+                    request_id=request_id,
+                    strict_trust=strict_trust,
+                    key_resolver=key_resolver,
+                )
             )
-
-            if on_allow is not None:
-                _run_pre_execute_hook(on_allow, decision, action_proposal, sanitized_args)
-
-            result = tool_fn(**sanitized_args)
-            return _wrap_success(result)
-
-        except _MCPPreExecuteHookError as he:
-            return _hook_failure_response(decision, he)
-
         except PICError as e:
             _audit_decision(
                 decision="block",
@@ -488,25 +533,35 @@ def guard_mcp_tool(
                 reason=e.message,
             )
             return {"isError": True, "error": _mcp_error_payload(e)}
-
-        except Exception as e:
-            details = (
-                {"exception_type": type(e).__name__, "exception": str(e)}
-                if _debug_enabled()
-                else None
-            )
-            pe = PICError(
-                PICErrorCode.INTERNAL_ERROR, "Internal error while enforcing PIC", details=details
-            )
+        except Exception:
+            # Unexpected pre-dispatch exceptions never expose raw text or tracebacks.
+            pe = PICError(PICErrorCode.INTERNAL_ERROR, "Internal error while enforcing PIC")
             _audit_decision(
                 decision="block",
                 tool_name=tool_name,
                 impact=policy.impact_by_tool.get(tool_name),
                 request_id=request_id,
                 reason_code=pe.code.value,
-                reason=f"{type(e).__name__}: {e}",
+                reason=pe.message,
             )
             return {"isError": True, "error": _mcp_error_payload(pe)}
+
+        if on_allow is not None:
+            try:
+                _run_pre_execute_hook(on_allow, decision, action_proposal, sanitized_args)
+            except _MCPPreExecuteHookError as he:
+                return _hook_failure_response(decision, he)
+
+        # PIC has already allowed the invocation; tool failures cannot be PIC blocks.
+        try:
+            return _wrap_success(tool_fn(**sanitized_args))
+        except Exception as e:
+            return _tool_failure_response(
+                decision=decision,
+                reason_code=_MCP_TOOL_ERROR,
+                message=_MCP_TOOL_ERROR_MESSAGE,
+                exception_type=type(e).__name__,
+            )
 
     return wrapped
 
@@ -547,47 +602,20 @@ def guard_mcp_tool_async(
         request_id = _extract_request_id(kwargs)
 
         try:
-            (
-                action_proposal,
-                _,
-                decision,
-                sanitized_args,
-            ) = _evaluate_pic_for_tool_call_with_decision(
-                tool_name=tool_name,
-                tool_args=kwargs,
-                policy=policy,
-                limits=limits,
-                verify_evidence=verify_evidence,
-                proposal_base_dir=proposal_base_dir,
-                evidence_root_dir=evidence_root_dir,
-                request_id=request_id,
-                strict_trust=strict_trust,
-                key_resolver=key_resolver,
+            action_proposal, _, decision, sanitized_args = (
+                _evaluate_pic_for_tool_call_with_decision(
+                    tool_name=tool_name,
+                    tool_args=kwargs,
+                    policy=policy,
+                    limits=limits,
+                    verify_evidence=verify_evidence,
+                    proposal_base_dir=proposal_base_dir,
+                    evidence_root_dir=evidence_root_dir,
+                    request_id=request_id,
+                    strict_trust=strict_trust,
+                    key_resolver=key_resolver,
+                )
             )
-
-            if on_allow is not None:
-                _run_pre_execute_hook(on_allow, decision, action_proposal, sanitized_args)
-
-            if max_tool_ms is not None:
-                try:
-                    result = await asyncio.wait_for(
-                        tool_fn(**sanitized_args), timeout=float(max_tool_ms) / 1000.0
-                    )
-                except asyncio.TimeoutError as e:
-                    details = {"max_tool_ms": int(max_tool_ms)} if _debug_enabled() else None
-                    raise PICError(
-                        code=PICErrorCode.LIMIT_EXCEEDED,
-                        message="Tool execution timed out",
-                        details=details,
-                    ) from e
-            else:
-                result = await tool_fn(**sanitized_args)
-
-            return _wrap_success(result)
-
-        except _MCPPreExecuteHookError as he:
-            return _hook_failure_response(decision, he)
-
         except PICError as e:
             _audit_decision(
                 decision="block",
@@ -598,24 +626,59 @@ def guard_mcp_tool_async(
                 reason=e.message,
             )
             return {"isError": True, "error": _mcp_error_payload(e)}
-
-        except Exception as e:
-            details = (
-                {"exception_type": type(e).__name__, "exception": str(e)}
-                if _debug_enabled()
-                else None
-            )
-            pe = PICError(
-                PICErrorCode.INTERNAL_ERROR, "Internal error while enforcing PIC", details=details
-            )
+        except Exception:
+            pe = PICError(PICErrorCode.INTERNAL_ERROR, "Internal error while enforcing PIC")
             _audit_decision(
                 decision="block",
                 tool_name=tool_name,
                 impact=policy.impact_by_tool.get(tool_name),
                 request_id=request_id,
                 reason_code=pe.code.value,
-                reason=f"{type(e).__name__}: {e}",
+                reason=pe.message,
             )
             return {"isError": True, "error": _mcp_error_payload(pe)}
+
+        if on_allow is not None:
+            try:
+                _run_pre_execute_hook(on_allow, decision, action_proposal, sanitized_args)
+            except _MCPPreExecuteHookError as he:
+                return _hook_failure_response(decision, he)
+
+        try:
+            if max_tool_ms is not None:
+
+                async def invoke_tool() -> Any:
+                    try:
+                        return await tool_fn(**sanitized_args)
+                    except asyncio.TimeoutError as e:
+                        # asyncio.wait_for must not classify a tool-raised
+                        # TimeoutError as exhaustion of the guard's deadline.
+                        raise _ToolRaisedTimeoutError from e
+
+                try:
+                    result = await asyncio.wait_for(
+                        invoke_tool(), timeout=float(max_tool_ms) / 1000.0
+                    )
+                except asyncio.TimeoutError:
+                    return _tool_failure_response(
+                        decision=decision,
+                        reason_code=_MCP_TOOL_TIMEOUT,
+                        message=_MCP_TOOL_TIMEOUT_MESSAGE,
+                        exception_type="TimeoutError",
+                        max_tool_ms=max_tool_ms,
+                    )
+            else:
+                result = await tool_fn(**sanitized_args)
+            return _wrap_success(result)
+        except Exception as e:
+            # Recover only the type of a tool-raised timeout; never its message.
+            cause = e.__cause__ if isinstance(e, _ToolRaisedTimeoutError) else None
+            exception_type = type(cause).__name__ if cause else type(e).__name__
+            return _tool_failure_response(
+                decision=decision,
+                reason_code=_MCP_TOOL_ERROR,
+                message=_MCP_TOOL_ERROR_MESSAGE,
+                exception_type=exception_type,
+            )
 
     return wrapped

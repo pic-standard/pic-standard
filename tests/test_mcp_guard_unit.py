@@ -116,7 +116,7 @@ def test_mcp_guard_does_not_leak_internal_exception_details_by_default(monkeypat
         PICLegacyTrustModeWarning,
         match="strict_trust=False enables legacy trust behavior",
     ):
-        out = wrapped(amount=1, __pic=_proposal("trusted"))
+        out = wrapped(amount=500, __pic=_proposal("trusted"))
     assert isinstance(out, dict)
     assert out.get("isError") is True
     err = out.get("error") or {}
@@ -126,7 +126,7 @@ def test_mcp_guard_does_not_leak_internal_exception_details_by_default(monkeypat
     assert "exception_type" not in details
 
 
-def test_mcp_guard_leaks_internal_exception_details_when_debug(monkeypatch):
+def test_mcp_guard_does_not_leak_internal_exception_details_when_debug(monkeypatch):
     monkeypatch.setenv("PIC_DEBUG", "1")
 
     def boom(amount: int) -> str:
@@ -147,9 +147,8 @@ def test_mcp_guard_leaks_internal_exception_details_when_debug(monkeypatch):
     ):
         out = wrapped(amount=500, __pic=_proposal("trusted"))
     err = out.get("error") or {}
-    details = err.get("details") or {}
-    assert details.get("exception_type") == "RuntimeError"
-    assert "leak-me" in (details.get("exception") or "")
+    assert err == {"code": "PIC_MCP_TOOL_ERROR", "message": "Tool execution failed"}
+    assert "leak-me" not in str(out)
 
 
 # ---------------------------------------------------------------------------
