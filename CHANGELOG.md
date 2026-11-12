@@ -7,6 +7,16 @@ https://semver.org/
 
 ## [Unreleased]
 
+### Fixed
+
+- Python MCP guards now distinguish PIC enforcement from business-tool execution (#185): a failed tool after `allow` emits `pic_mcp_tool_execution_error` rather than a misleading second PIC `block`. The event includes tool, impact, stable reason code and optional request/proposal correlation; debug audit may include only the exception type. Unexpected pre-dispatch exception audit reasons are sanitized.
+- Tool exceptions (including tool-raised `PICError` or `TimeoutError`) now use fixed, non-disclosing `PIC_MCP_TOOL_ERROR` public envelopes; async guard deadline expiry uses `PIC_MCP_TOOL_TIMEOUT` with the existing timeout message and optional debug `max_tool_ms`. No raw tool exception text, details or tracebacks are disclosed, even in debug mode.
+
+### Compatibility
+
+- Python MCP audit consumers must replace the previously emitted post-allow second `block` with the dedicated execution-error event, and recognize the changed MCP-specific public codes. Pre-dispatch blocking, hook-abort behavior and success envelopes remain unchanged. These codes and the new event are integration-local; no core error enum, PIC/1.0 wire/schema, evidence contract or conformance vector changes. A failed tool may already have caused external side effects; do not automatically retry.
+
+
 ## [0.9.1] - 2026-10-14
 
 Additive integration surface plus a security-hardening fix, consolidating the work merged since v0.9.0. Headline changes: structured JSON output for `pic-cli verify` (#170), an optional, additive MCP guard pre-execution hook (`on_allow`, #189), and live-argument binding that completes tool binding at the MCP guard and HTTP bridge boundary (#190). Live-argument binding is on by default and fails closed with the new `PIC_ARG_BINDING_MISMATCH` error code when a proposal-backed call's sanitized live arguments diverge from the verified `action.args`; a call that previously ran with divergent arguments now blocks. The PIC/1.0 wire format, PIC-CJSON/1.0, JSON schemas, and evidence semantics are unchanged from v0.9.0. The shared conformance corpus expands additively from 84 to 91 vectors; no existing vector is modified. The remainder is conformance expansion, MCP demo corrections and smoke coverage, new examples and integration guidance, Windows CI, and dependency refreshes. PRs in this release: #123, #132, #153, #154, #156, #157, #158, #159, #160, #161, #162, #163, #170, #171, #172, #181, #182, #183, #189, #190.

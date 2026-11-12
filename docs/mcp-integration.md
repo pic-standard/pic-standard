@@ -165,7 +165,7 @@ guarded = guard_mcp_tool_async(
 )
 ```
 
-Same behavior as sync, plus optional `max_tool_ms` timeout. If the tool exceeds the timeout, PIC returns `LIMIT_EXCEEDED`.
+Same behavior as sync, plus optional `max_tool_ms` timeout. If the guard execution deadline expires, the integration returns `PIC_MCP_TOOL_TIMEOUT` with the unchanged message `Tool execution timed out`. A `TimeoutError` raised by the tool itself is instead `PIC_MCP_TOOL_ERROR`. Neither outcome proves that external side effects did not occur.
 
 ### `evaluate_pic_for_tool_call()` (Low-Level)
 
@@ -228,6 +228,27 @@ import logging
 logging.getLogger("pic_standard.mcp").setLevel(logging.INFO)
 ```
 
+### Tool-execution failures after PIC allows
+
+A PIC `allow` is the **only PIC decision** for an invocation that reaches the business tool. If that tool subsequently raises (including a tool-raised `PICError` or `TimeoutError`), the Python MCP integration logs a second, distinct `pic_mcp_tool_execution_error` event, **not** a `pic_mcp_decision: block`. For example:
+
+```json
+{
+  "event": "pic_mcp_tool_execution_error",
+  "tool": "payments_send",
+  "impact": "money",
+  "request_id": "req-abc-123",
+  "proposal_id": "proposal-123",
+  "reason_code": "PIC_MCP_TOOL_ERROR"
+}
+```
+
+The error event occurs **after** the original allow. It deliberately omits `decision`. `request_id` and `proposal_id` are included only when supplied in the allow, and are correlation metadata, **not** guaranteed unique identifiers or replay protection. `tool`, `impact`, and `reason_code` are included. When `PIC_DEBUG=1`, `detail` may additionally contain only the exception type; no exception message, raw tool details, arguments, or traceback is recorded.
+
+The public envelope still uses `{"isError": true, "error": {"code": "...", "message": "..."}}`. Ordinary tool exceptions, including a tool-raised `PICError` or `TimeoutError`, return the MCP-integration-specific `PIC_MCP_TOOL_ERROR` with the fixed message `Tool execution failed`. An **async guard execution deadline** returns `PIC_MCP_TOOL_TIMEOUT` with the existing `Tool execution timed out` message. These two codes are **not** core `PICErrorCode` members. `max_tool_ms` may appear as the only public debug detail for a guard deadline.
+
+**Compatibility:** prior Python MCP guards could emit a misleading second PIC `block` after an `allow`; consumers counting such blocks must now use `pic_mcp_tool_execution_error` for execution failures. The corresponding public codes change from generic enforcement/PIC timeout codes to the MCP-specific codes above. Pre-dispatch PIC rejection stays a single `block`; hook abort stays `allow` followed by `pic_mcp_hook_error`, with no tool dispatch. A raised exception or deadline does not establish rollback or absence of external side effects; clients must not automatically retry on that assumption.
+
 ---
 
 ## Pre-Execution Hook (`on_allow`)
@@ -288,13 +309,13 @@ The sanitized live tool call the guard is about to dispatch. `arguments` are the
 
 ## Debug Mode
 
-Set `PIC_DEBUG=1` to include error details in the MCP error envelope:
+Set `PIC_DEBUG=1` to enable the existing PIC-enforcement diagnostic details (when available), subject to the safety restrictions below:
 
 ```bash
 PIC_DEBUG=1 python your_server.py
 ```
 
-Without debug mode, error envelopes contain only `code` and `message` (no internal details leaked). Hook-failure envelopes remain limited to `code` and `message`; under `PIC_DEBUG`, the separate `pic_mcp_hook_error` audit event may additionally include only the exception type name.
+For **tool execution exceptions**, the public error contains only the fixed `code` and `message` even with `PIC_DEBUG=1`; tool-supplied details, raw exception messages and tracebacks are never returned or audited. For **guard deadline expiry**, debug mode may add only `details.max_tool_ms` to the public response. In the execution-error audit event, debug mode may add only the exception **type** (`detail`). Unexpected pre-dispatch exceptions also use a fixed safe message and audit reason, regardless of debug mode. Existing pre-dispatch PIC enforcement error semantics remain unchanged. Hook-failure envelopes remain limited to `code` and `message`; under `PIC_DEBUG`, the separate `pic_mcp_hook_error` audit event may additionally include only the exception type name.
 
 ---
 
