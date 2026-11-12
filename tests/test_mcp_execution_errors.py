@@ -131,6 +131,50 @@ def test_post_allow_exceptions_are_execution_errors(mode, debug, kind, monkeypat
 
 
 @pytest.mark.parametrize("debug", [False, True])
+def test_async_tool_timeout_untruthable_cause_is_execution_error(debug, monkeypatch, caplog):
+    monkeypatch.setenv("PIC_DEBUG", "1" if debug else "0")
+    caplog.set_level(logging.INFO, logger="pic_standard.mcp")
+    entered = []
+
+    class UntruthableTimeout(asyncio.TimeoutError):
+        def __bool__(self):
+            raise RuntimeError(MARKER)
+
+    async def tool(amount):
+        entered.append(amount)
+        raise UntruthableTimeout(MARKER)
+
+    result = _invoke(
+        "async",
+        tool,
+        amount=7,
+        __pic_request_id="req-untruthable-timeout",
+        max_tool_ms=100,
+    )
+    assert entered == [7]
+    assert result == {
+        "isError": True,
+        "error": {"code": "PIC_MCP_TOOL_ERROR", "message": "Tool execution failed"},
+    }
+    events = _events(caplog)
+    assert [e["event"] for e in events] == [
+        "pic_mcp_decision",
+        "pic_mcp_tool_execution_error",
+    ]
+    assert events[0]["decision"] == "allow"
+    assert events[0]["request_id"] == "req-untruthable-timeout"
+    assert events[1]["reason_code"] == "PIC_MCP_TOOL_ERROR"
+    assert events[1]["request_id"] == "req-untruthable-timeout"
+    assert "decision" not in events[1]
+    if debug:
+        assert events[1]["detail"] == "UntruthableTimeout"
+    else:
+        assert "detail" not in events[1]
+    assert MARKER not in str(result)
+    assert MARKER not in str(events)
+
+
+@pytest.mark.parametrize("debug", [False, True])
 def test_async_guard_deadline_distinct_from_tool_raised_timeout(debug, monkeypatch, caplog):
     monkeypatch.setenv("PIC_DEBUG", "1" if debug else "0")
     caplog.set_level(logging.INFO, logger="pic_standard.mcp")

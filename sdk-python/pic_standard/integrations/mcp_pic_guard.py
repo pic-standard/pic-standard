@@ -673,7 +673,7 @@ def guard_mcp_tool_async(
         except Exception as e:
             # Recover only the type of a tool-raised timeout; never its message.
             cause = e.__cause__ if isinstance(e, _ToolRaisedTimeoutError) else None
-            exception_type = type(cause).__name__ if cause else type(e).__name__
+            exception_type = type(cause).__name__ if cause is not None else type(e).__name__
             return _tool_failure_response(
                 decision=decision,
                 reason_code=_MCP_TOOL_ERROR,
